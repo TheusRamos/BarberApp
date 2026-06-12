@@ -1,131 +1,210 @@
-1. Introdução
-O sistema tem como objetivo permitir o gerenciamento de agendamentos de serviços em uma barbearia, oferecendo funcionalidades para clientes e administradores. Os clientes poderão realizar cadastro, login, visualizar horários disponíveis e agendar serviços. Já o administrador poderá gerenciar horários, serviços, clientes e acompanhar informações gerais do sistema. 
-2. Usuários do Sistema
-O usuário será responsável por acessar o aplicativo para realizar agendamentos, consultar horários disponíveis e acompanhar seus serviços marcados. Já o Administrador será responsável por gerenciar o sistema, cadastrar horários, serviços, visualizar agendamentos e acompanhar o funcionamento da barbearia. 
+# 💈 Sistema de Agendamentos — Barbearia
 
-3. Requisitos Funcionais
-O sistema deve permitir o cadastro de novos clientes.
-O sistema deve permitir o login de clientes e administradores.
-O sistema deve identificar automaticamente o tipo de usuário após o login.
-O cliente deve conseguir visualizar os horários disponíveis para o serviço desejado.
-O cliente deve conseguir realizar um agendamento.
-O administrador deve conseguir cadastrar, editar e remover horários.
-O administrador deve conseguir visualizar os agendamentos realizados.
-O sistema deve permitir o cadastro de novos serviços oferecidos pela barbearia.
-4. Requisitos Não Funcionais
-O sistema deve possuir uma interface moderna, intuitiva e responsiva.
-O sistema deve utilizar autenticação para proteger o acesso dos usuários.
-O sistema deve armazenar os dados em um banco de dados seguro.
-O sistema deve validar as informações antes de salvar no banco de dados.
-O sistema deve ser desenvolvido com tecnologias compatíveis com aplicação mobile.
-5. Regras de Negócio
-Um cliente não pode agendar dois serviços no mesmo horário.
-Apenas administradores podem cadastrar ou remover horários.
-Um horário já reservado não deve aparecer como disponível para outros clientes.
-O cliente precisa estar logado para realizar um agendamento.
-O administrador poderá visualizar todos os agendamentos realizados.
-6. Atores do Sistema
-Cliente:
-Cadastrar-se
-Fazer login
-Visualizar horários
-Agendar serviço
-Visualizar agendamentos
-Visualizar comentários
-Administrador:
-Fazer login
-Gerenciar horários
-Gerenciar serviços
-Visualizar agendamentos
-Gerenciar clientes
-Acessar dashboard
-Gerenciar comentários
-Visualizar comentários
-7. Permissões e Casos de Uso  
-Acesse aqui o Diagrama dos casos de uso no LucidChart  para uma melhor visualização dos casos de uso para cada ator do diagrama. Segue tabelas com as permissões de cada um.
-CADASTRAR-SE
-Cliente : Administrador
-FAZER LOGIN
-Cliente
-VISUALIZAR HORÁRIOS
-Cliente : Administrador
-AGENDAR SERVIÇOS
-Cliente : Administrador
-VISUALIZAR AGENDAMENTOS
-Cliente : Administrador
-ACESSAR DASHBOARD
-Administrador
-GERENCIAR CLIENTES
-Administrador
-GERENCIAR HORÁRIOS
-Administrador
-GERENCIAR SERVIÇOS
-Administrador
+Sistema web para gerenciamento de agendamentos em barbearia, com funcionalidades distintas para clientes e administradores.
 
+---
 
-7.1 Agendamento
-Descrição: Permitir que o cliente realize um agendamento.
-Pré-condição: O cliente deve ter uma conta no sistema.
-Trigger: Não há
-Fluxo básico: O cliente deve acessar o site, após a criação de uma conta ele deverá acessar o botão de agendamentos para realizar o mesmo. O sistema permite que o usuário selecione o horário, o dia e o cabeleireiro desejado, após a seleção, o usuário confirma o agendamento.
-Fluxo de exceção: 
-O cliente consegue acessar o sistema de agendamentos antes de ter uma conta válida.
-O cliente não seleciona algum dos campos obrigatórios no agendamento.
-O sistema perde a conexão com a internet em meio ao processo de agendamento.
-Pós-condições: 
-O sistema deve informar o cliente via pop-in que o agendamento foi realizado com sucesso, e deve continuar no site normalmente.
-Regras de negócio:
-O sistema deve realizar a gestão de horários de forma que um não sobrepõe outro.
-O sistema deve realizar a checagem se o usuário está logado no sistema a cada passo em que isso seja necessário.
-O sistema deve conseguir realizar o controle de concorrência no agendamento de horários.
-7.2 Cadastro
-Descrição:  Permite que o usuário faça um cadastro no sistema.
-Pré-condição: Não há
-Trigger: Não há
-Fluxo básico: O cliente deve acessar o site e clicar na opção realizar cadastro, após ele irá preencher os campos com seus dados, e submetê-los ao sistema, após isso ele receberá uma mensagem informando se o cadastro foi realizado corretamente.
-Fluxo de exceções: 
-O usuário cancela o processo de cadastro.
-O usuário submete os dados com a falta de algum campo obrigatório.
-O usuário insere um código inválido nos campos.
-O usuário informa um email ou número de telefone já existentes no banco de dados.
-Pós-condições:
-O sistema informa ao usuário que o cadastro foi realizado com sucesso.
-Regras de negócio:
-O cliente deve inserir caracteres válidos nos campos de dados.
-O sistema deve prever uma tentativa SQL injection nos campos do cadastro.
-O cliente não deve possuir uma conta com o mesmo email e número de telefone.
-7.3 Realizar comentários
-Descrição: O usuário exibe um comentário avaliando os serviços do site.
-Pré-condições:
-O usuário deve possuir um cadastro.
-O usuário deve possuir ao menos 3 serviços completos
-Fluxo básico:
-O usuário acessa a aba de comentários do site, para fazer uma avaliação dos serviços que foram prestados no site. Ele pode colocar uma quantidade de estrelas de 1 a 5 para outras pessoas verem. O usuário também pode adicionar um texto de até no máximo 50 palavras falando sobre os serviços.
-Fluxo de exceções:
-O usuário tenta realizar um comentário sem os pré requisitos.
-Pós-condições:
-O sistema agradece o usuário pelo feedback.
-Regras de negócio:
-O usuário deve possuir um cadastro.
-O usuário deve possuir pelo menos 3 serviços completos.
-O sistema deve verificar o conteúdo da mensagem antes de mandar para o banco de dados.                                       
-7.4 Login
-Login : Permite que o usuário consiga entrar na sua conta.
-Pré-Condições: O usuário já deve ter efetuado um cadastro para conseguir fazer o login.
-Trigger: Não há.
-Fluxo básico:  O usuário deve abrir o aplicativo e apertar na opção de login, após isso deve preencher os campos obrigatórios para que o sistema verifique se as informações preenchidas estão corretas , após a verificação o aplicativo deve seguir o fluxo padrão e abrir a interface principal do aplicativo.
-Fluxo de exceções: 
-O usuário digitaliza errado algum dado durante o preenchimento do campo obrigatório.
-O usuário submete os dados com a falta de algum campo obrigatório.
-O usuário insere um código inválido nos campos.
-O usuário tenta efetuar o login antes de criar o cadastro.
-Pós-condições:
-O sistema informa ao usuário que o login foi realizado com sucesso.
-Regras de negócio:
-O cliente deve inserir caracteres válidos nos campos de dados.
-O sistema deve prever uma tentativa SQL injection nos campos do cadastro.
-O cliente deve possuir uma conta com o mesmo email e número de telefone.
-O sistema deve verificar se os dados passados coincidem corretamente com as informações do banco de dados.
+## 📋 Índice
 
-8. Tecnologias utilizadas
-O sistema será desenvolvido com HTML5, CSS3 e JavaScript puro no frontend, utilizando Firebase Authentication para autenticação de usuários e Cloud Firestore como banco de dados em nuvem. O projeto não utilizará frameworks visuais, sendo estilizado com CSS próprio e recursos externos como Google Fonts e Material Symbols.
+- [Sobre o Projeto](#sobre-o-projeto)
+- [Usuários do Sistema](#usuários-do-sistema)
+- [Funcionalidades](#funcionalidades)
+- [Regras de Negócio](#regras-de-negócio)
+- [Casos de Uso](#casos-de-uso)
+- [Tecnologias Utilizadas](#tecnologias-utilizadas)
+
+---
+
+## Sobre o Projeto
+
+O sistema tem como objetivo permitir o gerenciamento de agendamentos de serviços em uma barbearia, oferecendo funcionalidades para clientes e administradores. Clientes podem realizar cadastro, login, visualizar horários disponíveis e agendar serviços. O administrador pode gerenciar horários, serviços, clientes e acompanhar informações gerais do sistema.
+
+---
+
+## 👥 Usuários do Sistema
+
+| Perfil | Responsabilidades |
+|---|---|
+| **Cliente** | Acessar o aplicativo para realizar agendamentos, consultar horários disponíveis e acompanhar seus serviços marcados. |
+| **Administrador** | Gerenciar o sistema, cadastrar horários e serviços, visualizar agendamentos e acompanhar o funcionamento da barbearia. |
+
+---
+
+## ✅ Funcionalidades
+
+### Requisitos Funcionais
+
+- Cadastro de novos clientes
+- Login de clientes e administradores
+- Identificação automática do tipo de usuário após o login
+- Visualização de horários disponíveis para o serviço desejado
+- Realização de agendamentos pelo cliente
+- Cadastro, edição e remoção de horários pelo administrador
+- Visualização de agendamentos pelo administrador
+- Cadastro de novos serviços oferecidos pela barbearia
+
+### Requisitos Não Funcionais
+
+- Interface moderna, intuitiva e responsiva
+- Autenticação para proteção do acesso dos usuários
+- Armazenamento seguro em banco de dados em nuvem
+- Validação de informações antes de salvar no banco de dados
+- Compatibilidade com aplicação mobile
+
+---
+
+## 📐 Regras de Negócio
+
+- Um cliente **não pode** agendar dois serviços no mesmo horário
+- Apenas **administradores** podem cadastrar ou remover horários
+- Um horário já reservado **não aparece** como disponível para outros clientes
+- O cliente **precisa estar logado** para realizar um agendamento
+- O administrador pode **visualizar todos** os agendamentos realizados
+
+---
+
+## 🎭 Casos de Uso
+
+### Permissões por Perfil
+
+| Funcionalidade | Cliente | Administrador |
+|---|:---:|:---:|
+| Cadastrar-se | ✅ | — |
+| Fazer login | ✅ | ✅ |
+| Visualizar horários | ✅ | ✅ |
+| Agendar serviços | ✅ | ✅ |
+| Visualizar agendamentos | ✅ | ✅ |
+| Realizar comentários | ✅ | — |
+| Acessar dashboard | — | ✅ |
+| Gerenciar clientes | — | ✅ |
+| Gerenciar horários | — | ✅ |
+| Gerenciar serviços | — | ✅ |
+| Gerenciar comentários | — | ✅ |
+
+---
+
+### 📌 Detalhamento dos Casos de Uso
+
+<details>
+<summary><strong>7.1 — Agendamento</strong></summary>
+
+**Descrição:** Permitir que o cliente realize um agendamento.
+
+**Pré-condição:** O cliente deve ter uma conta no sistema.
+
+**Fluxo básico:**
+1. O cliente acessa o site com uma conta já criada
+2. Acessa o botão de agendamentos
+3. Seleciona o horário, dia e cabeleireiro desejados
+4. Confirma o agendamento
+
+**Fluxo de exceção:**
+- Cliente acessa o sistema sem conta válida
+- Cliente não preenche todos os campos obrigatórios
+- Perda de conexão durante o processo
+
+**Pós-condição:** O sistema informa via pop-in que o agendamento foi realizado com sucesso.
+
+**Regras:**
+- Gestão de horários sem sobreposição
+- Verificação de login a cada etapa necessária
+- Controle de concorrência no agendamento
+
+</details>
+
+<details>
+<summary><strong>7.2 — Cadastro</strong></summary>
+
+**Descrição:** Permite que o usuário faça um cadastro no sistema.
+
+**Fluxo básico:**
+1. O cliente acessa o site e clica em "Realizar cadastro"
+2. Preenche os campos com seus dados
+3. Submete os dados ao sistema
+4. Recebe mensagem de confirmação do cadastro
+
+**Fluxo de exceção:**
+- Usuário cancela o processo
+- Campos obrigatórios não preenchidos
+- Dados inválidos nos campos
+- E-mail ou telefone já existentes no banco de dados
+
+**Pós-condição:** O sistema informa que o cadastro foi realizado com sucesso.
+
+**Regras:**
+- Caracteres válidos em todos os campos
+- Prevenção contra SQL Injection
+- E-mail e telefone únicos por conta
+
+</details>
+
+<details>
+<summary><strong>7.3 — Realizar Comentários</strong></summary>
+
+**Descrição:** O usuário exibe um comentário avaliando os serviços.
+
+**Pré-condições:**
+- Possuir cadastro no sistema
+- Ter ao menos 3 serviços completos
+
+**Fluxo básico:**
+1. O usuário acessa a aba de comentários
+2. Seleciona de 1 a 5 estrelas como avaliação
+3. Opcionalmente, adiciona um texto de até 50 palavras
+4. Submete o comentário
+
+**Fluxo de exceção:**
+- Usuário tenta comentar sem os pré-requisitos
+
+**Pós-condição:** O sistema agradece o usuário pelo feedback.
+
+**Regras:**
+- Cadastro obrigatório
+- Mínimo de 3 serviços completos
+- Verificação do conteúdo antes de enviar ao banco de dados
+
+</details>
+
+<details>
+<summary><strong>7.4 — Login</strong></summary>
+
+**Descrição:** Permite que o usuário entre na sua conta.
+
+**Pré-condição:** O usuário já deve ter efetuado um cadastro.
+
+**Fluxo básico:**
+1. O usuário abre o aplicativo e acessa a opção de login
+2. Preenche os campos obrigatórios
+3. O sistema verifica as informações
+4. O sistema redireciona para a interface principal
+
+**Fluxo de exceção:**
+- Dados preenchidos incorretamente
+- Campos obrigatórios não preenchidos
+- Tentativa de login sem cadastro prévio
+
+**Pós-condição:** O sistema informa que o login foi realizado com sucesso.
+
+**Regras:**
+- Caracteres válidos nos campos
+- Prevenção contra SQL Injection
+- Verificação da correspondência entre dados e banco de dados
+
+</details>
+
+---
+
+## 🛠️ Tecnologias Utilizadas
+
+| Camada | Tecnologia |
+|---|---|
+| Frontend | HTML5, CSS3, JavaScript (puro) |
+| Autenticação | Firebase Authentication |
+| Banco de dados | Cloud Firestore |
+| Fontes e ícones | Google Fonts, Material Symbols |
+
+> O projeto **não utiliza frameworks visuais**, sendo estilizado com CSS próprio.
+
+---
+
+<p align="center">Desenvolvido com ☕ e tesoura ✂️</p>
