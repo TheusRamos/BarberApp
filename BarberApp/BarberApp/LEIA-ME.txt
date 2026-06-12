@@ -1,0 +1,45 @@
+BARBERAPP - VERSÃO CORRIGIDA
+
+Arquivos principais:
+- index.html: tela de novo agendamento.
+- agendamentos.html: painel de agendamentos, área administrativa e avaliações.
+- auth.html: login, cadastro e saída da conta.
+- app.js: lógica principal do sistema.
+- auth.js: lógica de autenticação.
+- style.css / agendamentos.css / theme.js: visual e alternância de tema.
+- firestore.rules: regras de segurança do Cloud Firestore.
+
+O que foi corrigido:
+1. Corrigido o erro de JavaScript que quebrava o app.js.
+2. Corrigido o cadastro e login com Firebase Authentication.
+3. O cliente precisa estar logado para agendar.
+4. Cliente visualiza apenas os próprios agendamentos.
+5. Administrador visualiza todos os agendamentos.
+6. Sistema identifica administrador pelo campo role = "admin" no documento users/{uid}.
+7. Horários disponíveis agora vêm da coleção horarios.
+8. Horário reservado não aparece mais para outros clientes.
+9. Criação e edição de agendamentos usam transação para evitar dois clientes no mesmo horário.
+10. Ao cancelar ou excluir agendamento, o slot do horário é liberado corretamente.
+11. Administração de serviços e horários corrigida.
+12. Comentários ficam visíveis para usuários e administradores.
+13. Cliente só consegue comentar após 3 serviços concluídos.
+14. Corrigidas regras do Firestore, removendo leitura pública indevida de agendamentos.
+15. Melhoradas validações de formulário e proteção contra HTML indevido nos dados exibidos.
+
+Como criar o primeiro administrador:
+1. Cadastre normalmente o usuário pelo app.
+2. No Firebase Console, abra Firestore > coleção users.
+3. Encontre o documento do usuário cadastrado.
+4. Altere o campo role de "client" para "admin".
+5. Faça login novamente. A área Administração será liberada.
+
+Coleções utilizadas no Firestore:
+- users
+- agendamentos
+- horarios
+- slots
+- services
+- comments
+
+Observação:
+Para testar a disponibilidade de horários, primeiro entre como administrador, cadastre horários na tela Agendamentos e depois faça um agendamento como cliente.

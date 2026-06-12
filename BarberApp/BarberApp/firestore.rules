@@ -1,0 +1,105 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userPath(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    function hasUserDoc() {
+      return signedIn() && exists(userPath(request.auth.uid));
+    }
+
+    function isAdmin() {
+      return hasUserDoc() && get(userPath(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function validAppointment(data) {
+      return data.keys().hasAll(['nome', 'email', 'servico', 'data', 'hora', 'horarioId', 'valor', 'userId'])
+        && data.nome is string
+        && data.email is string
+        && data.servico is string
+        && data.data is string
+        && data.hora is string
+        && data.horarioId is string
+        && data.valor is number
+        && data.userId is string;
+    }
+
+    match /users/{userId} {
+      allow create: if isOwner(userId)
+        && request.resource.data.role == 'client'
+        && request.resource.data.name is string
+        && request.resource.data.email is string
+        && request.resource.data.phone is string;
+
+      allow read: if isOwner(userId) || isAdmin();
+
+      allow update: if isAdmin()
+        || (
+          isOwner(userId)
+          && request.resource.data.role == resource.data.role
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    match /agendamentos/{appointmentId} {
+      allow create: if signedIn()
+        && validAppointment(request.resource.data)
+        && request.resource.data.userId == request.auth.uid;
+
+      allow read: if isAdmin() || isOwner(resource.data.userId);
+
+      allow update: if isAdmin() || isOwner(resource.data.userId);
+
+      allow delete: if isAdmin() || isOwner(resource.data.userId);
+    }
+
+    match /slots/{slotId} {
+      allow read: if true;
+
+      allow create: if signedIn()
+        && request.resource.data.appointmentId is string
+        && request.resource.data.userId is string
+        && (isAdmin() || request.resource.data.userId == request.auth.uid);
+
+      allow update, delete: if isAdmin() || isOwner(resource.data.userId);
+    }
+
+    match /services/{serviceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /horarios/{horarioId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /comments/{commentId} {
+      allow read: if true;
+
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.rating is number
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.text is string;
+
+      allow update: if false;
+      allow delete: if isAdmin() || isOwner(resource.data.userId);
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
