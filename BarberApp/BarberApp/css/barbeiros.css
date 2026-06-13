@@ -1,0 +1,337 @@
+/* ============================================================
+   BARBEIROS PAGE
+   ============================================================ */
+
+.barbeiros-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (min-width: 860px) {
+  .barbeiros-layout {
+    grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.2fr);
+  }
+}
+
+/* ---- Form card ---- */
+.barbeiro-form-card {
+  background: rgba(22, 22, 28, 0.96);
+  border: 1px solid rgba(148, 141, 162, 0.1);
+  border-radius: 26px;
+  padding: 26px 24px;
+  box-shadow: var(--card-shadow);
+  position: sticky;
+  top: 24px;
+}
+
+.barbeiro-form-card h3 {
+  font-family: 'Manrope', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+[data-theme="light"] .barbeiro-form-card {
+  background: rgba(255, 255, 255, 0.96);
+}
+
+/* ---- Avatar upload ---- */
+.barbeiro-avatar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.barbeiro-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: 1.6rem;
+  color: #fff;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.barbeiro-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+
+.barbeiro-avatar img.visible {
+  display: block;
+}
+
+.barbeiro-avatar-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: rgba(196, 150, 58, 0.1);
+  border: 1px solid rgba(196, 150, 58, 0.2);
+  color: var(--primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.barbeiro-avatar-label:hover {
+  background: rgba(196, 150, 58, 0.18);
+}
+
+.barbeiro-avatar-label .material-symbols-outlined {
+  font-size: 18px;
+}
+
+/* ---- Services checkboxes ---- */
+.barbeiro-services-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.service-check-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 141, 162, 0.12);
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.service-check-item:hover {
+  border-color: rgba(196, 150, 58, 0.25);
+  background: rgba(196, 150, 58, 0.04);
+}
+
+.service-check-item input[type="checkbox"] {
+  accent-color: var(--primary);
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.service-check-item span {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* ---- Barbers list ---- */
+.barbeiros-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.barbeiro-card {
+  background: rgba(22, 22, 28, 0.96);
+  border: 1px solid rgba(148, 141, 162, 0.1);
+  border-radius: 22px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: border-color var(--transition), transform var(--transition);
+  cursor: pointer;
+}
+
+.barbeiro-card:hover {
+  border-color: rgba(196, 150, 58, 0.22);
+  transform: translateY(-2px);
+}
+
+.barbeiro-card.selected {
+  border-color: var(--primary);
+  background: rgba(196, 150, 58, 0.06);
+}
+
+[data-theme="light"] .barbeiro-card {
+  background: rgba(255, 255, 255, 0.96);
+}
+
+[data-theme="light"] .barbeiro-card.selected {
+  background: rgba(196, 150, 58, 0.05);
+}
+
+.barbeiro-card-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: 1.2rem;
+  color: #fff;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.barbeiro-card-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+
+.barbeiro-card-avatar img.visible {
+  display: block;
+}
+
+.barbeiro-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.barbeiro-card-info strong {
+  display: block;
+  font-family: 'Manrope', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.barbeiro-card-services {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.barbeiro-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ---- Horarios section ---- */
+.barbeiro-horarios-section {
+  margin-top: 8px;
+}
+
+.barbeiro-horarios-section.hidden {
+  display: none;
+}
+
+.barbeiro-horarios-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (min-width: 640px) {
+  .barbeiro-horarios-layout {
+    grid-template-columns: minmax(220px, 0.6fr) 1fr;
+  }
+}
+
+.horario-form-mini {
+  background: rgba(22, 22, 28, 0.96);
+  border: 1px solid rgba(148, 141, 162, 0.1);
+  border-radius: 22px;
+  padding: 22px 20px;
+  box-shadow: var(--card-shadow);
+}
+
+.horario-form-mini h3 {
+  font-family: 'Manrope', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+[data-theme="light"] .horario-form-mini {
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.bh-horarios-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bh-horario-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(22, 22, 28, 0.96);
+  border: 1px solid rgba(148, 141, 162, 0.1);
+  border-radius: 14px;
+  gap: 12px;
+  transition: border-color var(--transition);
+}
+
+.bh-horario-row:hover {
+  border-color: rgba(196, 150, 58, 0.18);
+}
+
+[data-theme="light"] .bh-horario-row {
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.bh-horario-row.reserved {
+  opacity: 0.55;
+}
+
+.bh-horario-info strong {
+  display: block;
+  font-size: 0.92rem;
+  margin-bottom: 2px;
+}
+
+.bh-horario-info span {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.empty-barbeiros {
+  text-align: center;
+  padding: 48px 20px;
+  background: rgba(22, 22, 28, 0.96);
+  border: 1px solid rgba(148, 141, 162, 0.1);
+  border-radius: 20px;
+}
+
+.empty-barbeiros .material-symbols-outlined {
+  font-size: 44px;
+  color: var(--primary);
+  margin-bottom: 12px;
+}
+
+.empty-barbeiros h3 {
+  font-size: 1.1rem;
+  margin-bottom: 6px;
+}
+
+.empty-barbeiros p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+[data-theme="light"] .empty-barbeiros {
+  background: rgba(255, 255, 255, 0.96);
+}

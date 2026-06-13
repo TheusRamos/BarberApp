@@ -51,6 +51,10 @@
         <span class="material-symbols-outlined">admin_panel_settings</span>
         Administração
       </a>
+      <a href="barbeiros.html" class="sidebar-link hidden" id="barbeiros-nav-link">
+        <span class="material-symbols-outlined">group</span>
+        Barbeiros
+      </a>
     </nav>
     <div class="sidebar-footer">
       <button id="theme-toggle" class="sidebar-theme-btn" type="button" aria-label="Alternar tema">
@@ -115,6 +119,14 @@
               <input type="email" id="email" name="email" placeholder="seuemail@email.com" maxlength="120" required />
               <small class="field-error" id="error-email"></small>
             </div>
+          </div>
+
+          <div class="form-group" id="barbeiro-group" style="display:none">
+            <label for="barbeiro">Barbeiro</label>
+            <select id="barbeiro" name="barbeiro">
+              <option value="">Selecione um barbeiro</option>
+            </select>
+            <small class="field-error" id="error-barbeiro"></small>
           </div>
 
           <div class="form-section">

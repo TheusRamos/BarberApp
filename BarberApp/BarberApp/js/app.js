@@ -39,6 +39,7 @@ const horariosCollection = collection(db, "horarios");
 const slotsCollection = collection(db, "slots");
 const commentsCollection = collection(db, "comments");
 const usersCollection = collection(db, "users");
+const barbeirosCollection = collection(db, "barbeiros");
 
 const EDIT_KEY = "barber_agendamento_editando";
 const STATUS_SEQUENCE = ["Pendente", "Confirmado", "Concluído", "Cancelado"];
@@ -58,6 +59,8 @@ let horariosCache = [];
 let commentsCache = [];
 let slotsCache = new Map();
 let usersCache = [];
+let barbeirosCache = [];
+let selectedBarbeiroId = null;
 let pendingEditAppointment = null;
 
 const unsubscribers = {
@@ -66,7 +69,8 @@ const unsubscribers = {
   horarios: null,
   slots: null,
   comments: null,
-  users: null
+  users: null,
+  barbeiros: null
 };
 
 const $ = id => document.getElementById(id);
@@ -196,6 +200,9 @@ function updateAdminVisibility() {
   const adminNavLink = $("admin-nav-link");
   if (adminNavLink) adminNavLink.classList.toggle("hidden", !isAdmin);
 
+  const barbeirosNavLink = $("barbeiros-nav-link");
+  if (barbeirosNavLink) barbeirosNavLink.classList.toggle("hidden", !isAdmin);
+
   const description = $("appointments-description");
   if (description) {
     description.textContent = isAdmin
@@ -215,11 +222,48 @@ function updateAdminStats() {
   if (available) available.textContent = horariosCache.length - slotsCache.size;
 }
 
+function populateBarbeiroSelect() {
+  const select = $("barbeiro");
+  if (!select) return;
+
+  const current = select.value;
+  const group = $("barbeiro-group");
+
+  if (!barbeirosCache.length) {
+    if (group) group.style.display = "none";
+    return;
+  }
+
+  if (group) group.style.display = "";
+  select.innerHTML = `<option value="">Selecione um barbeiro</option>` +
+    barbeirosCache
+      .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
+      .map(b => `<option value="${escapeHTML(b.id)}">${escapeHTML(b.name)}</option>`)
+      .join("");
+
+  if (barbeirosCache.some(b => b.id === current)) select.value = current;
+}
+
+function onBarbeiroChange() {
+  selectedBarbeiroId = $("barbeiro")?.value || null;
+  clearError("barbeiro");
+  renderServiceOptions();
+  updateAvailableTimes();
+}
+
 function renderServiceOptions() {
   const grid = $("services-grid");
   if (!grid) return;
 
-  const services = getServicesForUI();
+  let services = getServicesForUI();
+
+  if (selectedBarbeiroId) {
+    const barbeiro = barbeirosCache.find(b => b.id === selectedBarbeiroId);
+    if (barbeiro?.services?.length) {
+      services = services.filter(s => barbeiro.services.includes(s.name));
+    }
+  }
+
   const currentValue = getSelectedServiceName();
 
   grid.innerHTML = services.map((service, index) => {
@@ -326,6 +370,7 @@ function updateAvailableTimes() {
   const horarios = sortByDateTime(
     horariosCache.filter(horario => {
       if (horario.data !== selectedDate) return false;
+      if (selectedBarbeiroId && horario.barbeiroId !== selectedBarbeiroId) return false;
       const slot = slotsCache.get(horario.id);
       return !slot || (editId && slot.appointmentId === editId) || horario.id === currentHorarioId;
     })
@@ -357,7 +402,12 @@ function validateForm() {
   const horarioId = $("hora")?.value || "";
   const servico = getSelectedServiceName();
 
-  ["nome", "email", "data", "hora", "servico"].forEach(clearError);
+  ["nome", "email", "data", "hora", "servico", "barbeiro"].forEach(clearError);
+
+  if (barbeirosCache.length > 0 && !selectedBarbeiroId) {
+    setError("barbeiro", "Selecione um barbeiro.");
+    isValid = false;
+  }
 
   if (nome.length < 3) {
     setError("nome", "Informe um nome válido.");
@@ -393,6 +443,7 @@ function validateForm() {
 function resetFormState() {
   localStorage.removeItem(EDIT_KEY);
   pendingEditAppointment = null;
+  selectedBarbeiroId = null;
 
   const form = $("booking-form");
   if (form) form.reset();
@@ -416,6 +467,7 @@ function resetFormState() {
   if (cancelEditBtn) cancelEditBtn.classList.add("hidden");
 
   ["nome", "email", "data", "hora", "servico"].forEach(clearError);
+  clearError("barbeiro");
 }
 
 function prefillUserData() {
@@ -451,6 +503,11 @@ async function fillFormForEdit(docId) {
     if ($("data")) $("data").value = appointment.data || "";
     if ($("observacoes")) $("observacoes").value = appointment.observacoes || "";
 
+    if ($("barbeiro") && appointment.barbeiroId) {
+      $("barbeiro").value = appointment.barbeiroId;
+      selectedBarbeiroId = appointment.barbeiroId;
+    }
+
     renderServiceOptions();
     const selectedService = Array.from(document.querySelectorAll('input[name="servico"]'))
       .find(input => input.value === (appointment.servico || ""));
@@ -477,6 +534,7 @@ async function fillFormForEdit(docId) {
 function buildAppointmentPayload() {
   const horario = getSelectedHorario();
   const servico = getSelectedServiceName();
+  const barbeiroData = barbeirosCache.find(b => b.id === selectedBarbeiroId);
 
   return {
     nome: $("nome").value.trim(),
@@ -485,7 +543,8 @@ function buildAppointmentPayload() {
     data: $("data").value,
     hora: horario?.hora || "",
     horarioId: horario?.id || "",
-    barbeiro: horario?.barbeiro || "",
+    barbeiroId: selectedBarbeiroId || "",
+    barbeiro: barbeiroData?.name || horario?.barbeiro || "",
     observacoes: $("observacoes").value.trim(),
     valor: getServicePrice(servico)
   };
@@ -784,7 +843,7 @@ async function handleStatusChange(id) {
 
       const currentAppointment = appointmentSnap.data();
 
-      if (nextStatus === "Cancelado") {
+      if (nextStatus === "Cancelado" || nextStatus === "Concluído") {
         await releaseSlotForAppointment(transaction, id, currentAppointment);
       } else if ((currentAppointment.status || "") === "Cancelado") {
         const horarioId = currentAppointment.horarioId || `${currentAppointment.data}_${currentAppointment.hora}`;
@@ -1169,6 +1228,20 @@ function renderCommentsList(items = []) {
   });
 }
 
+function subscribeBarbeiros() {
+  if (typeof unsubscribers.barbeiros === "function") return;
+
+  unsubscribers.barbeiros = onSnapshot(
+    barbeirosCollection,
+    snapshot => {
+      barbeirosCache = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+      populateBarbeiroSelect();
+      renderServiceOptions();
+    },
+    error => console.error("Erro ao carregar barbeiros:", error)
+  );
+}
+
 function subscribeComments() {
   if (!$("comments-list") || typeof unsubscribers.comments === "function") return;
 
@@ -1348,8 +1421,12 @@ document.addEventListener("DOMContentLoaded", () => {
   loadAppointmentsPage();
   subscribeServices();
   subscribeHorarios();
+  subscribeBarbeiros();
   subscribeComments();
   initAuth();
+
+  const barbeiroSelect = $("barbeiro");
+  if (barbeiroSelect) barbeiroSelect.addEventListener("change", onBarbeiroChange);
 
   const serviceSave = $("service-save");
   if (serviceSave) serviceSave.addEventListener("click", saveService);

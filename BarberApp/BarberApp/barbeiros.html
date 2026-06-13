@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>BarberApp | Barbeiros</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/agendamentos.css" />
+  <link rel="stylesheet" href="css/barbeiros.css" />
+</head>
+<body>
+
+  <!-- Overlay + Sidebar -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="index.html" class="sidebar-brand">
+        <span class="material-symbols-outlined">content_cut</span>
+        BarberApp
+      </a>
+      <button class="sidebar-close" id="sidebarClose" aria-label="Fechar menu">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-link">
+        <span class="material-symbols-outlined">home</span>
+        Início
+      </a>
+      <a href="agendamentos.html" class="sidebar-link">
+        <span class="material-symbols-outlined">calendar_month</span>
+        Agendamentos
+      </a>
+      <a href="comentarios.html" class="sidebar-link">
+        <span class="material-symbols-outlined">reviews</span>
+        Avaliações
+      </a>
+      <a href="sobre.html" class="sidebar-link">
+        <span class="material-symbols-outlined">info</span>
+        Sobre Nós
+      </a>
+      <a href="auth.html" class="sidebar-link" id="auth-link">
+        <span class="material-symbols-outlined">person</span>
+        Entrar
+      </a>
+      <a href="admin.html" class="sidebar-link" id="admin-nav-link">
+        <span class="material-symbols-outlined">admin_panel_settings</span>
+        Administração
+      </a>
+      <a href="barbeiros.html" class="sidebar-link" id="barbeiros-nav-link">
+        <span class="material-symbols-outlined">group</span>
+        Barbeiros
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <button id="theme-toggle" class="sidebar-theme-btn" type="button" aria-label="Alternar tema">
+        <span class="material-symbols-outlined">light_mode</span>
+        <span class="theme-label">Modo claro</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Mobile toggle -->
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu">
+    <span class="material-symbols-outlined">menu</span>
+  </button>
+
+  <main class="app">
+    <div class="bg-orb orb-left"></div>
+    <div class="bg-orb orb-bottom"></div>
+
+    <!-- Page header -->
+    <section class="container page-header">
+      <div class="header-content">
+        <div class="welcome-badge">
+          <span class="welcome-dot"></span>
+          <span class="welcome-text">Gestão de equipe</span>
+        </div>
+        <h1 class="page-title">Nossos <span>Barbeiros</span></h1>
+        <p class="page-description">Gerencie a equipe, os serviços que cada barbeiro realiza e os horários disponíveis.</p>
+      </div>
+    </section>
+
+    <!-- Form + List -->
+    <section class="container barbeiros-layout">
+
+      <!-- Left: Add / Edit form -->
+      <div class="barbeiro-form-card">
+        <h3 id="form-panel-title">Novo barbeiro</h3>
+
+        <!-- Avatar upload -->
+        <div class="barbeiro-avatar-wrap">
+          <div class="barbeiro-avatar" id="barbeiro-avatar">
+            <img id="barbeiro-avatar-img" src="" alt="Foto do barbeiro" />
+            <span id="barbeiro-avatar-initial">B</span>
+          </div>
+          <label for="barbeiro-photo-upload" class="barbeiro-avatar-label">
+            <span class="material-symbols-outlined">photo_camera</span>
+            Alterar foto
+          </label>
+          <input type="file" id="barbeiro-photo-upload" accept="image/*" class="hidden" />
+        </div>
+
+        <!-- Name -->
+        <div class="form-group">
+          <label for="barbeiro-name">Nome</label>
+          <input type="text" id="barbeiro-name" placeholder="Nome do barbeiro" maxlength="80" />
+          <small class="field-error" id="error-barbeiro-name"></small>
+        </div>
+
+        <!-- Services checkboxes -->
+        <div class="form-group">
+          <label>Serviços que realiza</label>
+          <div id="barbeiro-services-checks" class="barbeiro-services-checks">
+            <!-- rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions">
+          <button id="barbeiro-save-btn" class="submit-btn" type="button">
+            <span class="material-symbols-outlined">save</span>
+            Salvar barbeiro
+          </button>
+          <button id="barbeiro-cancel-btn" class="ghost-btn hidden" type="button">
+            <span class="material-symbols-outlined">close</span>
+            Cancelar edição
+          </button>
+        </div>
+      </div>
+
+      <!-- Right: Barbers list -->
+      <div id="barbeiros-list">
+        <!-- rendered by JS -->
+      </div>
+
+    </section>
+
+    <!-- Horarios section (shown when barber selected) -->
+    <section class="container barbeiro-horarios-section hidden" id="barbeiro-horarios-section">
+      <div class="section-top">
+        <h2>Horários de <span id="barbeiro-horarios-name">...</span></h2>
+        <p>Gerencie os horários disponíveis para este barbeiro.</p>
+      </div>
+
+      <div class="barbeiro-horarios-layout">
+
+        <!-- Add horario form -->
+        <div class="horario-form-mini">
+          <h3>Adicionar horário</h3>
+          <div class="form-group">
+            <label for="bh-data">Data</label>
+            <input type="date" id="bh-data" />
+          </div>
+          <div class="form-group">
+            <label for="bh-hora">Horário</label>
+            <input type="time" id="bh-hora" />
+          </div>
+          <div class="form-actions">
+            <button id="bh-save" class="submit-btn" type="button">
+              <span class="material-symbols-outlined">add</span>
+              Adicionar
+            </button>
+          </div>
+        </div>
+
+        <!-- Horarios list -->
+        <div id="bh-list" class="bh-horarios-list">
+          <!-- rendered by JS -->
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script type="module" src="js/barbeiros.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/sidebar.js"></script>
+</body>
+</html>
