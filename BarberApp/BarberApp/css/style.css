@@ -1185,3 +1185,18 @@ body, input, textarea, select, button { font-family: 'Inter', sans-serif; }
     grid-template-columns: minmax(0, 0.9fr) minmax(380px, 0.75fr);
   }
 }
+
+
+/* Footer */
+.site-footer {
+  text-align: center;
+  padding: 24px 16px;
+  border-top: 1px solid rgba(196, 150, 58, 0.1);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.site-footer strong {
+  color: var(--primary);
+  font-weight: 700;
+}
