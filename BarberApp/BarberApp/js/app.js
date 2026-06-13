@@ -1051,45 +1051,11 @@ function renderHorariosList() {
       <div class="service-row ${reservado ? "reserved-row" : ""}">
         <div>
           <strong>${escapeHTML(formatDateBR(horario.data))} às ${escapeHTML(horario.hora)}</strong>
-          <span>${escapeHTML(horario.barbeiro || "Barbeiro não informado")} ${reservado ? "• Reservado" : "• Disponível"}</span>
-        </div>
-        <div class="row-actions">
-          ${isAdmin ? `
-            <button class="action-btn edit-horario" type="button" data-id="${escapeHTML(horario.id)}">Editar</button>
-            <button class="action-btn delete-horario" type="button" data-id="${escapeHTML(horario.id)}">Remover</button>
-          ` : ""}
+          <span>${escapeHTML(horario.barbeiro || "Barbeiro não informado")} — ${reservado ? "Reservado" : "Disponível"}</span>
         </div>
       </div>
     `;
   }).join("");
-
-  container.querySelectorAll(".edit-horario").forEach(button => {
-    button.addEventListener("click", () => {
-      const horario = horariosCache.find(item => item.id === button.dataset.id);
-      if (!horario) return;
-      $("horario-data").value = horario.data || "";
-      $("horario-hora").value = horario.hora || "";
-      $("horario-barber").value = horario.barbeiro || "";
-      $("horario-save").dataset.editId = horario.id;
-      $("horario-save").textContent = "Atualizar horário";
-    });
-  });
-
-  container.querySelectorAll(".delete-horario").forEach(button => {
-    button.addEventListener("click", async () => {
-      if (!isAdmin) return showToast("Acesso negado.");
-      if (slotsCache.has(button.dataset.id)) return showToast("Não é possível remover um horário reservado.");
-      if (!confirm("Remover este horário?")) return;
-
-      try {
-        await deleteDoc(doc(db, "horarios", button.dataset.id));
-        showToast("Horário removido.");
-      } catch (error) {
-        console.error(error);
-        showToast("Erro ao remover horário.");
-      }
-    });
-  });
 }
 
 async function saveService() {
@@ -1430,9 +1396,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const serviceSave = $("service-save");
   if (serviceSave) serviceSave.addEventListener("click", saveService);
-
-  const horarioSave = $("horario-save");
-  if (horarioSave) horarioSave.addEventListener("click", saveHorario);
 
   const commentSave = $("comment-save");
   if (commentSave) commentSave.addEventListener("click", saveComment);
