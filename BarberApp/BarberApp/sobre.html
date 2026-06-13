@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>BarberApp | Sobre Nós</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style.css" />
+
+  <style>
+    /* ============================================================
+       SOBRE NÓS – PAGE STYLES
+       ============================================================ */
+
+    .sobre-hero {
+      padding-bottom: 56px;
+      border-bottom: 1px solid rgba(148, 141, 162, 0.1);
+      margin-bottom: 56px;
+    }
+
+    .sobre-hero .hero-title {
+      margin-top: 20px;
+    }
+
+    .sobre-section {
+      margin-bottom: 64px;
+    }
+
+    .sobre-section-title {
+      font-family: 'Manrope', sans-serif;
+      font-size: clamp(1.5rem, 4vw, 2.2rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      margin-bottom: 8px;
+    }
+
+    .sobre-section-title span {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .sobre-section-subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.7;
+      margin-bottom: 32px;
+      max-width: 600px;
+    }
+
+    /* Historia */
+    .sobre-historia-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+
+    .sobre-historia-text {
+      color: var(--text-muted);
+      line-height: 1.85;
+      font-size: 0.97rem;
+    }
+
+    .sobre-historia-text p + p {
+      margin-top: 16px;
+    }
+
+    .sobre-historia-highlight {
+      background: rgba(22, 22, 28, 0.9);
+      border: 1px solid rgba(148, 141, 162, 0.1);
+      border-radius: 22px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .highlight-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .highlight-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: rgba(206, 176, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--primary);
+    }
+
+    .highlight-icon .material-symbols-outlined {
+      font-size: 20px;
+    }
+
+    .highlight-text strong {
+      display: block;
+      font-family: 'Manrope', sans-serif;
+      font-weight: 700;
+      margin-bottom: 3px;
+      font-size: 0.95rem;
+    }
+
+    .highlight-text span {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Serviços */
+    .sobre-servicos-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .sobre-servico-card {
+      background: rgba(22, 22, 28, 0.96);
+      border: 1px solid rgba(148, 141, 162, 0.1);
+      border-radius: 22px;
+      padding: 24px 20px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      transition: transform var(--transition), border-color var(--transition);
+    }
+
+    .sobre-servico-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(206, 176, 255, 0.25);
+    }
+
+    .sobre-servico-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(206, 176, 255, 0.15), rgba(106, 24, 204, 0.08));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--primary);
+    }
+
+    .sobre-servico-icon .material-symbols-outlined {
+      font-size: 26px;
+    }
+
+    .sobre-servico-info h3 {
+      font-family: 'Manrope', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .sobre-servico-info p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .sobre-servico-price {
+      margin-left: auto;
+      flex-shrink: 0;
+      font-family: 'Manrope', sans-serif;
+      font-weight: 800;
+      font-size: 1.05rem;
+      color: var(--primary);
+    }
+
+    /* Equipe */
+    .sobre-equipe-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    .sobre-equipe-card {
+      background: rgba(22, 22, 28, 0.96);
+      border: 1px solid rgba(148, 141, 162, 0.1);
+      border-radius: 24px;
+      padding: 28px 24px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      transition: transform var(--transition), border-color var(--transition);
+    }
+
+    .sobre-equipe-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(206, 176, 255, 0.22);
+    }
+
+    .equipe-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Manrope', sans-serif;
+      font-weight: 800;
+      font-size: 1.5rem;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .equipe-avatar.av1 {
+      background: linear-gradient(135deg, #ceb0ff, #6a18cc);
+    }
+
+    .equipe-avatar.av2 {
+      background: linear-gradient(135deg, #15d9c4, #0a7a74);
+    }
+
+    .equipe-avatar.av3 {
+      background: linear-gradient(135deg, #ffc84d, #c07800);
+    }
+
+    .equipe-info h3 {
+      font-family: 'Manrope', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+
+    .equipe-info .equipe-role {
+      font-size: 0.83rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--primary);
+      margin-bottom: 6px;
+    }
+
+    .equipe-info p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Info grid: horários + contato */
+    .sobre-info-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    .sobre-info-card {
+      background: rgba(22, 22, 28, 0.96);
+      border: 1px solid rgba(148, 141, 162, 0.1);
+      border-radius: 22px;
+      padding: 26px 22px;
+    }
+
+    .sobre-info-card-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Manrope', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+
+    .sobre-info-card-title .material-symbols-outlined {
+      color: var(--primary);
+      font-size: 22px;
+    }
+
+    .horario-lista {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .horario-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(148, 141, 162, 0.07);
+    }
+
+    .horario-item:last-child {
+      border-bottom: none;
+    }
+
+    .horario-item span:first-child {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .horario-item span:last-child {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .horario-item.fechado span:last-child {
+      color: var(--danger);
+    }
+
+    .contato-lista {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .contato-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .contato-item .material-symbols-outlined {
+      color: var(--primary);
+      font-size: 20px;
+      margin-top: 1px;
+      flex-shrink: 0;
+    }
+
+    .contato-item-text strong {
+      display: block;
+      font-size: 0.88rem;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .contato-item-text span {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* CTA */
+    .sobre-cta {
+      text-align: center;
+      padding: 56px 0 16px;
+    }
+
+    .sobre-cta h2 {
+      font-family: 'Manrope', sans-serif;
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      margin-bottom: 10px;
+    }
+
+    .sobre-cta h2 span {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .sobre-cta p {
+      color: var(--text-muted);
+      margin-bottom: 28px;
+      line-height: 1.7;
+    }
+
+    .sobre-cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 16px 32px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
+      color: #fff;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 0.95rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      box-shadow: 0 18px 40px rgba(106, 24, 204, 0.28);
+      transition: transform var(--transition), filter var(--transition);
+    }
+
+    .sobre-cta-btn:hover {
+      transform: translateY(-2px) scale(1.01);
+      filter: brightness(1.05);
+    }
+
+    /* Responsive */
+    @media (min-width: 768px) {
+      .sobre-historia-grid {
+        grid-template-columns: 1fr 1fr;
+        align-items: start;
+      }
+
+      .sobre-servicos-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .sobre-equipe-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .sobre-info-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .sobre-servicos-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .sobre-equipe-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .sobre-equipe-card {
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Overlay + Sidebar -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="index.html" class="sidebar-brand">
+        <span class="material-symbols-outlined">content_cut</span>
+        BarberApp
+      </a>
+      <button class="sidebar-close" id="sidebarClose" aria-label="Fechar menu">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-link">
+        <span class="material-symbols-outlined">home</span>
+        Início
+      </a>
+      <a href="agendamentos.html" class="sidebar-link">
+        <span class="material-symbols-outlined">calendar_month</span>
+        Agendamentos
+      </a>
+      <a href="sobre.html" class="sidebar-link">
+        <span class="material-symbols-outlined">info</span>
+        Sobre Nós
+      </a>
+      <a href="auth.html" class="sidebar-link">
+        <span class="material-symbols-outlined">person</span>
+        Perfil
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <button id="theme-toggle" class="sidebar-theme-btn" type="button" aria-label="Alternar tema">
+        <span class="material-symbols-outlined">light_mode</span>
+        <span class="theme-label">Modo claro</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Mobile toggle -->
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu">
+    <span class="material-symbols-outlined">menu</span>
+  </button>
+
+  <main class="app">
+    <div class="bg-orb orb-left"></div>
+    <div class="bg-orb orb-bottom"></div>
+
+    <!-- Hero -->
+    <section class="container sobre-hero">
+      <div class="welcome-badge">
+        <span class="welcome-dot"></span>
+        <span class="welcome-text">Nossa história</span>
+      </div>
+      <h1 class="hero-title">Sobre <span>Nós</span></h1>
+      <p class="hero-description">
+        Somos mais do que uma barbearia. Somos um espaço onde estilo, tradição e cuidado se encontram para transformar sua experiência de grooming.
+      </p>
+    </section>
+
+    <!-- Nossa História -->
+    <section class="container sobre-section">
+      <h2 class="sobre-section-title">Nossa <span>História</span></h2>
+      <p class="sobre-section-subtitle">Fundada com a missão de oferecer o melhor do cuidado masculino.</p>
+
+      <div class="sobre-historia-grid">
+        <div class="sobre-historia-text">
+          <p>
+            A BarberApp nasceu da paixão de um grupo de barbeiros comprometidos com a excelência. Desde o primeiro dia, nosso foco é proporcionar uma experiência completa — do atendimento personalizado ao resultado final impecável.
+          </p>
+          <p>
+            Ao longo dos anos, construímos uma comunidade de clientes fiéis que confiam no nosso trabalho. Cada corte é tratado como uma obra de arte: com atenção aos detalhes, cuidado com cada fio e respeito pelo estilo individual de cada pessoa.
+          </p>
+          <p>
+            Acreditamos que um bom corte vai além da estética — é uma experiência que eleva a autoestima e cria momentos de relaxamento e conexão.
+          </p>
+        </div>
+
+        <div class="sobre-historia-highlight">
+          <div class="highlight-item">
+            <div class="highlight-icon">
+              <span class="material-symbols-outlined">workspace_premium</span>
+            </div>
+            <div class="highlight-text">
+              <strong>Qualidade Premium</strong>
+              <span>Produtos profissionais e técnicas atualizadas para o melhor resultado.</span>
+            </div>
+          </div>
+          <div class="highlight-item">
+            <div class="highlight-icon">
+              <span class="material-symbols-outlined">handshake</span>
+            </div>
+            <div class="highlight-text">
+              <strong>Atendimento Personalizado</strong>
+              <span>Cada cliente recebe atenção individual e exclusiva durante o atendimento.</span>
+            </div>
+          </div>
+          <div class="highlight-item">
+            <div class="highlight-icon">
+              <span class="material-symbols-outlined">verified</span>
+            </div>
+            <div class="highlight-text">
+              <strong>Profissionais Certificados</strong>
+              <span>Equipe com formação técnica e anos de experiência no mercado.</span>
+            </div>
+          </div>
+          <div class="highlight-item">
+            <div class="highlight-icon">
+              <span class="material-symbols-outlined">favorite</span>
+            </div>
+            <div class="highlight-text">
+              <strong>Ambiente Acolhedor</strong>
+              <span>Um espaço pensado para que você se sinta confortável e à vontade.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Serviços -->
+    <section class="container sobre-section">
+      <h2 class="sobre-section-title">Nossos <span>Serviços</span></h2>
+      <p class="sobre-section-subtitle">Escolha o serviço ideal para o seu estilo e necessidade.</p>
+
+      <div class="sobre-servicos-grid">
+        <div class="sobre-servico-card">
+          <div class="sobre-servico-icon">
+            <span class="material-symbols-outlined">content_cut</span>
+          </div>
+          <div class="sobre-servico-info">
+            <h3>Corte Simples</h3>
+            <p>Corte clássico com acabamento perfeito. Ideal para o dia a dia.</p>
+          </div>
+          <div class="sobre-servico-price">R$ 30</div>
+        </div>
+
+        <div class="sobre-servico-card">
+          <div class="sobre-servico-icon">
+            <span class="material-symbols-outlined">face</span>
+          </div>
+          <div class="sobre-servico-info">
+            <h3>Corte e Barba</h3>
+            <p>Combo completo com corte e modelagem de barba. Sai pronto para qualquer ocasião.</p>
+          </div>
+          <div class="sobre-servico-price">R$ 45</div>
+        </div>
+
+        <div class="sobre-servico-card">
+          <div class="sobre-servico-icon">
+            <span class="material-symbols-outlined">workspace_premium</span>
+          </div>
+          <div class="sobre-servico-info">
+            <h3>Experiência Premium</h3>
+            <p>Tratamento completo com corte, barba, hidratação e finalização profissional.</p>
+          </div>
+          <div class="sobre-servico-price">R$ 70</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Equipe -->
+    <section class="container sobre-section">
+      <h2 class="sobre-section-title">Nossa <span>Equipe</span></h2>
+      <p class="sobre-section-subtitle">Profissionais apaixonados pela arte do corte masculino.</p>
+
+      <div class="sobre-equipe-grid">
+        <div class="sobre-equipe-card">
+          <div class="equipe-avatar av1">R</div>
+          <div class="equipe-info">
+            <h3>Rafael Mendes</h3>
+            <p class="equipe-role">Barbeiro Sênior</p>
+            <p>Mais de 10 anos de experiência. Especialista em cortes clássicos e modernos. Formado pela escola nacional de barbeiros.</p>
+          </div>
+        </div>
+
+        <div class="sobre-equipe-card">
+          <div class="equipe-avatar av2">L</div>
+          <div class="equipe-info">
+            <h3>Lucas Ferreira</h3>
+            <p class="equipe-role">Barbeiro Especialista</p>
+            <p>Focado em técnicas contemporâneas e degradê. Atualiza constantemente suas técnicas em cursos nacionais.</p>
+          </div>
+        </div>
+
+        <div class="sobre-equipe-card">
+          <div class="equipe-avatar av3">M</div>
+          <div class="equipe-info">
+            <h3>Marcos Oliveira</h3>
+            <p class="equipe-role">Barbeiro & Colorista</p>
+            <p>Especialista em coloração e pigmentação de barba. Transforma o visual com criatividade e precisão.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Horários e Contato -->
+    <section class="container sobre-section">
+      <h2 class="sobre-section-title">Funcionamento e <span>Contato</span></h2>
+      <p class="sobre-section-subtitle">Estamos prontos para atendê-lo nos melhores horários.</p>
+
+      <div class="sobre-info-grid">
+        <div class="sobre-info-card">
+          <div class="sobre-info-card-title">
+            <span class="material-symbols-outlined">schedule</span>
+            Horário de funcionamento
+          </div>
+          <div class="horario-lista">
+            <div class="horario-item">
+              <span>Segunda a Sexta</span>
+              <span>09:00 – 20:00</span>
+            </div>
+            <div class="horario-item">
+              <span>Sábado</span>
+              <span>08:00 – 18:00</span>
+            </div>
+            <div class="horario-item">
+              <span>Domingo</span>
+              <span>09:00 – 14:00</span>
+            </div>
+            <div class="horario-item fechado">
+              <span>Feriados</span>
+              <span>Fechado</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="sobre-info-card">
+          <div class="sobre-info-card-title">
+            <span class="material-symbols-outlined">location_on</span>
+            Localização e contato
+          </div>
+          <div class="contato-lista">
+            <div class="contato-item">
+              <span class="material-symbols-outlined">place</span>
+              <div class="contato-item-text">
+                <strong>Endereço</strong>
+                <span>Rua das Tesouras, 123 – Centro<br />São Paulo – SP, 01310-100</span>
+              </div>
+            </div>
+            <div class="contato-item">
+              <span class="material-symbols-outlined">phone</span>
+              <div class="contato-item-text">
+                <strong>Telefone / WhatsApp</strong>
+                <span>(11) 99999-1234</span>
+              </div>
+            </div>
+            <div class="contato-item">
+              <span class="material-symbols-outlined">mail</span>
+              <div class="contato-item-text">
+                <strong>Email</strong>
+                <span>contato@barberapp.com.br</span>
+              </div>
+            </div>
+            <div class="contato-item">
+              <span class="material-symbols-outlined">photo_camera</span>
+              <div class="contato-item-text">
+                <strong>Instagram</strong>
+                <span>@barberapp.oficial</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="container sobre-cta">
+      <h2>Pronto para o próximo <span>nível?</span></h2>
+      <p>Agende agora mesmo e garanta seu horário com nossos profissionais.</p>
+      <a href="index.html" class="sobre-cta-btn">
+        <span class="material-symbols-outlined">content_cut</span>
+        Agendar agora
+      </a>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="theme.js"></script>
+  <script src="sidebar.js"></script>
+</body>
+</html>

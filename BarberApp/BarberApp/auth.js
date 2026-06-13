@@ -36,16 +36,24 @@ const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const shouldLogout = params.get("logout") === "1";
 
+let pendingPhotoBase64 = null;
+
+// ============================================================
+// TOAST
+// ============================================================
+
 function showToast(message) {
   const toast = $("toast");
   if (!toast) return;
-
   toast.textContent = message;
   toast.classList.add("show");
-
   clearTimeout(showToast._timer);
-  showToast._timer = setTimeout(() => toast.classList.remove("show"), 2600);
+  showToast._timer = setTimeout(() => toast.classList.remove("show"), 2800);
 }
+
+// ============================================================
+// FIELD ERRORS
+// ============================================================
 
 function setError(fieldName, message) {
   const errorEl = $(`error-${fieldName}`);
@@ -60,6 +68,10 @@ function clearError(fieldName) {
 function clearAllErrors() {
   document.querySelectorAll(".field-error").forEach(el => (el.textContent = ""));
 }
+
+// ============================================================
+// VALIDATION
+// ============================================================
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -89,55 +101,196 @@ function translateFirebaseError(error) {
   return map[code] || `Erro inesperado (${code || "desconhecido"}). Tente novamente.`;
 }
 
+// ============================================================
+// AUTH PANEL TABS
+// ============================================================
+
 function showLogin() {
   clearAllErrors();
   $("login-form")?.classList.remove("hidden");
   $("register-form")?.classList.add("hidden");
-  $("tab-login")?.classList.add("secondary-btn");
-  $("tab-login")?.classList.remove("ghost-btn");
-  $("tab-register")?.classList.add("ghost-btn");
-  $("tab-register")?.classList.remove("secondary-btn");
+  $("tab-login")?.classList.replace("ghost-btn", "secondary-btn");
+  $("tab-register")?.classList.replace("secondary-btn", "ghost-btn");
 }
 
 function showRegister() {
   clearAllErrors();
   $("register-form")?.classList.remove("hidden");
   $("login-form")?.classList.add("hidden");
-  $("tab-register")?.classList.add("secondary-btn");
-  $("tab-register")?.classList.remove("ghost-btn");
-  $("tab-login")?.classList.add("ghost-btn");
-  $("tab-login")?.classList.remove("secondary-btn");
+  $("tab-register")?.classList.replace("ghost-btn", "secondary-btn");
+  $("tab-login")?.classList.replace("secondary-btn", "ghost-btn");
 }
 
+// ============================================================
+// PANEL VISIBILITY
+// ============================================================
+
 function showLoggedPanel(user, userDoc = null) {
-  const authPanel = $("auth-panel");
-  const loggedPanel = $("logged-panel");
+  $("auth-panel")?.classList.add("hidden");
+  $("logged-panel")?.classList.remove("hidden");
+
   const title = $("auth-title");
   const subtitle = $("auth-subtitle");
-  const message = $("logged-message");
+  if (title) title.textContent = "Meu Perfil";
+  if (subtitle) subtitle.textContent = "Gerencie suas informações pessoais.";
 
-  authPanel?.classList.add("hidden");
-  loggedPanel?.classList.remove("hidden");
+  // Hide auth-only elements (google btn, divider, auth-footer)
+  document.querySelector(".auth-divider")?.classList.add("hidden");
+  $("google-sign-in")?.classList.add("hidden");
+  document.querySelector(".auth-footer")?.classList.add("hidden");
 
-  if (title) title.textContent = "Conta conectada";
-  if (subtitle) subtitle.textContent = "Você já está autenticado no BarberApp.";
-  if (message) {
-    message.textContent = `${userDoc?.name || user.displayName || "Usuário"} • ${user.email || "email não informado"}`;
-  }
+  populateProfileForm(user, userDoc);
 }
 
 function showAuthPanel() {
-  const authPanel = $("auth-panel");
-  const loggedPanel = $("logged-panel");
+  $("auth-panel")?.classList.remove("hidden");
+  $("logged-panel")?.classList.add("hidden");
+
   const title = $("auth-title");
   const subtitle = $("auth-subtitle");
-
-  authPanel?.classList.remove("hidden");
-  loggedPanel?.classList.add("hidden");
-
   if (title) title.textContent = "Acessar conta";
   if (subtitle) subtitle.textContent = "Faça login ou crie um novo cadastro.";
+
+  document.querySelector(".auth-divider")?.classList.remove("hidden");
+  $("google-sign-in")?.classList.remove("hidden");
+  document.querySelector(".auth-footer")?.classList.remove("hidden");
 }
+
+// ============================================================
+// PROFILE – POPULATE
+// ============================================================
+
+function populateProfileForm(user, userDoc) {
+  const name = userDoc?.name || user?.displayName || "";
+  const phone = userDoc?.phone || "";
+  const email = user?.email || "";
+  const photoURL = userDoc?.photoURL || user?.photoURL || "";
+
+  const nameInput = $("profile-name");
+  const phoneInput = $("profile-phone");
+  const emailField = $("profile-email-field");
+  const nameDisplay = $("profile-name-display");
+  const emailDisplay = $("profile-email-display");
+  const avatarInitial = $("avatar-initial");
+  const avatarImg = $("avatar-img");
+
+  if (nameInput) nameInput.value = name;
+  if (phoneInput) phoneInput.value = phone;
+  if (emailField) emailField.value = email;
+  if (nameDisplay) nameDisplay.textContent = name || "Usuário";
+  if (emailDisplay) emailDisplay.textContent = email;
+  if (avatarInitial) avatarInitial.textContent = (name.charAt(0) || "?").toUpperCase();
+
+  if (photoURL && avatarImg) {
+    avatarImg.src = photoURL;
+    avatarImg.classList.add("visible");
+    if (avatarInitial) avatarInitial.style.display = "none";
+  } else {
+    if (avatarImg) avatarImg.classList.remove("visible");
+    if (avatarInitial) avatarInitial.style.display = "";
+  }
+}
+
+// ============================================================
+// PROFILE – PHOTO UPLOAD
+// ============================================================
+
+function handlePhotoUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    showToast("Selecione um arquivo de imagem válido.");
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    showToast("A imagem deve ter no máximo 5 MB.");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const img = new Image();
+    img.onload = function () {
+      const SIZE = 180;
+      const canvas = document.createElement("canvas");
+      canvas.width = SIZE;
+      canvas.height = SIZE;
+      const ctx = canvas.getContext("2d");
+
+      const side = Math.min(img.width, img.height);
+      const sx = (img.width - side) / 2;
+      const sy = (img.height - side) / 2;
+      ctx.drawImage(img, sx, sy, side, side, 0, 0, SIZE, SIZE);
+
+      pendingPhotoBase64 = canvas.toDataURL("image/jpeg", 0.82);
+
+      const avatarImg = $("avatar-img");
+      const avatarInitial = $("avatar-initial");
+      if (avatarImg) {
+        avatarImg.src = pendingPhotoBase64;
+        avatarImg.classList.add("visible");
+      }
+      if (avatarInitial) avatarInitial.style.display = "none";
+
+      showToast("Foto selecionada. Clique em Salvar para confirmar.");
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ============================================================
+// PROFILE – SAVE
+// ============================================================
+
+async function handleProfileSave(event) {
+  event.preventDefault();
+  clearAllErrors();
+
+  const name = ($("profile-name")?.value || "").trim();
+  const phone = ($("profile-phone")?.value || "").trim();
+
+  if (name.length < 3) {
+    setError("profile-name", "Informe um nome válido (mínimo 3 caracteres).");
+    return;
+  }
+
+  const user = auth.currentUser;
+  if (!user) {
+    showToast("Sessão expirada. Faça login novamente.");
+    return;
+  }
+
+  const saveBtn = $("profile-save-btn");
+  if (saveBtn) saveBtn.disabled = true;
+
+  try {
+    const profileUpdate = { displayName: name };
+    if (pendingPhotoBase64) profileUpdate.photoURL = pendingPhotoBase64;
+    await updateProfile(user, profileUpdate);
+
+    const firestoreData = { name, phone, updatedAt: serverTimestamp() };
+    if (pendingPhotoBase64) firestoreData.photoURL = pendingPhotoBase64;
+    await setDoc(doc(db, "users", user.uid), firestoreData, { merge: true });
+
+    const nameDisplay = $("profile-name-display");
+    if (nameDisplay) nameDisplay.textContent = name;
+
+    pendingPhotoBase64 = null;
+    showToast("Perfil atualizado com sucesso!");
+  } catch (error) {
+    console.error("Erro ao salvar perfil:", error);
+    showToast("Erro ao salvar perfil. Tente novamente.");
+  } finally {
+    if (saveBtn) saveBtn.disabled = false;
+  }
+}
+
+// ============================================================
+// AUTH HANDLERS
+// ============================================================
 
 async function handleLogin(event) {
   event.preventDefault();
@@ -147,14 +300,8 @@ async function handleLogin(event) {
   const password = $("login-password")?.value || "";
 
   let valid = true;
-  if (!isValidEmail(email)) {
-    setError("login-email", "Informe um email válido.");
-    valid = false;
-  }
-  if (!password) {
-    setError("login-password", "Informe sua senha.");
-    valid = false;
-  }
+  if (!isValidEmail(email)) { setError("login-email", "Informe um email válido."); valid = false; }
+  if (!password)            { setError("login-password", "Informe sua senha."); valid = false; }
   if (!valid) return;
 
   try {
@@ -171,33 +318,18 @@ async function handleRegister(event) {
   event.preventDefault();
   clearAllErrors();
 
-  const name = ($("register-name")?.value || "").trim();
-  const email = ($("register-email")?.value || "").trim();
-  const phone = ($("register-phone")?.value || "").trim();
+  const name     = ($("register-name")?.value || "").trim();
+  const email    = ($("register-email")?.value || "").trim();
+  const phone    = ($("register-phone")?.value || "").trim();
   const password = $("register-password")?.value || "";
-  const passwordConfirm = $("register-password-confirm")?.value || "";
+  const confirm  = $("register-password-confirm")?.value || "";
 
   let valid = true;
-  if (name.length < 3) {
-    setError("register-name", "Informe um nome válido.");
-    valid = false;
-  }
-  if (!isValidEmail(email)) {
-    setError("register-email", "Informe um email válido.");
-    valid = false;
-  }
-  if (!phone || phone.replace(/\D/g, "").length < 10) {
-    setError("register-phone", "Informe um telefone válido com DDD.");
-    valid = false;
-  }
-  if (password.length < 6) {
-    setError("register-password", "A senha precisa ter pelo menos 6 caracteres.");
-    valid = false;
-  }
-  if (password !== passwordConfirm) {
-    setError("register-password-confirm", "As senhas não coincidem.");
-    valid = false;
-  }
+  if (name.length < 3)                                { setError("register-name", "Informe um nome válido."); valid = false; }
+  if (!isValidEmail(email))                           { setError("register-email", "Informe um email válido."); valid = false; }
+  if (!phone || phone.replace(/\D/g, "").length < 10) { setError("register-phone", "Informe um telefone válido com DDD."); valid = false; }
+  if (password.length < 6)                            { setError("register-password", "A senha precisa ter pelo menos 6 caracteres."); valid = false; }
+  if (password !== confirm)                           { setError("register-password-confirm", "As senhas não coincidem."); valid = false; }
   if (!valid) return;
 
   let credential = null;
@@ -265,6 +397,10 @@ async function handleLogout() {
   }
 }
 
+// ============================================================
+// FIRESTORE USER DOC
+// ============================================================
+
 async function readUserDoc(user) {
   try {
     const userSnap = await getDoc(doc(db, "users", user.uid));
@@ -275,6 +411,10 @@ async function readUserDoc(user) {
   }
 }
 
+// ============================================================
+// INIT
+// ============================================================
+
 document.addEventListener("DOMContentLoaded", () => {
   $("tab-login")?.addEventListener("click", showLogin);
   $("tab-register")?.addEventListener("click", showRegister);
@@ -282,9 +422,14 @@ document.addEventListener("DOMContentLoaded", () => {
   $("register-form")?.addEventListener("submit", handleRegister);
   $("logout-btn")?.addEventListener("click", handleLogout);
   $("google-sign-in")?.addEventListener("click", handleGoogleSignIn);
+  $("profile-form")?.addEventListener("submit", handleProfileSave);
+  $("photo-upload")?.addEventListener("change", handlePhotoUpload);
 
   document.querySelectorAll("input").forEach(input => {
-    input.addEventListener("input", () => clearError(input.id.replace("-", "-")));
+    input.addEventListener("input", () => {
+      const id = input.id;
+      if (id) clearError(id);
+    });
   });
 
   onAuthStateChanged(auth, async user => {

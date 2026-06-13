@@ -1,17 +1,19 @@
-// Theme manager: toggles between 'dark' and 'light', persists choice in localStorage
 const THEME_KEY = 'barber_theme';
 
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  const toggle = document.getElementById('theme-toggle');
-  if (toggle) toggle.textContent = theme === 'light' ? 'Claro' : 'Escuro';
+  const btn = document.getElementById('theme-toggle');
+  if (!btn) return;
+  const icon = btn.querySelector('.material-symbols-outlined');
+  const label = btn.querySelector('.theme-label');
+  if (icon) icon.textContent = theme === 'light' ? 'dark_mode' : 'light_mode';
+  if (label) label.textContent = theme === 'light' ? 'Modo escuro' : 'Modo claro';
 }
 
 function getPreferredTheme() {
   const stored = localStorage.getItem(THEME_KEY);
-  if (stored) return stored;
-  const mql = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)');
-  return mql && mql.matches ? 'light' : 'dark';
+  if (stored === 'light' || stored === 'dark') return stored;
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
 }
 
 function toggleTheme() {
@@ -21,13 +23,9 @@ function toggleTheme() {
   applyTheme(next);
 }
 
-// Init
 (function () {
-  const theme = getPreferredTheme();
-  applyTheme(theme);
-
+  applyTheme(getPreferredTheme());
   document.addEventListener('DOMContentLoaded', () => {
-    const toggle = document.getElementById('theme-toggle');
-    if (toggle) toggle.addEventListener('click', toggleTheme);
+    document.getElementById('theme-toggle')?.addEventListener('click', toggleTheme);
   });
 })();
