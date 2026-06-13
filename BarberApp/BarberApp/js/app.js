@@ -55,6 +55,7 @@ let isAdmin = false;
 let appointmentsCache = [];
 let servicesCache = [];
 let horariosCache = [];
+let commentsCache = [];
 let slotsCache = new Map();
 let usersCache = [];
 let pendingEditAppointment = null;
@@ -1174,10 +1175,10 @@ function subscribeComments() {
   unsubscribers.comments = onSnapshot(
     commentsCollection,
     snapshot => {
-      const items = snapshot.docs
+      commentsCache = snapshot.docs
         .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
         .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-      renderCommentsList(items);
+      renderCommentsList(commentsCache);
     },
     error => {
       console.error("Erro ao carregar comentários:", error);
@@ -1308,6 +1309,7 @@ async function initAuth() {
     updateAuthLink();
     updateAdminVisibility();
     prefillUserData();
+    renderCommentsList(commentsCache);
 
     const currentPage = window.location.pathname.split("/").pop() || "index.html";
     if (currentPage === "agendamentos.html" && !currentUser) {
