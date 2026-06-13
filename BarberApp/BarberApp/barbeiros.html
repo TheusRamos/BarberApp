@@ -121,6 +121,29 @@
           </div>
         </div>
 
+        <!-- Schedule config -->
+        <div class="form-group">
+          <label style="padding-top: 10px;">Horário de atendimento</label>
+          <div class="horario-config-row">
+            <div class="horario-config-field">
+              <span>Início</span>
+              <input type="time" id="barbeiro-inicio" value="09:00" />
+            </div>
+            <div class="horario-config-sep">—</div>
+            <div class="horario-config-field">
+              <span>Fim</span>
+              <input type="time" id="barbeiro-fim" value="20:00" />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label  style="padding-top: 10px;">Dias de atendimento</label>
+          <div id="barbeiro-dias-checks" class="barbeiro-dias-checks">
+            <!-- rendered by JS -->
+          </div>
+        </div>
+
         <!-- Actions -->
         <div class="form-actions" style="padding-top: 10px;">
           <button id="barbeiro-save-btn" class="submit-btn" type="button">
@@ -139,42 +162,6 @@
         <!-- rendered by JS -->
       </div>
 
-    </section>
-
-    <!-- Horarios section (shown when barber selected) -->
-    <section class="container barbeiro-horarios-section hidden" id="barbeiro-horarios-section">
-      <div class="section-top">
-        <h2>Horários de <span id="barbeiro-horarios-name">...</span></h2>
-        <p>Gerencie os horários disponíveis para este barbeiro.</p>
-      </div>
-
-      <div class="barbeiro-horarios-layout">
-
-        <!-- Add horario form -->
-        <div class="horario-form-mini">
-          <h3>Adicionar horário</h3>
-          <div class="form-group">
-            <label for="bh-data">Data</label>
-            <input type="date" id="bh-data" />
-          </div>
-          <div class="form-group">
-            <label for="bh-hora">Horário</label>
-            <input type="time" id="bh-hora" />
-          </div>
-          <div class="form-actions">
-            <button id="bh-save" class="submit-btn" type="button">
-              <span class="material-symbols-outlined">add</span>
-              Adicionar
-            </button>
-          </div>
-        </div>
-
-        <!-- Horarios list -->
-        <div id="bh-list" class="bh-horarios-list">
-          <!-- rendered by JS -->
-        </div>
-
-      </div>
     </section>
 
   </main>

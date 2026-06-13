@@ -44,11 +44,6 @@ const barbeirosCollection = collection(db, "barbeiros");
 const EDIT_KEY = "barber_agendamento_editando";
 const STATUS_SEQUENCE = ["Pendente", "Confirmado", "Concluído", "Cancelado"];
 
-const DEFAULT_SERVICES = [
-  { id: "corte-simples", name: "Corte Simples", price: 30, icon: "content_cut" },
-  { id: "corte-barba", name: "Corte e Barba", price: 45, icon: "face" },
-  { id: "premium", name: "Experiência Premium", price: 70, icon: "workspace_premium" }
-];
 
 let currentUser = null;
 let currentUserData = null;
@@ -151,7 +146,7 @@ function isValidEmail(email) {
 }
 
 function getServicesForUI() {
-  return servicesCache.length > 0 ? servicesCache : DEFAULT_SERVICES;
+  return servicesCache;
 }
 
 function getServicePrice(serviceName) {
@@ -181,6 +176,56 @@ function getSelectedHorario() {
   const select = $("hora");
   if (!select || !select.value) return null;
   return horariosCache.find(item => item.id === select.value) || null;
+}
+
+function generateBarberSlots(barbeiro, selectedDate, selectedService, editId) {
+  const inicio = barbeiro.horarioInicio || "09:00";
+  const fim    = barbeiro.horarioFim    || "20:00";
+
+  // Duration of the service being booked
+  const svcMap    = (typeof barbeiro.services === "object" && !Array.isArray(barbeiro.services))
+    ? barbeiro.services : {};
+  const svcDur    = selectedService ? (Number(svcMap[selectedService]) || 60) : 60;
+
+  // Step = minimum duration among all barber services (slot granularity)
+  const durations = Object.values(svcMap).map(Number).filter(v => v > 0);
+  const step      = durations.length ? Math.min(...durations) : svcDur;
+
+  const [fh, fm]  = fim.split(":").map(Number);
+  const fimMin    = fh * 60 + fm;
+  let [ih, im]    = inicio.split(":").map(Number);
+  let cur         = ih * 60 + im;
+
+  // Collect booked intervals for this barber+date (excluding the appointment being edited)
+  const booked = [];
+  for (const [id, slot] of slotsCache) {
+    const slotDate    = slot.data || id.split("_")[0];
+    const slotBarbId  = slot.barbeiroId || (id.split("_")[2] || "");
+    if (slotDate !== selectedDate) continue;
+    if (slotBarbId && slotBarbId !== barbeiro.id) continue;
+    if (editId && slot.appointmentId === editId) continue;
+
+    const slotHora = slot.hora || id.split("_").slice(1, 3).join(":");
+    if (!slotHora) continue;
+    const [sh, sm] = slotHora.split(":").map(Number);
+    const startMin = sh * 60 + sm;
+    const dur      = Number(slot.duracao) || svcDur;
+    booked.push({ s: startMin, e: startMin + dur });
+  }
+
+  const slots = [];
+  while (cur + svcDur <= fimMin) {
+    const end = cur + svcDur;
+    const blocked = booked.some(b => cur < b.e && end > b.s);
+    if (!blocked) {
+      const hh = Math.floor(cur / 60);
+      const mm = cur % 60;
+      slots.push(`${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`);
+    }
+    cur += step;
+  }
+
+  return slots;
 }
 
 function updateAuthLink() {
@@ -259,8 +304,11 @@ function renderServiceOptions() {
 
   if (selectedBarbeiroId) {
     const barbeiro = barbeirosCache.find(b => b.id === selectedBarbeiroId);
-    if (barbeiro?.services?.length) {
-      services = services.filter(s => barbeiro.services.includes(s.name));
+    if (barbeiro?.services) {
+      const names = Array.isArray(barbeiro.services)
+        ? barbeiro.services
+        : Object.keys(barbeiro.services);
+      if (names.length) services = services.filter(s => names.includes(s.name));
     }
   }
 
@@ -283,7 +331,10 @@ function renderServiceOptions() {
   }).join("");
 
   grid.querySelectorAll('input[name="servico"]').forEach(input => {
-    input.addEventListener("change", () => clearError("servico"));
+    input.addEventListener("change", () => {
+      clearError("servico");
+      updateAvailableTimes();
+    });
   });
 }
 
@@ -307,7 +358,7 @@ function renderServicesList() {
   const services = servicesCache.length > 0 ? servicesCache : [];
 
   if (!services.length) {
-    container.innerHTML = `<div class="empty-row">Nenhum serviço cadastrado no Firestore. O sistema está usando os serviços padrão.</div>`;
+    container.innerHTML = `<div class="empty-row">Nenhum serviço cadastrado.</div>`;
     return;
   }
 
@@ -352,12 +403,11 @@ function renderServicesList() {
 
 function updateAvailableTimes() {
   const dateInput = $("data");
-  const select = $("hora");
+  const select    = $("hora");
   if (!dateInput || !select) return;
 
   const selectedDate = dateInput.value;
-  const editId = localStorage.getItem(EDIT_KEY);
-  const currentHorarioId = pendingEditAppointment?.horarioId || "";
+  const editId       = localStorage.getItem(EDIT_KEY);
 
   select.innerHTML = "";
 
@@ -367,12 +417,49 @@ function updateAvailableTimes() {
     return;
   }
 
+  const barbeiro = selectedBarbeiroId
+    ? barbeirosCache.find(b => b.id === selectedBarbeiroId)
+    : null;
+
+  if (barbeiro) {
+    // ── Auto-generated slots based on barber config ──────────────
+    const dayOfWeek = new Date(selectedDate + "T12:00:00").getDay();
+    const diasDisponiveis = Array.isArray(barbeiro.diasDisponiveis)
+      ? barbeiro.diasDisponiveis
+      : [1, 2, 3, 4, 5, 6];
+
+    if (!diasDisponiveis.includes(dayOfWeek)) {
+      select.disabled = true;
+      select.innerHTML = `<option value="">Barbeiro não atende neste dia</option>`;
+      return;
+    }
+
+    const selectedSvc = getSelectedServiceName();
+    const slots = generateBarberSlots(barbeiro, selectedDate, selectedSvc, editId);
+
+    if (!slots.length) {
+      select.disabled = true;
+      select.innerHTML = `<option value="">Nenhum horário disponível nessa data</option>`;
+      return;
+    }
+
+    select.disabled = false;
+    select.innerHTML = `<option value="">Selecione um horário</option>` +
+      slots.map(hora => `<option value="${escapeHTML(hora)}">${escapeHTML(hora)}</option>`).join("");
+
+    const currentHora = pendingEditAppointment?.hora || "";
+    if (currentHora && [...select.options].some(o => o.value === currentHora)) {
+      select.value = currentHora;
+    }
+    return;
+  }
+
+  // ── Fallback: manual horarios (legacy) ───────────────────────
   const horarios = sortByDateTime(
     horariosCache.filter(horario => {
       if (horario.data !== selectedDate) return false;
-      if (selectedBarbeiroId && horario.barbeiroId !== selectedBarbeiroId) return false;
       const slot = slotsCache.get(horario.id);
-      return !slot || (editId && slot.appointmentId === editId) || horario.id === currentHorarioId;
+      return !slot || (editId && slot.appointmentId === editId);
     })
   );
 
@@ -383,12 +470,14 @@ function updateAvailableTimes() {
   }
 
   select.disabled = false;
-  select.innerHTML = `<option value="">Selecione um horário</option>` + horarios.map(horario => {
-    const barbeiro = horario.barbeiro ? ` • ${horario.barbeiro}` : "";
-    return `<option value="${escapeHTML(horario.id)}">${escapeHTML(horario.hora)}${escapeHTML(barbeiro)}</option>`;
-  }).join("");
+  select.innerHTML = `<option value="">Selecione um horário</option>` +
+    horarios.map(h => {
+      const barb = h.barbeiro ? ` • ${h.barbeiro}` : "";
+      return `<option value="${escapeHTML(h.id)}">${escapeHTML(h.hora)}${escapeHTML(barb)}</option>`;
+    }).join("");
 
-  if (currentHorarioId && horarios.some(horario => horario.id === currentHorarioId)) {
+  const currentHorarioId = pendingEditAppointment?.horarioId || "";
+  if (currentHorarioId && horarios.some(h => h.id === currentHorarioId)) {
     select.value = currentHorarioId;
   }
 }
@@ -514,7 +603,12 @@ async function fillFormForEdit(docId) {
     if (selectedService) selectedService.checked = true;
 
     updateAvailableTimes();
-    if ($("hora")) $("hora").value = appointment.horarioId || "";
+    // For auto-generated slots the select value is the hora string; for legacy it's the horarioId
+    if ($("hora")) {
+      $("hora").value = selectedBarbeiroId
+        ? (appointment.hora || "")
+        : (appointment.horarioId || "");
+    }
 
     const formTitle = $("form-title");
     const formSubtitle = $("form-subtitle");
@@ -532,33 +626,49 @@ async function fillFormForEdit(docId) {
 }
 
 function buildAppointmentPayload() {
-  const horario = getSelectedHorario();
-  const servico = getSelectedServiceName();
+  const servico      = getSelectedServiceName();
+  const selectValue  = $("hora")?.value || "";
+  const data         = $("data")?.value || "";
   const barbeiroData = barbeirosCache.find(b => b.id === selectedBarbeiroId);
 
+  let hora, horarioId, barbeiro, duracao;
+
+  if (barbeiroData) {
+    hora      = selectValue;
+    horarioId = hora ? `${data}_${hora}_${selectedBarbeiroId}` : "";
+    barbeiro  = barbeiroData.name;
+    const svcMap = barbeiroData.services || {};
+    duracao = typeof svcMap === "object" && !Array.isArray(svcMap)
+      ? (Number(svcMap[servico]) || 0)
+      : 0;
+  } else {
+    const horario = getSelectedHorario();
+    hora      = horario?.hora || "";
+    horarioId = horario?.id   || "";
+    barbeiro  = horario?.barbeiro || "";
+    duracao   = 0;
+  }
+
   return {
-    nome: $("nome").value.trim(),
-    email: $("email").value.trim(),
+    nome:        $("nome").value.trim(),
+    email:       $("email").value.trim(),
     servico,
-    data: $("data").value,
-    hora: horario?.hora || "",
-    horarioId: horario?.id || "",
-    barbeiroId: selectedBarbeiroId || "",
-    barbeiro: barbeiroData?.name || horario?.barbeiro || "",
+    data,
+    hora,
+    horarioId,
+    barbeiroId:  selectedBarbeiroId || "",
+    barbeiro,
+    duracao,
     observacoes: $("observacoes").value.trim(),
-    valor: getServicePrice(servico)
+    valor:       getServicePrice(servico)
   };
 }
 
 async function createAppointment(payload) {
   const appointmentRef = doc(collection(db, "agendamentos"));
-  const horarioRef = doc(db, "horarios", payload.horarioId);
-  const slotRef = doc(db, "slots", payload.horarioId);
+  const slotRef        = doc(db, "slots", payload.horarioId);
 
   await runTransaction(db, async transaction => {
-    const horarioSnap = await transaction.get(horarioRef);
-    if (!horarioSnap.exists()) throw new Error("Horário não disponível.");
-
     const slotSnap = await transaction.get(slotRef);
     if (slotSnap.exists()) throw new Error("Horário já reservado.");
 
@@ -573,32 +683,30 @@ async function createAppointment(payload) {
     transaction.set(appointmentRef, appointmentData);
     transaction.set(slotRef, {
       appointmentId: appointmentRef.id,
-      userId: currentUser.uid,
-      data: payload.data,
-      hora: payload.hora,
-      horarioId: payload.horarioId,
-      servico: payload.servico,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      userId:       currentUser.uid,
+      data:         payload.data,
+      hora:         payload.hora,
+      horarioId:    payload.horarioId,
+      barbeiroId:   payload.barbeiroId || "",
+      servico:      payload.servico,
+      duracao:      payload.duracao || 0,
+      createdAt:    serverTimestamp(),
+      updatedAt:    serverTimestamp()
     });
   });
 }
 
 async function updateAppointment(appointmentId, payload) {
   const appointmentRef = doc(db, "agendamentos", appointmentId);
-  const newHorarioRef = doc(db, "horarios", payload.horarioId);
-  const newSlotRef = doc(db, "slots", payload.horarioId);
+  const newSlotRef     = doc(db, "slots", payload.horarioId);
 
   await runTransaction(db, async transaction => {
     const appointmentSnap = await transaction.get(appointmentRef);
     if (!appointmentSnap.exists()) throw new Error("Agendamento não encontrado.");
 
     const oldAppointment = appointmentSnap.data();
-    const oldHorarioId = oldAppointment.horarioId || `${oldAppointment.data}_${oldAppointment.hora}`;
-    const ownerId = oldAppointment.userId || currentUser.uid;
-
-    const horarioSnap = await transaction.get(newHorarioRef);
-    if (!horarioSnap.exists()) throw new Error("Horário não disponível.");
+    const oldHorarioId   = oldAppointment.horarioId || `${oldAppointment.data}_${oldAppointment.hora}`;
+    const ownerId        = oldAppointment.userId || currentUser.uid;
 
     const newSlotSnap = await transaction.get(newSlotRef);
     if (newSlotSnap.exists() && newSlotSnap.data().appointmentId !== appointmentId) {
@@ -621,12 +729,14 @@ async function updateAppointment(appointmentId, payload) {
 
     transaction.set(newSlotRef, {
       appointmentId,
-      userId: ownerId,
-      data: payload.data,
-      hora: payload.hora,
-      horarioId: payload.horarioId,
-      servico: payload.servico,
-      updatedAt: serverTimestamp()
+      userId:     ownerId,
+      data:       payload.data,
+      hora:       payload.hora,
+      horarioId:  payload.horarioId,
+      barbeiroId: payload.barbeiroId || "",
+      servico:    payload.servico,
+      duracao:    payload.duracao || 0,
+      updatedAt:  serverTimestamp()
     }, { merge: true });
   });
 }
@@ -846,23 +956,28 @@ async function handleStatusChange(id) {
       if (nextStatus === "Cancelado" || nextStatus === "Concluído") {
         await releaseSlotForAppointment(transaction, id, currentAppointment);
       } else if ((currentAppointment.status || "") === "Cancelado") {
-        const horarioId = currentAppointment.horarioId || `${currentAppointment.data}_${currentAppointment.hora}`;
-        const horarioRef = doc(db, "horarios", horarioId);
-        const slotRef = doc(db, "slots", horarioId);
-        const horarioSnap = await transaction.get(horarioRef);
-        const slotSnap = await transaction.get(slotRef);
+        const horarioId  = currentAppointment.horarioId || `${currentAppointment.data}_${currentAppointment.hora}`;
+        const slotRef    = doc(db, "slots", horarioId);
+        const slotSnap   = await transaction.get(slotRef);
 
-        if (!horarioSnap.exists()) throw new Error("Horário não existe mais.");
         if (slotSnap.exists() && slotSnap.data().appointmentId !== id) throw new Error("Horário já reservado.");
+
+        // Only check horario document for legacy (non-barber) slots
+        if (!currentAppointment.barbeiroId) {
+          const horarioSnap = await transaction.get(doc(db, "horarios", horarioId));
+          if (!horarioSnap.exists()) throw new Error("Horário não existe mais.");
+        }
 
         transaction.set(slotRef, {
           appointmentId: id,
-          userId: currentAppointment.userId,
-          data: currentAppointment.data,
-          hora: currentAppointment.hora,
+          userId:        currentAppointment.userId,
+          data:          currentAppointment.data,
+          hora:          currentAppointment.hora,
           horarioId,
-          servico: currentAppointment.servico,
-          updatedAt: serverTimestamp()
+          barbeiroId:    currentAppointment.barbeiroId || "",
+          servico:       currentAppointment.servico,
+          duracao:       currentAppointment.duracao || 0,
+          updatedAt:     serverTimestamp()
         }, { merge: true });
       }
 

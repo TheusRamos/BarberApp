@@ -3,15 +3,12 @@ import {
   getFirestore,
   collection,
   addDoc,
-  setDoc,
   updateDoc,
   deleteDoc,
   doc,
   serverTimestamp,
   onSnapshot,
-  getDoc,
-  query,
-  where
+  getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   getAuth,
@@ -27,30 +24,29 @@ const firebaseConfig = {
   appId: "1:16693210556:web:3510e53c285b3dc257cfb9"
 };
 
-const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
+const app  = initializeApp(firebaseConfig);
+const db   = getFirestore(app);
 const auth = getAuth(app);
 
 const barbeirosCol = collection(db, "barbeiros");
 const servicesCol  = collection(db, "services");
-const horariosCol  = collection(db, "horarios");
-const slotsCol     = collection(db, "slots");
 
-const DEFAULT_SERVICES = [
-  { name: "Corte Simples" },
-  { name: "Corte e Barba" },
-  { name: "Experiência Premium" }
+const DIAS_SEMANA = [
+  { value: 0, label: "Dom" },
+  { value: 1, label: "Seg" },
+  { value: 2, label: "Ter" },
+  { value: 3, label: "Qua" },
+  { value: 4, label: "Qui" },
+  { value: 5, label: "Sex" },
+  { value: 6, label: "Sáb" }
 ];
 
 const $ = id => document.getElementById(id);
 
-let barbeirosCache  = [];
-let servicesCache   = [];
-let horariosCache   = [];
-let slotsCache      = new Map();
-let selectedBarbeiro = null;
-let pendingPhoto    = null;
-let editingId       = null;
+let barbeirosCache = [];
+let servicesCache  = [];
+let pendingPhoto   = null;
+let editingId      = null;
 
 // ============================================================
 // TOAST
@@ -81,27 +77,16 @@ function slugify(v = "") {
     .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "h";
 }
 
-function formatDateBR(d) {
-  if (!d) return "";
-  const [y, m, day] = d.split("-");
-  return `${day}/${m}/${y}`;
-}
-
-function getTodayISO() {
-  const now = new Date();
-  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split("T")[0];
-}
-
-function getServicesForUI() {
-  return servicesCache.length ? servicesCache : DEFAULT_SERVICES;
-}
-
 function initial(name) {
   return (name || "B").charAt(0).toUpperCase();
 }
 
+function getServicesForUI() {
+  return servicesCache;
+}
+
 // ============================================================
-// PHOTO UPLOAD (canvas compress — same as auth.js)
+// PHOTO UPLOAD (canvas compress)
 // ============================================================
 
 function handlePhotoUpload(event) {
@@ -113,22 +98,20 @@ function handlePhotoUpload(event) {
   reader.onload = e => {
     const img = new Image();
     img.onload = () => {
-      const SIZE = 200;
+      const SIZE   = 200;
       const canvas = document.createElement("canvas");
-      canvas.width = SIZE;
-      canvas.height = SIZE;
-      const ctx = canvas.getContext("2d");
-
+      canvas.width = SIZE; canvas.height = SIZE;
+      const ctx  = canvas.getContext("2d");
       const side = Math.min(img.width, img.height);
-      const sx = (img.width  - side) / 2;
-      const sy = (img.height - side) / 2;
+      const sx   = (img.width  - side) / 2;
+      const sy   = (img.height - side) / 2;
       ctx.drawImage(img, sx, sy, side, side, 0, 0, SIZE, SIZE);
 
       pendingPhoto = canvas.toDataURL("image/jpeg", 0.82);
 
-      const avatarImg = $("barbeiro-avatar-img");
+      const avatarImg  = $("barbeiro-avatar-img");
       const avatarInit = $("barbeiro-avatar-initial");
-      if (avatarImg) { avatarImg.src = pendingPhoto; avatarImg.classList.add("visible"); }
+      if (avatarImg)  { avatarImg.src = pendingPhoto; avatarImg.classList.add("visible"); }
       if (avatarInit) avatarInit.style.display = "none";
     };
     img.src = e.target.result;
@@ -137,7 +120,7 @@ function handlePhotoUpload(event) {
 }
 
 // ============================================================
-// RENDER BARBERS LIST
+// RENDER — BARBERS LIST
 // ============================================================
 
 function renderBarbeirosList() {
@@ -155,17 +138,23 @@ function renderBarbeirosList() {
   }
 
   container.innerHTML = barbeirosCache.map(b => {
-    const isSelected = selectedBarbeiro?.id === b.id;
-    const servicesList = (b.services || []).slice(0, 3).join(", ") || "Sem serviços definidos";
-    const hasPhoto = Boolean(b.photo);
+    const svcNames     = Array.isArray(b.services) ? b.services : Object.keys(b.services || {});
+    const servicesList = svcNames.slice(0, 3).join(", ") || "Sem serviços definidos";
+    const inicio       = b.horarioInicio || "09:00";
+    const fim          = b.horarioFim    || "20:00";
+    const hasPhoto     = Boolean(b.photo);
+
     return `
-      <div class="barbeiro-card${isSelected ? " selected" : ""}" data-id="${escapeHTML(b.id)}">
+      <div class="barbeiro-card" data-id="${escapeHTML(b.id)}">
         <div class="barbeiro-card-avatar">
-          ${hasPhoto ? `<img src="${escapeHTML(b.photo)}" alt="${escapeHTML(b.name)}" class="visible" />` : escapeHTML(initial(b.name))}
+          ${hasPhoto
+            ? `<img src="${escapeHTML(b.photo)}" alt="${escapeHTML(b.name)}" class="visible" />`
+            : escapeHTML(initial(b.name))}
         </div>
         <div class="barbeiro-card-info">
           <strong>${escapeHTML(b.name || "Barbeiro")}</strong>
           <span class="barbeiro-card-services">${escapeHTML(servicesList)}</span>
+          <span class="barbeiro-card-horario">${escapeHTML(inicio)} – ${escapeHTML(fim)}</span>
         </div>
         <div class="barbeiro-card-actions">
           <button class="action-btn edit-barbeiro" type="button" data-id="${escapeHTML(b.id)}" title="Editar">
@@ -177,16 +166,6 @@ function renderBarbeirosList() {
         </div>
       </div>`;
   }).join("");
-
-  // Select barber on card click
-  container.querySelectorAll(".barbeiro-card").forEach(card => {
-    card.addEventListener("click", e => {
-      if (e.target.closest("button")) return;
-      const id = card.dataset.id;
-      const b = barbeirosCache.find(x => x.id === id);
-      if (b) selectBarbeiro(b);
-    });
-  });
 
   container.querySelectorAll(".edit-barbeiro").forEach(btn => {
     btn.addEventListener("click", e => {
@@ -205,85 +184,34 @@ function renderBarbeirosList() {
 }
 
 // ============================================================
-// SELECT BARBER → show horarios section
-// ============================================================
-
-function selectBarbeiro(b) {
-  selectedBarbeiro = b;
-  renderBarbeirosList();
-  showHorariosSection(b);
-}
-
-function showHorariosSection(b) {
-  const section = $("barbeiro-horarios-section");
-  const nameEl  = $("barbeiro-horarios-name");
-  if (!section) return;
-  section.classList.remove("hidden");
-  if (nameEl) nameEl.textContent = b.name || "Barbeiro";
-  renderBarbeiroHorarios();
-}
-
-// ============================================================
-// RENDER HORARIOS OF SELECTED BARBER
-// ============================================================
-
-function renderBarbeiroHorarios() {
-  const container = $("bh-list");
-  if (!container || !selectedBarbeiro) return;
-
-  const myHorarios = horariosCache
-    .filter(h => h.barbeiroId === selectedBarbeiro.id)
-    .sort((a, b) => `${a.data}T${a.hora}`.localeCompare(`${b.data}T${b.hora}`));
-
-  if (!myHorarios.length) {
-    container.innerHTML = `<div class="empty-row">Nenhum horário cadastrado para este barbeiro.</div>`;
-    return;
-  }
-
-  container.innerHTML = myHorarios.map(h => {
-    const reserved = slotsCache.has(h.id);
-    return `
-      <div class="bh-horario-row${reserved ? " reserved" : ""}">
-        <div class="bh-horario-info">
-          <strong>${escapeHTML(formatDateBR(h.data))} às ${escapeHTML(h.hora)}</strong>
-          <span>${reserved ? "Reservado" : "Disponível"}</span>
-        </div>
-        ${!reserved ? `
-          <button class="action-btn delete-btn delete-bh-horario" type="button" data-id="${escapeHTML(h.id)}">
-            <span class="material-symbols-outlined" style="font-size:15px">delete</span>
-          </button>` : ""}
-      </div>`;
-  }).join("");
-
-  container.querySelectorAll(".delete-bh-horario").forEach(btn => {
-    btn.addEventListener("click", () => deleteBarbeiroHorario(btn.dataset.id));
-  });
-}
-
-// ============================================================
 // FORM — open for add / edit
 // ============================================================
 
 function openAddForm() {
-  editingId = null;
+  editingId    = null;
   pendingPhoto = null;
 
-  if ($("barbeiro-name"))         $("barbeiro-name").value = "";
-  if ($("barbeiro-avatar-img"))   { $("barbeiro-avatar-img").src = ""; $("barbeiro-avatar-img").classList.remove("visible"); }
+  if ($("barbeiro-name"))           $("barbeiro-name").value = "";
+  if ($("barbeiro-inicio"))         $("barbeiro-inicio").value = "09:00";
+  if ($("barbeiro-fim"))            $("barbeiro-fim").value   = "20:00";
+  if ($("barbeiro-avatar-img"))     { $("barbeiro-avatar-img").src = ""; $("barbeiro-avatar-img").classList.remove("visible"); }
   if ($("barbeiro-avatar-initial")) { $("barbeiro-avatar-initial").textContent = "B"; $("barbeiro-avatar-initial").style.display = ""; }
-  if ($("barbeiro-photo-upload")) $("barbeiro-photo-upload").value = "";
-  if ($("form-panel-title"))      $("form-panel-title").textContent = "Novo barbeiro";
-  if ($("barbeiro-cancel-btn"))   $("barbeiro-cancel-btn").classList.add("hidden");
+  if ($("barbeiro-photo-upload"))   $("barbeiro-photo-upload").value = "";
+  if ($("form-panel-title"))        $("form-panel-title").textContent = "Novo barbeiro";
+  if ($("barbeiro-cancel-btn"))     $("barbeiro-cancel-btn").classList.add("hidden");
 
-  renderServicesChecks([], false);
+  renderServicesChecks({});
+  renderDiasChecks([1, 2, 3, 4, 5, 6]);
 }
 
 function openEditForm(b) {
-  editingId = b.id;
+  editingId    = b.id;
   pendingPhoto = null;
 
-  if ($("barbeiro-name")) $("barbeiro-name").value = b.name || "";
-  if ($("form-panel-title")) $("form-panel-title").textContent = "Editar barbeiro";
+  if ($("barbeiro-name"))      $("barbeiro-name").value = b.name || "";
+  if ($("barbeiro-inicio"))    $("barbeiro-inicio").value = b.horarioInicio || "09:00";
+  if ($("barbeiro-fim"))       $("barbeiro-fim").value   = b.horarioFim    || "20:00";
+  if ($("form-panel-title"))   $("form-panel-title").textContent = "Editar barbeiro";
   if ($("barbeiro-cancel-btn")) $("barbeiro-cancel-btn").classList.remove("hidden");
 
   const avatarImg  = $("barbeiro-avatar-img");
@@ -293,36 +221,104 @@ function openEditForm(b) {
     avatarImg.classList.add("visible");
     if (avatarInit) avatarInit.style.display = "none";
   } else {
-    if (avatarImg) { avatarImg.src = ""; avatarImg.classList.remove("visible"); }
+    if (avatarImg)  { avatarImg.src = ""; avatarImg.classList.remove("visible"); }
     if (avatarInit) { avatarInit.textContent = initial(b.name); avatarInit.style.display = ""; }
   }
 
-  renderServicesChecks(b.services || [], true);
+  const svcSelected = Array.isArray(b.services)
+    ? Object.fromEntries(b.services.map(n => [n, 0]))  // legacy migration
+    : (b.services || {});
+  renderServicesChecks(svcSelected);
+  renderDiasChecks(Array.isArray(b.diasDisponiveis) ? b.diasDisponiveis : [1, 2, 3, 4, 5, 6]);
 }
 
 // ============================================================
-// SERVICES CHECKBOXES
+// SERVICES CHECKBOXES (with per-service duration input)
 // ============================================================
 
-function renderServicesChecks(selected = [], checked = false) {
+function renderServicesChecks(selected = {}) {
   const container = $("barbeiro-services-checks");
   if (!container) return;
 
   const services = getServicesForUI();
+
+  if (!services.length) {
+    container.innerHTML = `<p class="svc-empty-hint">Nenhum serviço cadastrado. Adicione serviços na página de Administração.</p>`;
+    return;
+  }
+
+  const isObject = typeof selected === "object" && !Array.isArray(selected);
+
   container.innerHTML = services.map(s => {
-    const isChecked = selected.includes(s.name);
-    const id = `svc-check-${slugify(s.name)}`;
+    const id        = `svc-check-${slugify(s.name)}`;
+    const isChecked = isObject ? Object.prototype.hasOwnProperty.call(selected, s.name) : false;
+    const duration  = isChecked ? (selected[s.name] || "") : "";
     return `
-      <label class="service-check-item" for="${escapeHTML(id)}">
-        <input type="checkbox" id="${escapeHTML(id)}" value="${escapeHTML(s.name)}" ${isChecked ? "checked" : ""} />
-        <span>${escapeHTML(s.name)}</span>
-      </label>`;
+      <div class="service-check-item${isChecked ? " active" : ""}">
+        <label class="svc-check-label" for="${escapeHTML(id)}">
+          <input type="checkbox" id="${escapeHTML(id)}" value="${escapeHTML(s.name)}" ${isChecked ? "checked" : ""} />
+          <span>${escapeHTML(s.name)}</span>
+        </label>
+        <div class="svc-duration-wrap${isChecked ? "" : " hidden"}">
+          <input type="number" class="svc-duration-input"
+            data-service="${escapeHTML(s.name)}"
+            placeholder="min" min="5" max="480" step="5"
+            value="${escapeHTML(String(duration))}" />
+          <span class="svc-duration-unit">min</span>
+        </div>
+      </div>`;
   }).join("");
+
+  container.querySelectorAll("input[type='checkbox']").forEach(cb => {
+    cb.addEventListener("change", () => {
+      const row          = cb.closest(".service-check-item");
+      const durationWrap = row.querySelector(".svc-duration-wrap");
+      const durationInput = row.querySelector(".svc-duration-input");
+      row.classList.toggle("active", cb.checked);
+      durationWrap.classList.toggle("hidden", !cb.checked);
+      if (cb.checked) durationInput.focus();
+      else durationInput.value = "";
+    });
+  });
 }
 
 function getCheckedServices() {
-  return [...document.querySelectorAll("#barbeiro-services-checks input[type='checkbox']:checked")]
-    .map(cb => cb.value);
+  const result = {};
+  document.querySelectorAll("#barbeiro-services-checks input[type='checkbox']:checked").forEach(cb => {
+    const row          = cb.closest(".service-check-item");
+    const durationInput = row?.querySelector(".svc-duration-input");
+    result[cb.value]   = Number(durationInput?.value || 0);
+  });
+  return result;
+}
+
+// ============================================================
+// WORKING DAYS CHECKBOXES
+// ============================================================
+
+function renderDiasChecks(selected = [1, 2, 3, 4, 5, 6]) {
+  const container = $("barbeiro-dias-checks");
+  if (!container) return;
+
+  container.innerHTML = DIAS_SEMANA.map(d => {
+    const isChecked = selected.includes(d.value);
+    return `
+      <label class="dia-check-item${isChecked ? " active" : ""}" for="dia-${d.value}">
+        <input type="checkbox" id="dia-${d.value}" value="${d.value}" ${isChecked ? "checked" : ""} />
+        ${escapeHTML(d.label)}
+      </label>`;
+  }).join("");
+
+  container.querySelectorAll("input").forEach(cb => {
+    cb.addEventListener("change", () => {
+      cb.closest("label").classList.toggle("active", cb.checked);
+    });
+  });
+}
+
+function getCheckedDias() {
+  return [...document.querySelectorAll("#barbeiro-dias-checks input:checked")]
+    .map(cb => Number(cb.value));
 }
 
 // ============================================================
@@ -330,20 +326,41 @@ function getCheckedServices() {
 // ============================================================
 
 async function saveBarbeiro() {
-  const name = ($("barbeiro-name")?.value || "").trim();
-  if (name.length < 2) return showToast("Informe um nome válido.");
+  const name         = ($("barbeiro-name")?.value || "").trim();
+  const horarioInicio = ($("barbeiro-inicio")?.value || "09:00");
+  const horarioFim    = ($("barbeiro-fim")?.value    || "20:00");
 
-  const services = getCheckedServices();
-  const photoValue = pendingPhoto;
+  if (name.length < 2) return showToast("Informe um nome válido.");
+  if (horarioInicio >= horarioFim) return showToast("O horário de início deve ser anterior ao de fim.");
+
+  const services        = getCheckedServices();
+  const serviceEntries  = Object.entries(services);
+  if (!serviceEntries.length) return showToast("Selecione ao menos um serviço.");
+  for (const [svcName, dur] of serviceEntries) {
+    if (!dur || dur < 5) return showToast(`Informe o tempo em minutos para "${svcName}".`);
+  }
+
+  const diasDisponiveis = getCheckedDias();
+  if (!diasDisponiveis.length) return showToast("Selecione ao menos um dia de atendimento.");
+
+  const data = {
+    name,
+    services,
+    diasDisponiveis,
+    horarioInicio,
+    horarioFim
+  };
+
+  if (pendingPhoto) data.photo = pendingPhoto;
 
   try {
     if (editingId) {
-      const data = { name, services, updatedAt: serverTimestamp() };
-      if (photoValue) data.photo = photoValue;
+      data.updatedAt = serverTimestamp();
       await updateDoc(doc(db, "barbeiros", editingId), data);
       showToast("Barbeiro atualizado.");
     } else {
-      const data = { name, services, photo: photoValue || "", createdAt: serverTimestamp() };
+      data.photo      = pendingPhoto || "";
+      data.createdAt  = serverTimestamp();
       await addDoc(barbeirosCol, data);
       showToast("Barbeiro adicionado.");
     }
@@ -355,69 +372,13 @@ async function saveBarbeiro() {
 }
 
 async function deleteBarbeiro(id) {
-  if (!confirm("Remover este barbeiro? Os horários associados também serão excluídos.")) return;
+  if (!confirm("Remover este barbeiro?")) return;
   try {
-    const myHorarios = horariosCache.filter(h => h.barbeiroId === id);
-    await Promise.all(myHorarios.map(h => deleteDoc(doc(db, "horarios", h.id))));
     await deleteDoc(doc(db, "barbeiros", id));
-    if (selectedBarbeiro?.id === id) {
-      selectedBarbeiro = null;
-      const section = $("barbeiro-horarios-section");
-      if (section) section.classList.add("hidden");
-    }
     showToast("Barbeiro removido.");
   } catch (err) {
     console.error(err);
     showToast("Erro ao remover barbeiro.");
-  }
-}
-
-// ============================================================
-// CRUD — HORARIOS PER BARBER
-// ============================================================
-
-async function saveBarbeiroHorario() {
-  if (!selectedBarbeiro) return showToast("Selecione um barbeiro primeiro.");
-
-  const data = ($("bh-data")?.value || "").trim();
-  const hora = ($("bh-hora")?.value || "").trim();
-
-  if (!data) return showToast("Selecione uma data.");
-  if (data < getTodayISO()) return showToast("A data não pode ser anterior ao dia atual.");
-  if (!hora) return showToast("Informe o horário.");
-
-  const horarioId = `${data}_${hora}_${slugify(selectedBarbeiro.name)}_${selectedBarbeiro.id.slice(0, 6)}`;
-
-  try {
-    const existingSnap = await getDoc(doc(db, "horarios", horarioId));
-    if (existingSnap.exists()) return showToast("Este horário já está cadastrado para o barbeiro.");
-
-    await setDoc(doc(db, "horarios", horarioId), {
-      data,
-      hora,
-      barbeiro: selectedBarbeiro.name,
-      barbeiroId: selectedBarbeiro.id,
-      createdAt: serverTimestamp()
-    });
-
-    if ($("bh-data")) $("bh-data").value = "";
-    if ($("bh-hora")) $("bh-hora").value = "";
-    showToast("Horário adicionado.");
-  } catch (err) {
-    console.error(err);
-    showToast("Erro ao salvar horário.");
-  }
-}
-
-async function deleteBarbeiroHorario(horarioId) {
-  if (slotsCache.has(horarioId)) return showToast("Horário reservado — cancele o agendamento primeiro.");
-  if (!confirm("Remover este horário?")) return;
-  try {
-    await deleteDoc(doc(db, "horarios", horarioId));
-    showToast("Horário removido.");
-  } catch (err) {
-    console.error(err);
-    showToast("Erro ao remover horário.");
   }
 }
 
@@ -429,44 +390,46 @@ function subscribeAll() {
   onSnapshot(barbeirosCol, snap => {
     barbeirosCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderBarbeirosList();
-    renderServicesChecks(
-      editingId ? (barbeirosCache.find(b => b.id === editingId)?.services || []) : [],
-      Boolean(editingId)
-    );
+
+    if (editingId) {
+      const current = barbeirosCache.find(b => b.id === editingId);
+      if (current) {
+        const svcSelected = Array.isArray(current.services)
+          ? Object.fromEntries(current.services.map(n => [n, 0]))
+          : (current.services || {});
+        renderServicesChecks(svcSelected);
+        renderDiasChecks(Array.isArray(current.diasDisponiveis)
+          ? current.diasDisponiveis : [1, 2, 3, 4, 5, 6]);
+      }
+    }
   });
 
   onSnapshot(servicesCol, snap => {
     servicesCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderServicesChecks(
-      editingId ? (barbeirosCache.find(b => b.id === editingId)?.services || []) : [],
-      Boolean(editingId)
-    );
-  });
-
-  onSnapshot(horariosCol, snap => {
-    horariosCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderBarbeiroHorarios();
-  });
-
-  onSnapshot(slotsCol, snap => {
-    slotsCache = new Map(snap.docs.map(d => [d.id, d.data()]));
-    renderBarbeiroHorarios();
+    const current  = editingId ? barbeirosCache.find(b => b.id === editingId) : null;
+    const svcSel   = current
+      ? (Array.isArray(current.services)
+          ? Object.fromEntries(current.services.map(n => [n, 0]))
+          : (current.services || {}))
+      : {};
+    renderServicesChecks(svcSel);
   });
 }
 
 // ============================================================
-// ADMIN AUTH GUARD
+// AUTH GUARD (admin only)
 // ============================================================
 
 function initAuth() {
   onAuthStateChanged(auth, async user => {
     if (!user) { window.location.href = "auth.html"; return; }
 
-    const snap = await getDoc(doc(db, "users", user.uid));
+    const snap    = await getDoc(doc(db, "users", user.uid));
     const isAdmin = snap.exists() && snap.data().role === "admin";
     if (!isAdmin) { window.location.href = "index.html"; return; }
 
     subscribeAll();
+    openAddForm();
   });
 }
 
@@ -479,14 +442,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   $("barbeiro-photo-upload")?.addEventListener("change", handlePhotoUpload);
   $("barbeiro-save-btn")?.addEventListener("click", saveBarbeiro);
-
   $("barbeiro-cancel-btn")?.addEventListener("click", () => {
     editingId = null;
     openAddForm();
   });
-
-  $("bh-save")?.addEventListener("click", saveBarbeiroHorario);
-
-  const dataInput = $("bh-data");
-  if (dataInput) dataInput.min = getTodayISO();
 });
