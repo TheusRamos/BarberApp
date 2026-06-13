@@ -7,6 +7,7 @@ Sistema web para gerenciamento de agendamentos em barbearia, com funcionalidades
 ## 📋 Índice
 
 - [Sobre o Projeto](#sobre-o-projeto)
+- [Estrutura do Projeto](#estrutura-do-projeto)
 - [Usuários do Sistema](#usuários-do-sistema)
 - [Funcionalidades](#funcionalidades)
 - [Regras de Negócio](#regras-de-negócio)
@@ -18,6 +19,30 @@ Sistema web para gerenciamento de agendamentos em barbearia, com funcionalidades
 ## Sobre o Projeto
 
 O sistema tem como objetivo permitir o gerenciamento de agendamentos de serviços em uma barbearia, oferecendo funcionalidades para clientes e administradores. Clientes podem realizar cadastro, login, visualizar horários disponíveis e agendar serviços. O administrador pode gerenciar horários, serviços, clientes e acompanhar informações gerais do sistema.
+
+---
+
+## 📁 Estrutura do Projeto
+
+```
+BarberApp/
+├── css/
+│   ├── style.css           # Estilos globais (index, auth, sobre)
+│   └── agendamentos.css    # Estilos das páginas de agendamentos e admin
+├── js/
+│   ├── app.js              # Lógica principal (agendamentos, admin, comentários)
+│   ├── auth.js             # Autenticação e perfil do usuário
+│   ├── sidebar.js          # Navegação lateral
+│   └── theme.js            # Alternância de tema claro/escuro
+├── resources/              # Imagens e recursos visuais
+├── index.html              # Página inicial — formulário de agendamento
+├── agendamentos.html       # Lista de agendamentos do cliente
+├── admin.html              # Painel do administrador
+├── auth.html               # Login, cadastro e perfil
+├── comentarios.html        # Avaliações dos clientes
+├── sobre.html              # Sobre a barbearia
+└── firestore.rules         # Regras de segurança do Firestore
+```
 
 ---
 
