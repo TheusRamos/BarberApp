@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>BarberApp | Administração</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+
+  <link rel="stylesheet" href="agendamentos.css" />
+
+  <style>
+    /* ============================================================
+       ADMINISTRAÇÃO – PAGE STYLES
+       ============================================================ */
+
+    .admin-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: rgba(206, 176, 255, 0.10);
+      border: 1px solid rgba(206, 176, 255, 0.20);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 18px;
+    }
+
+    .admin-badge .material-symbols-outlined {
+      font-size: 15px;
+    }
+
+    /* Quick stats row */
+    .admin-stats-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    @media (min-width: 640px) {
+      .admin-stats-row {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .admin-stat-card {
+      background: rgba(22, 22, 28, 0.96);
+      border: 1px solid rgba(148, 141, 162, 0.10);
+      border-radius: 18px;
+      padding: 18px 20px;
+      box-shadow: var(--card-shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: border-color var(--transition);
+    }
+
+    .admin-stat-card:hover {
+      border-color: rgba(206, 176, 255, 0.18);
+    }
+
+    .admin-stat-card .stat-icon {
+      font-size: 20px;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+
+    .admin-stat-card strong {
+      font-family: 'Manrope', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--text);
+    }
+
+    .admin-stat-card span {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* Admin section without hidden class here — page is admin-only */
+    .admin-section-page {
+      margin-top: 0;
+    }
+
+    /* Section header for admin page */
+    .admin-section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+
+    .admin-section-header h2 {
+      font-family: 'Manrope', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .admin-section-header p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+
+    /* Light theme */
+    [data-theme="light"] .admin-stat-card {
+      background: rgba(255, 255, 255, 0.96);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Overlay + Sidebar -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="index.html" class="sidebar-brand">
+        <span class="material-symbols-outlined">content_cut</span>
+        BarberApp
+      </a>
+      <button class="sidebar-close" id="sidebarClose" aria-label="Fechar menu">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-link">
+        <span class="material-symbols-outlined">home</span>
+        Início
+      </a>
+      <a href="agendamentos.html" class="sidebar-link">
+        <span class="material-symbols-outlined">calendar_month</span>
+        Agendamentos
+      </a>
+      <a href="comentarios.html" class="sidebar-link">
+        <span class="material-symbols-outlined">reviews</span>
+        Avaliações
+      </a>
+      <a href="sobre.html" class="sidebar-link">
+        <span class="material-symbols-outlined">info</span>
+        Sobre Nós
+      </a>
+      <a href="auth.html" class="sidebar-link" id="auth-link">
+        <span class="material-symbols-outlined">person</span>
+        Entrar
+      </a>
+      <a href="admin.html" class="sidebar-link" id="admin-nav-link">
+        <span class="material-symbols-outlined">admin_panel_settings</span>
+        Administração
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <button id="theme-toggle" class="sidebar-theme-btn" type="button" aria-label="Alternar tema">
+        <span class="material-symbols-outlined">light_mode</span>
+        <span class="theme-label">Modo claro</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Mobile toggle -->
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu">
+    <span class="material-symbols-outlined">menu</span>
+  </button>
+
+  <main class="app">
+    <div class="bg-orb orb-left"></div>
+    <div class="bg-orb orb-bottom"></div>
+
+    <!-- Page header -->
+    <section class="container page-header">
+      <div class="header-content">
+        <div class="admin-badge">
+          <span class="material-symbols-outlined">shield</span>
+          Acesso restrito
+        </div>
+        <h1 class="page-title">Painel de <span>Administração</span></h1>
+        <p class="page-description">Gerencie serviços, horários disponíveis e clientes cadastrados na plataforma.</p>
+      </div>
+    </section>
+
+    <!-- Quick stats -->
+    <section class="container">
+      <div class="admin-stats-row">
+        <div class="admin-stat-card">
+          <span class="material-symbols-outlined stat-icon">group</span>
+          <strong id="admin-stat-clients">—</strong>
+          <span>Clientes</span>
+        </div>
+        <div class="admin-stat-card">
+          <span class="material-symbols-outlined stat-icon">content_cut</span>
+          <strong id="admin-stat-services">—</strong>
+          <span>Serviços</span>
+        </div>
+        <div class="admin-stat-card">
+          <span class="material-symbols-outlined stat-icon">schedule</span>
+          <strong id="admin-stat-horarios">—</strong>
+          <span>Horários</span>
+        </div>
+        <div class="admin-stat-card">
+          <span class="material-symbols-outlined stat-icon">event_available</span>
+          <strong id="admin-stat-available">—</strong>
+          <span>Disponíveis</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Management panels -->
+    <section class="container admin-section-page">
+      <div class="admin-grid">
+
+        <!-- Services management -->
+        <div class="admin-card">
+          <h3>Serviços</h3>
+          <form id="service-form" class="booking-form" novalidate>
+            <div class="form-group">
+              <label for="service-name">Nome do serviço</label>
+              <input id="service-name" placeholder="Ex: Corte Simples" maxlength="80" />
+            </div>
+
+            <div class="form-group">
+              <label for="service-price">Valor (R$)</label>
+              <input id="service-price" type="number" min="0" step="0.01" placeholder="45,00" />
+            </div>
+
+            <div class="form-actions">
+              <button id="service-save" class="submit-btn" type="button">
+                <span class="material-symbols-outlined">save</span>
+                Salvar serviço
+              </button>
+            </div>
+          </form>
+
+          <div id="services-list" class="admin-list"></div>
+        </div>
+
+        <!-- Horários management -->
+        <div class="admin-card">
+          <h3>Horários</h3>
+          <form id="horario-form" class="booking-form" novalidate>
+            <div class="form-group">
+              <label for="horario-data">Data</label>
+              <input id="horario-data" type="date" />
+            </div>
+
+            <div class="form-group">
+              <label for="horario-hora">Horário</label>
+              <input id="horario-hora" type="time" />
+            </div>
+
+            <div class="form-group">
+              <label for="horario-barber">Barbeiro</label>
+              <input id="horario-barber" placeholder="Nome do barbeiro" maxlength="80" />
+            </div>
+
+            <div class="form-actions">
+              <button id="horario-save" class="submit-btn" type="button">
+                <span class="material-symbols-outlined">save</span>
+                Salvar horário
+              </button>
+            </div>
+          </form>
+
+          <div id="horarios-list" class="admin-list"></div>
+        </div>
+
+        <!-- Clients list -->
+        <div class="admin-card admin-card-wide">
+          <h3>Clientes cadastrados</h3>
+          <p class="admin-hint">Visualize e gerencie todos os clientes registrados na plataforma.</p>
+          <div id="clients-list" class="admin-list"></div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script type="module" src="app.js"></script>
+  <script src="theme.js"></script>
+  <script src="sidebar.js"></script>
+</body>
+</html>

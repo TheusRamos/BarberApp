@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>BarberApp | Avaliações</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+
+  <link rel="stylesheet" href="agendamentos.css" />
+
+  <style>
+    /* ============================================================
+       AVALIAÇÕES – PAGE STYLES
+       ============================================================ */
+
+    .comments-page-header {
+      margin-bottom: 32px;
+    }
+
+    .comments-page-header .page-title {
+      margin-top: 18px;
+      margin-bottom: 10px;
+    }
+
+    .comments-page-header .page-description {
+      margin-bottom: 0;
+    }
+
+    /* Eligibility banner */
+    .eligibility-banner {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      border-radius: 16px;
+      background: rgba(206, 176, 255, 0.07);
+      border: 1px solid rgba(206, 176, 255, 0.14);
+      margin-bottom: 28px;
+    }
+
+    .eligibility-banner .material-symbols-outlined {
+      font-size: 22px;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .eligibility-banner p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .eligibility-banner strong {
+      color: var(--primary);
+    }
+
+    /* Star rating display */
+    .stars-display {
+      display: inline-flex;
+      gap: 2px;
+      color: var(--warning);
+      font-size: 1rem;
+      margin-bottom: 6px;
+    }
+
+    /* Comment card override */
+    .comment-row {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .comment-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .comment-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .comment-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .comment-meta strong {
+      display: block;
+      font-size: 0.92rem;
+      margin-bottom: 2px;
+    }
+
+    .comment-meta .comment-stars {
+      color: var(--warning);
+      font-size: 0.85rem;
+      letter-spacing: 1px;
+    }
+
+    .comment-body {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    .comment-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    /* Layout: form on left (wide screens), list on right */
+    .comments-page-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (min-width: 860px) {
+      .comments-page-layout {
+        grid-template-columns: minmax(280px, 0.75fr) minmax(0, 1.25fr);
+      }
+    }
+
+    /* Form card */
+    .comment-form-card {
+      background: rgba(22, 22, 28, 0.96);
+      border: 1px solid rgba(148, 141, 162, 0.1);
+      border-radius: 26px;
+      padding: 24px;
+      box-shadow: var(--card-shadow);
+      position: sticky;
+      top: 24px;
+    }
+
+    .comment-form-card h3 {
+      font-family: 'Manrope', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .comment-form-card .form-description {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    /* Star picker */
+    .star-picker {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .star-picker input[type="radio"] {
+      display: none;
+    }
+
+    .star-picker label {
+      font-size: 1.6rem;
+      cursor: pointer;
+      color: var(--text-soft);
+      transition: color 0.15s ease, transform 0.15s ease;
+      line-height: 1;
+    }
+
+    .star-picker label:hover,
+    .star-picker label:hover ~ label {
+      color: var(--text-soft);
+    }
+
+    .star-picker:hover label {
+      color: var(--warning);
+    }
+
+    .star-picker input[type="radio"]:checked ~ label {
+      color: var(--text-soft);
+    }
+
+    .star-picker label:has(~ input[type="radio"]:checked),
+    .star-picker input[type="radio"]:checked + label {
+      color: var(--warning);
+    }
+
+    /* fallback: JS-driven star highlight via data-selected */
+    .star-picker[data-selected="1"] label:nth-of-type(1),
+    .star-picker[data-selected="2"] label:nth-of-type(1),
+    .star-picker[data-selected="2"] label:nth-of-type(2),
+    .star-picker[data-selected="3"] label:nth-of-type(1),
+    .star-picker[data-selected="3"] label:nth-of-type(2),
+    .star-picker[data-selected="3"] label:nth-of-type(3),
+    .star-picker[data-selected="4"] label:nth-of-type(1),
+    .star-picker[data-selected="4"] label:nth-of-type(2),
+    .star-picker[data-selected="4"] label:nth-of-type(3),
+    .star-picker[data-selected="4"] label:nth-of-type(4),
+    .star-picker[data-selected="5"] label {
+      color: var(--warning);
+    }
+
+    /* Comments list */
+    .comments-list-area {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .comment-card {
+      background: rgba(22, 22, 28, 0.96);
+      border: 1px solid rgba(148, 141, 162, 0.1);
+      border-radius: 20px;
+      padding: 18px 20px;
+      box-shadow: var(--card-shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: border-color var(--transition);
+    }
+
+    .comment-card:hover {
+      border-color: rgba(206, 176, 255, 0.18);
+    }
+
+    .empty-comments {
+      text-align: center;
+      padding: 48px 20px;
+      background: rgba(22, 22, 28, 0.96);
+      border: 1px solid rgba(148, 141, 162, 0.1);
+      border-radius: 20px;
+    }
+
+    .empty-comments .material-symbols-outlined {
+      font-size: 44px;
+      color: var(--primary);
+      margin-bottom: 12px;
+    }
+
+    .empty-comments h3 {
+      font-size: 1.1rem;
+      margin-bottom: 6px;
+    }
+
+    .empty-comments p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    /* Light theme adjustments */
+    [data-theme="light"] .comment-form-card,
+    [data-theme="light"] .comment-card,
+    [data-theme="light"] .empty-comments {
+      background: rgba(255, 255, 255, 0.96);
+    }
+
+    [data-theme="light"] .eligibility-banner {
+      background: rgba(106, 24, 204, 0.05);
+      border-color: rgba(106, 24, 204, 0.12);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Overlay + Sidebar -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="index.html" class="sidebar-brand">
+        <span class="material-symbols-outlined">content_cut</span>
+        BarberApp
+      </a>
+      <button class="sidebar-close" id="sidebarClose" aria-label="Fechar menu">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-link">
+        <span class="material-symbols-outlined">home</span>
+        Início
+      </a>
+      <a href="agendamentos.html" class="sidebar-link">
+        <span class="material-symbols-outlined">calendar_month</span>
+        Agendamentos
+      </a>
+      <a href="comentarios.html" class="sidebar-link">
+        <span class="material-symbols-outlined">reviews</span>
+        Avaliações
+      </a>
+      <a href="sobre.html" class="sidebar-link">
+        <span class="material-symbols-outlined">info</span>
+        Sobre Nós
+      </a>
+      <a href="auth.html" class="sidebar-link" id="auth-link">
+        <span class="material-symbols-outlined">person</span>
+        Entrar
+      </a>
+      <a href="admin.html" class="sidebar-link hidden" id="admin-nav-link">
+        <span class="material-symbols-outlined">admin_panel_settings</span>
+        Administração
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <button id="theme-toggle" class="sidebar-theme-btn" type="button" aria-label="Alternar tema">
+        <span class="material-symbols-outlined">light_mode</span>
+        <span class="theme-label">Modo claro</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Mobile toggle -->
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu">
+    <span class="material-symbols-outlined">menu</span>
+  </button>
+
+  <main class="app">
+    <div class="bg-orb orb-left"></div>
+    <div class="bg-orb orb-bottom"></div>
+
+    <!-- Header -->
+    <section class="container comments-page-header">
+      <div class="welcome-badge">
+        <span class="welcome-dot"></span>
+        <span class="welcome-text">Comunidade</span>
+      </div>
+      <h1 class="page-title">Avaliações <span>dos Clientes</span></h1>
+      <p class="page-description">
+        Veja o que nossos clientes estão dizendo. Quem concluiu 3 ou mais serviços pode deixar sua avaliação.
+      </p>
+    </section>
+
+    <!-- Eligibility notice -->
+    <section class="container">
+      <div class="eligibility-banner" id="eligibility-banner">
+        <span class="material-symbols-outlined">info</span>
+        <p>Faça <a href="auth.html" style="color:var(--primary);font-weight:700;">login</a> para deixar sua avaliação.</p>
+      </div>
+    </section>
+
+    <!-- Main layout: form + list -->
+    <section class="container" style="margin-top: 4px;">
+      <div class="comments-page-layout">
+
+        <!-- Form card -->
+        <div class="comment-form-card">
+          <h3>Deixe sua avaliação</h3>
+          <p class="form-description">Sua opinião ajuda outros clientes e contribui para melhorarmos nosso serviço.</p>
+
+          <form id="comment-form" class="booking-form" novalidate>
+            <div class="form-group">
+              <label>Nota</label>
+              <div class="star-picker" id="star-picker" data-selected="5">
+                <label data-value="1" title="1 estrela">★</label>
+                <label data-value="2" title="2 estrelas">★</label>
+                <label data-value="3" title="3 estrelas">★</label>
+                <label data-value="4" title="4 estrelas">★</label>
+                <label data-value="5" title="5 estrelas">★</label>
+              </div>
+              <!-- Hidden select mantém compatibilidade com app.js -->
+              <select id="comment-rating" class="hidden">
+                <option value="5" selected>5</option>
+                <option value="4">4</option>
+                <option value="3">3</option>
+                <option value="2">2</option>
+                <option value="1">1</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="comment-text">Comentário <span style="font-weight:400; text-transform:none; letter-spacing:0; color: var(--text-soft);">(máx. 50 palavras)</span></label>
+              <textarea id="comment-text" rows="4" maxlength="350" placeholder="Conte como foi sua experiência..."></textarea>
+            </div>
+
+            <div class="form-actions">
+              <button id="comment-save" class="submit-btn" type="button" disabled>
+                <span class="material-symbols-outlined">send</span>
+                Enviar avaliação
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Comments list -->
+        <div>
+          <div class="comments-list-area" id="comments-list">
+            <div class="empty-comments">
+              <span class="material-symbols-outlined">reviews</span>
+              <h3>Nenhuma avaliação ainda</h3>
+              <p>Seja o primeiro a compartilhar sua experiência.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script type="module" src="app.js"></script>
+  <script src="theme.js"></script>
+  <script src="sidebar.js"></script>
+
+  <!-- Star picker interactivity -->
+  <script>
+    (function () {
+      const picker = document.getElementById('star-picker');
+      const select = document.getElementById('comment-rating');
+      if (!picker || !select) return;
+
+      const labels = picker.querySelectorAll('label');
+
+      labels.forEach((label, i) => {
+        const value = i + 1;
+
+        label.addEventListener('mouseenter', () => {
+          picker.dataset.selected = value;
+        });
+
+        label.addEventListener('mouseleave', () => {
+          picker.dataset.selected = select.value;
+        });
+
+        label.addEventListener('click', () => {
+          select.value = value;
+          picker.dataset.selected = value;
+        });
+      });
+
+      select.addEventListener('change', () => {
+        picker.dataset.selected = select.value;
+      });
+    })();
+  </script>
+</body>
+</html>

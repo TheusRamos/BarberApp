@@ -192,8 +192,8 @@ function updateAuthLink() {
 }
 
 function updateAdminVisibility() {
-  const adminSection = $("admin-section");
-  if (adminSection) adminSection.classList.toggle("hidden", !isAdmin);
+  const adminNavLink = $("admin-nav-link");
+  if (adminNavLink) adminNavLink.classList.toggle("hidden", !isAdmin);
 
   const description = $("appointments-description");
   if (description) {
@@ -201,6 +201,17 @@ function updateAdminVisibility() {
       ? "Acompanhe todos os horários marcados, visualize clientes e organize a rotina da barbearia."
       : "Acompanhe seus horários marcados e consulte o andamento dos seus serviços.";
   }
+}
+
+function updateAdminStats() {
+  const clients = $("admin-stat-clients");
+  const services = $("admin-stat-services");
+  const horarios = $("admin-stat-horarios");
+  const available = $("admin-stat-available");
+  if (clients) clients.textContent = usersCache.length;
+  if (services) services.textContent = servicesCache.length;
+  if (horarios) horarios.textContent = horariosCache.length;
+  if (available) available.textContent = horariosCache.length - slotsCache.size;
 }
 
 function renderServiceOptions() {
@@ -920,6 +931,7 @@ function subscribeServices() {
       renderServiceFilter();
       renderServicesList();
       applyFilters();
+      updateAdminStats();
     },
     error => {
       console.error("Erro ao carregar serviços:", error);
@@ -938,6 +950,7 @@ function subscribeHorarios() {
         horariosCache = sortByDateTime(snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() })));
         renderHorariosList();
         updateAvailableTimes();
+        updateAdminStats();
       },
       error => {
         console.error("Erro ao carregar horários:", error);
@@ -953,6 +966,7 @@ function subscribeHorarios() {
         slotsCache = new Map(snapshot.docs.map(docSnap => [docSnap.id, { id: docSnap.id, ...docSnap.data() }]));
         renderHorariosList();
         updateAvailableTimes();
+        updateAdminStats();
       },
       error => {
         console.error("Erro ao carregar reservas:", error);
@@ -1086,42 +1100,55 @@ async function saveHorario() {
 function renderCommentsEligibility() {
   const form = $("comment-form");
   const saveBtn = $("comment-save");
-  if (!form || !saveBtn) return;
+  const banner = $("eligibility-banner");
 
-  if (isAdmin) {
-    form.classList.add("hidden");
-    return;
-  }
+  if (!form || !saveBtn) return;
 
   form.classList.remove("hidden");
 
   if (!currentUser) {
     saveBtn.disabled = true;
-    saveBtn.textContent = "Faça login para comentar";
+    saveBtn.innerHTML = `<span class="material-symbols-outlined">lock</span>Faça login para avaliar`;
+    if (banner) banner.style.display = "";
     return;
   }
 
-  const completed = appointmentsCache.filter(item => item.userId === currentUser.uid && item.status === "Concluído").length;
-  const allowed = completed >= 3;
-
-  saveBtn.disabled = !allowed;
-  saveBtn.textContent = allowed ? "Enviar comentário" : `Precisa de 3 serviços concluídos (${completed}/3)`;
+  saveBtn.disabled = false;
+  saveBtn.innerHTML = `<span class="material-symbols-outlined">send</span>Enviar avaliação`;
+  if (banner) banner.style.display = "none";
 }
 
 function renderCommentsList(items = []) {
   const container = $("comments-list");
   if (!container) return;
 
-  if (!items.length) {
-    container.innerHTML = `<div class="empty-row">Nenhum comentário enviado ainda.</div>`;
+  // Clientes só veem avaliações de 5 estrelas; admins veem todas
+  const visible = isAdmin ? items : items.filter(c => Number(c.rating) === 5);
+
+  if (!visible.length) {
+    container.innerHTML = `
+      <div class="empty-comments">
+        <span class="material-symbols-outlined">reviews</span>
+        <h3>Nenhuma avaliação ainda</h3>
+        <p>Seja o primeiro a compartilhar sua experiência.</p>
+      </div>`;
     return;
   }
 
-  container.innerHTML = items.map(comment => `
-    <div class="comment-row">
-      <div><strong>${escapeHTML(comment.authorName || "Cliente")}</strong><span>${escapeHTML(comment.rating || 5)} ★</span></div>
-      <p>${escapeHTML(comment.text || "")}</p>
-      ${isAdmin ? `<button class="action-btn delete-comment" type="button" data-id="${escapeHTML(comment.id)}">Remover</button>` : ""}
+  const starsHTML = rating => "★".repeat(Number(rating) || 5) + "☆".repeat(5 - (Number(rating) || 5));
+  const initial = name => (name || "C").charAt(0).toUpperCase();
+
+  container.innerHTML = visible.map(comment => `
+    <div class="comment-card">
+      <div class="comment-header">
+        <div class="comment-avatar">${escapeHTML(initial(comment.authorName))}</div>
+        <div class="comment-meta">
+          <strong>${escapeHTML(comment.authorName || "Cliente")}</strong>
+          <div class="comment-stars">${starsHTML(comment.rating)}</div>
+        </div>
+      </div>
+      <p class="comment-body">${escapeHTML(comment.text || "")}</p>
+      ${isAdmin ? `<div class="comment-actions"><button class="action-btn delete-btn delete-comment" type="button" data-id="${escapeHTML(comment.id)}"><span class="material-symbols-outlined" style="font-size:16px">delete</span> Remover</button></div>` : ""}
     </div>
   `).join("");
 
@@ -1165,9 +1192,7 @@ async function saveComment() {
   const rating = Number($("comment-rating")?.value || 5);
   const text = ($("comment-text")?.value || "").trim();
   const wordCount = text.split(/\s+/).filter(Boolean).length;
-  const completed = appointmentsCache.filter(item => item.userId === currentUser.uid && item.status === "Concluído").length;
 
-  if (completed < 3) return showToast("É necessário ter pelo menos 3 serviços concluídos para comentar.");
   if (!text) return showToast("Escreva um comentário.");
   if (wordCount > 50) return showToast("Comentário excede 50 palavras.");
   if (rating < 1 || rating > 5) return showToast("Selecione uma nota válida.");
@@ -1182,6 +1207,8 @@ async function saveComment() {
     });
 
     $("comment-form")?.reset();
+    const picker = $("star-picker");
+    if (picker) picker.dataset.selected = "5";
     showToast("Obrigado pelo feedback!");
   } catch (error) {
     console.error(error);
@@ -1210,6 +1237,7 @@ function subscribeUsers() {
     snapshot => {
       usersCache = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
       renderUsersList();
+      updateAdminStats();
     },
     error => {
       console.error("Erro ao carregar clientes:", error);
@@ -1284,6 +1312,11 @@ async function initAuth() {
     const currentPage = window.location.pathname.split("/").pop() || "index.html";
     if (currentPage === "agendamentos.html" && !currentUser) {
       window.location.href = "auth.html";
+      return;
+    }
+
+    if (currentPage === "admin.html" && (!currentUser || !isAdmin)) {
+      window.location.href = currentUser ? "index.html" : "auth.html";
       return;
     }
 
