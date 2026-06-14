@@ -44,10 +44,22 @@ const barbeirosCollection = collection(db, "barbeiros");
 const EDIT_KEY = "barber_agendamento_editando";
 const STATUS_SEQUENCE = ["Pendente", "Confirmado", "Concluído", "Cancelado"];
 
+const DIAS_SEMANA = [
+  { value: 0, label: "Dom" },
+  { value: 1, label: "Seg" },
+  { value: 2, label: "Ter" },
+  { value: 3, label: "Qua" },
+  { value: 4, label: "Qui" },
+  { value: 5, label: "Sex" },
+  { value: 6, label: "Sáb" }
+];
+
 
 let currentUser = null;
 let currentUserData = null;
 let isAdmin = false;
+let pendingPhoto = null;
+let editingBarbeiroId = null;
 let appointmentsCache = [];
 let servicesCache = [];
 let horariosCache = [];
@@ -245,9 +257,6 @@ function updateAdminVisibility() {
   const adminNavLink = $("admin-nav-link");
   if (adminNavLink) adminNavLink.classList.toggle("hidden", !isAdmin);
 
-  const barbeirosNavLink = $("barbeiros-nav-link");
-  if (barbeirosNavLink) barbeirosNavLink.classList.toggle("hidden", !isAdmin);
-
   const description = $("appointments-description");
   if (description) {
     description.textContent = isAdmin
@@ -257,14 +266,14 @@ function updateAdminVisibility() {
 }
 
 function updateAdminStats() {
-  const clients = $("admin-stat-clients");
-  const services = $("admin-stat-services");
-  const horarios = $("admin-stat-horarios");
-  const available = $("admin-stat-available");
-  if (clients) clients.textContent = usersCache.length;
-  if (services) services.textContent = servicesCache.length;
-  if (horarios) horarios.textContent = horariosCache.length;
-  if (available) available.textContent = horariosCache.length - slotsCache.size;
+  const clients   = $("admin-stat-clients");
+  const barbeiros = $("admin-stat-barbeiros");
+  const services  = $("admin-stat-services");
+  const pending   = $("admin-stat-pending");
+  if (clients)   clients.textContent   = usersCache.length;
+  if (barbeiros) barbeiros.textContent = barbeirosCache.length;
+  if (services)  services.textContent  = servicesCache.length;
+  if (pending)   pending.textContent   = appointmentsCache.filter(a => a.status === "Pendente").length;
 }
 
 function populateBarbeiroSelect() {
@@ -1087,6 +1096,7 @@ function subscribeAppointments() {
       appointmentsCache = sortByDateTime(snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() })));
       applyFilters();
       renderCommentsEligibility();
+      updateAdminStats();
     },
     error => {
       console.error("Erro ao carregar agendamentos:", error);
@@ -1107,6 +1117,16 @@ function subscribeServices() {
       renderServicesList();
       applyFilters();
       updateAdminStats();
+      // Re-render barbeiro service checks when services list changes
+      if ($("barbeiro-services-checks")) {
+        const current = editingBarbeiroId ? barbeirosCache.find(b => b.id === editingBarbeiroId) : null;
+        const sel = current
+          ? (Array.isArray(current.services)
+              ? Object.fromEntries(current.services.map(n => [n, 0]))
+              : (current.services || {}))
+          : {};
+        renderBarbeiroServiceChecks(sel);
+      }
     },
     error => {
       console.error("Erro ao carregar serviços:", error);
@@ -1318,6 +1338,19 @@ function subscribeBarbeiros() {
       barbeirosCache = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
       populateBarbeiroSelect();
       renderServiceOptions();
+      renderBarberAdminList();
+      updateAdminStats();
+
+      // Re-render service checks when a barber being edited gets an update
+      if (editingBarbeiroId && $("barbeiro-services-checks")) {
+        const current = barbeirosCache.find(b => b.id === editingBarbeiroId);
+        if (current) {
+          const sel = Array.isArray(current.services)
+            ? Object.fromEntries(current.services.map(n => [n, 0]))
+            : (current.services || {});
+          renderBarbeiroServiceChecks(sel);
+        }
+      }
     },
     error => console.error("Erro ao carregar barbeiros:", error)
   );
@@ -1490,6 +1523,288 @@ async function initAuth() {
   });
 }
 
+// ============================================================
+// BARBEIROS ADMIN (embedded in admin page)
+// ============================================================
+
+function handleBarbeiroPhotoUpload(event) {
+  const file = event.target.files[0];
+  if (!file || !file.type.startsWith("image/")) return showToast("Selecione uma imagem válida.");
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const SIZE   = 200;
+      const canvas = document.createElement("canvas");
+      canvas.width = SIZE; canvas.height = SIZE;
+      const ctx    = canvas.getContext("2d");
+      const side   = Math.min(img.width, img.height);
+      const sx     = (img.width  - side) / 2;
+      const sy     = (img.height - side) / 2;
+      ctx.drawImage(img, sx, sy, side, side, 0, 0, SIZE, SIZE);
+      pendingPhoto = canvas.toDataURL("image/jpeg", 0.82);
+
+      const avatarImg  = $("barbeiro-avatar-img");
+      const avatarInit = $("barbeiro-avatar-initial");
+      if (avatarImg)  { avatarImg.src = pendingPhoto; avatarImg.classList.add("visible"); }
+      if (avatarInit) avatarInit.style.display = "none";
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderBarberAdminList() {
+  const container = $("barbeiros-admin-list");
+  if (!container) return;
+
+  if (!barbeirosCache.length) {
+    container.innerHTML = `
+      <div class="empty-barbeiros">
+        <span class="material-symbols-outlined">group</span>
+        <h3>Nenhum barbeiro cadastrado</h3>
+        <p>Adicione o primeiro barbeiro usando o formulário ao lado.</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = barbeirosCache.map(b => {
+    const svcNames     = Array.isArray(b.services) ? b.services : Object.keys(b.services || {});
+    const servicesList = svcNames.slice(0, 3).join(", ") || "Sem serviços";
+    const inicio       = b.horarioInicio || "09:00";
+    const fim          = b.horarioFim    || "20:00";
+    const hasPhoto     = Boolean(b.photo);
+
+    return `
+      <div class="barbeiro-card" data-id="${escapeHTML(b.id)}">
+        <div class="barbeiro-card-avatar">
+          ${hasPhoto
+            ? `<img src="${escapeHTML(b.photo)}" alt="${escapeHTML(b.name)}" class="visible" />`
+            : escapeHTML((b.name || "B").charAt(0).toUpperCase())}
+        </div>
+        <div class="barbeiro-card-info">
+          <strong>${escapeHTML(b.name || "Barbeiro")}</strong>
+          <span class="barbeiro-card-services">${escapeHTML(servicesList)}</span>
+          <span class="barbeiro-card-horario">${escapeHTML(inicio)} – ${escapeHTML(fim)}</span>
+        </div>
+        <div class="barbeiro-card-actions">
+          <button class="action-btn edit-barbeiro-btn" type="button" data-id="${escapeHTML(b.id)}" title="Editar">
+            <span class="material-symbols-outlined" style="font-size:16px">edit</span>
+          </button>
+          <button class="action-btn delete-btn delete-barbeiro-btn" type="button" data-id="${escapeHTML(b.id)}" title="Remover">
+            <span class="material-symbols-outlined" style="font-size:16px">delete</span>
+          </button>
+        </div>
+      </div>`;
+  }).join("");
+
+  container.querySelectorAll(".edit-barbeiro-btn").forEach(btn => {
+    btn.addEventListener("click", e => {
+      e.stopPropagation();
+      const b = barbeirosCache.find(x => x.id === btn.dataset.id);
+      if (b) openEditBarbeiroForm(b);
+    });
+  });
+
+  container.querySelectorAll(".delete-barbeiro-btn").forEach(btn => {
+    btn.addEventListener("click", e => {
+      e.stopPropagation();
+      deleteBarbeiroAdmin(btn.dataset.id);
+    });
+  });
+}
+
+function renderBarbeiroServiceChecks(selected = {}) {
+  const container = $("barbeiro-services-checks");
+  if (!container) return;
+
+  if (!servicesCache.length) {
+    container.innerHTML = `<p class="svc-empty-hint">Nenhum serviço cadastrado. Adicione serviços acima primeiro.</p>`;
+    return;
+  }
+
+  const isObj = typeof selected === "object" && !Array.isArray(selected);
+
+  container.innerHTML = servicesCache.map(s => {
+    const id        = `svc-adm-${slugify(s.id || s.name)}`;
+    const isChecked = isObj && Object.prototype.hasOwnProperty.call(selected, s.name);
+    const duration  = isChecked ? (selected[s.name] || "") : "";
+    return `
+      <div class="service-check-item${isChecked ? " active" : ""}">
+        <label class="svc-check-label" for="${escapeHTML(id)}">
+          <input type="checkbox" id="${escapeHTML(id)}" value="${escapeHTML(s.name)}" ${isChecked ? "checked" : ""} />
+          <span>${escapeHTML(s.name)}</span>
+        </label>
+        <div class="svc-duration-wrap${isChecked ? "" : " hidden"}">
+          <input type="number" class="svc-duration-input"
+            placeholder="min" min="5" max="480" step="5"
+            value="${escapeHTML(String(duration))}" />
+          <span class="svc-duration-unit">min</span>
+        </div>
+      </div>`;
+  }).join("");
+
+  container.querySelectorAll("input[type='checkbox']").forEach(cb => {
+    cb.addEventListener("change", () => {
+      const row   = cb.closest(".service-check-item");
+      const wrap  = row.querySelector(".svc-duration-wrap");
+      const input = row.querySelector(".svc-duration-input");
+      row.classList.toggle("active", cb.checked);
+      wrap.classList.toggle("hidden", !cb.checked);
+      if (cb.checked) input.focus();
+      else input.value = "";
+    });
+  });
+}
+
+function getCheckedBarbeiroServices() {
+  const result = {};
+  document.querySelectorAll("#barbeiro-services-checks input[type='checkbox']:checked").forEach(cb => {
+    const row      = cb.closest(".service-check-item");
+    const durInput = row?.querySelector(".svc-duration-input");
+    result[cb.value] = Number(durInput?.value || 0);
+  });
+  return result;
+}
+
+function renderBarbeiroDiasChecks(selected = [1, 2, 3, 4, 5, 6]) {
+  const container = $("barbeiro-dias-checks");
+  if (!container) return;
+
+  container.innerHTML = DIAS_SEMANA.map(d => {
+    const isChecked = selected.includes(d.value);
+    return `
+      <label class="dia-check-item${isChecked ? " active" : ""}" for="dia-adm-${d.value}">
+        <input type="checkbox" id="dia-adm-${d.value}" value="${d.value}" ${isChecked ? "checked" : ""} />
+        ${escapeHTML(d.label)}
+      </label>`;
+  }).join("");
+
+  container.querySelectorAll("input").forEach(cb => {
+    cb.addEventListener("change", () => {
+      cb.closest("label").classList.toggle("active", cb.checked);
+    });
+  });
+}
+
+function getCheckedBarbeiroDias() {
+  return [...document.querySelectorAll("#barbeiro-dias-checks input:checked")]
+    .map(cb => Number(cb.value));
+}
+
+function openAddBarbeiroForm() {
+  editingBarbeiroId = null;
+  pendingPhoto      = null;
+
+  if ($("barbeiro-name"))           $("barbeiro-name").value = "";
+  if ($("barbeiro-inicio"))         $("barbeiro-inicio").value = "09:00";
+  if ($("barbeiro-fim"))            $("barbeiro-fim").value   = "20:00";
+  if ($("barbeiro-avatar-img"))     { $("barbeiro-avatar-img").src = ""; $("barbeiro-avatar-img").classList.remove("visible"); }
+  if ($("barbeiro-avatar-initial")) { $("barbeiro-avatar-initial").textContent = "B"; $("barbeiro-avatar-initial").style.display = ""; }
+  if ($("barbeiro-photo-upload"))   $("barbeiro-photo-upload").value = "";
+  if ($("barbeiro-form-title"))     $("barbeiro-form-title").textContent = "Novo barbeiro";
+  if ($("barbeiro-cancel-btn"))     $("barbeiro-cancel-btn").classList.add("hidden");
+
+  renderBarbeiroServiceChecks({});
+  renderBarbeiroDiasChecks([1, 2, 3, 4, 5, 6]);
+}
+
+function openEditBarbeiroForm(b) {
+  editingBarbeiroId = b.id;
+  pendingPhoto      = null;
+
+  if ($("barbeiro-name"))      $("barbeiro-name").value    = b.name || "";
+  if ($("barbeiro-inicio"))    $("barbeiro-inicio").value  = b.horarioInicio || "09:00";
+  if ($("barbeiro-fim"))       $("barbeiro-fim").value     = b.horarioFim    || "20:00";
+  if ($("barbeiro-form-title")) $("barbeiro-form-title").textContent = "Editar barbeiro";
+  if ($("barbeiro-cancel-btn")) $("barbeiro-cancel-btn").classList.remove("hidden");
+
+  const avatarImg  = $("barbeiro-avatar-img");
+  const avatarInit = $("barbeiro-avatar-initial");
+  if (b.photo && avatarImg) {
+    avatarImg.src = b.photo;
+    avatarImg.classList.add("visible");
+    if (avatarInit) avatarInit.style.display = "none";
+  } else {
+    if (avatarImg)  { avatarImg.src = ""; avatarImg.classList.remove("visible"); }
+    if (avatarInit) { avatarInit.textContent = (b.name || "B").charAt(0).toUpperCase(); avatarInit.style.display = ""; }
+  }
+
+  const sel = Array.isArray(b.services)
+    ? Object.fromEntries(b.services.map(n => [n, 0]))
+    : (b.services || {});
+  renderBarbeiroServiceChecks(sel);
+  renderBarbeiroDiasChecks(Array.isArray(b.diasDisponiveis) ? b.diasDisponiveis : [1, 2, 3, 4, 5, 6]);
+
+  $("barbeiro-name")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+async function saveBarbeiroAdmin() {
+  if (!isAdmin) return showToast("Acesso negado.");
+
+  const name          = ($("barbeiro-name")?.value || "").trim();
+  const horarioInicio = $("barbeiro-inicio")?.value || "09:00";
+  const horarioFim    = $("barbeiro-fim")?.value    || "20:00";
+
+  if (name.length < 2) return showToast("Informe um nome válido.");
+  if (horarioInicio >= horarioFim) return showToast("O horário de início deve ser anterior ao de fim.");
+
+  const services = getCheckedBarbeiroServices();
+  const entries  = Object.entries(services);
+  if (!entries.length) return showToast("Selecione ao menos um serviço.");
+  for (const [svcName, dur] of entries) {
+    if (!dur || dur < 5) return showToast(`Informe o tempo em minutos para "${svcName}".`);
+  }
+
+  const diasDisponiveis = getCheckedBarbeiroDias();
+  if (!diasDisponiveis.length) return showToast("Selecione ao menos um dia de atendimento.");
+
+  const data = { name, services, diasDisponiveis, horarioInicio, horarioFim };
+  if (pendingPhoto) data.photo = pendingPhoto;
+
+  try {
+    if (editingBarbeiroId) {
+      data.updatedAt = serverTimestamp();
+      await updateDoc(doc(db, "barbeiros", editingBarbeiroId), data);
+      showToast("Barbeiro atualizado.");
+    } else {
+      data.photo     = pendingPhoto || "";
+      data.createdAt = serverTimestamp();
+      await addDoc(barbeirosCollection, data);
+      showToast("Barbeiro adicionado.");
+    }
+    openAddBarbeiroForm();
+  } catch (err) {
+    console.error(err);
+    showToast("Erro ao salvar barbeiro.");
+  }
+}
+
+async function deleteBarbeiroAdmin(id) {
+  if (!isAdmin) return showToast("Acesso negado.");
+  if (!confirm("Remover este barbeiro?")) return;
+  try {
+    await deleteDoc(doc(db, "barbeiros", id));
+    showToast("Barbeiro removido.");
+  } catch (err) {
+    console.error(err);
+    showToast("Erro ao remover barbeiro.");
+  }
+}
+
+function loadBarberAdminSection() {
+  if (!$("barbeiros-admin-list")) return;
+
+  $("barbeiro-photo-upload")?.addEventListener("change", handleBarbeiroPhotoUpload);
+  $("barbeiro-save-btn")?.addEventListener("click", saveBarbeiroAdmin);
+  $("barbeiro-cancel-btn")?.addEventListener("click", () => {
+    openAddBarbeiroForm();
+  });
+
+  openAddBarbeiroForm();
+}
+
 window.addEventListener("beforeunload", () => {
   Object.values(unsubscribers).forEach(unsubscribe => {
     if (typeof unsubscribe === "function") unsubscribe();
@@ -1505,6 +1820,8 @@ document.addEventListener("DOMContentLoaded", () => {
   subscribeBarbeiros();
   subscribeComments();
   initAuth();
+
+  loadBarberAdminSection();
 
   const barbeiroSelect = $("barbeiro");
   if (barbeiroSelect) barbeiroSelect.addEventListener("change", onBarbeiroChange);

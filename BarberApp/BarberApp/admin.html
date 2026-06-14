@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
 
   <link rel="stylesheet" href="css/agendamentos.css" />
+  <link rel="stylesheet" href="css/barbeiros.css" />
 
   <style>
     /* ============================================================
@@ -33,11 +34,8 @@
       margin-bottom: 18px;
     }
 
-    .admin-badge .material-symbols-outlined {
-      font-size: 15px;
-    }
+    .admin-badge .material-symbols-outlined { font-size: 15px; }
 
-    /* Quick stats row */
     .admin-stats-row {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -46,9 +44,7 @@
     }
 
     @media (min-width: 640px) {
-      .admin-stats-row {
-        grid-template-columns: repeat(4, 1fr);
-      }
+      .admin-stats-row { grid-template-columns: repeat(4, 1fr); }
     }
 
     .admin-stat-card {
@@ -63,9 +59,7 @@
       transition: border-color var(--transition);
     }
 
-    .admin-stat-card:hover {
-      border-color: rgba(196, 150, 58, 0.18);
-    }
+    .admin-stat-card:hover { border-color: rgba(196, 150, 58, 0.18); }
 
     .admin-stat-card .stat-icon {
       font-size: 20px;
@@ -87,34 +81,63 @@
       font-weight: 500;
     }
 
-    /* Admin section without hidden class here — page is admin-only */
-    .admin-section-page {
-      margin-top: 0;
-    }
+    .admin-section-page { margin-top: 0; }
 
-    /* Section header for admin page */
-    .admin-section-header {
+    .admin-section-gap { margin-top: 0; padding-top: 0; }
+
+    /* Section divider title */
+    .admin-section-title {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 22px;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(148, 141, 162, 0.1);
     }
 
-    .admin-section-header h2 {
+    .admin-section-title h3 {
       font-family: 'Manrope', sans-serif;
-      font-size: 1.15rem;
+      font-size: 1.05rem;
       font-weight: 700;
     }
 
-    .admin-section-header p {
-      font-size: 0.88rem;
-      color: var(--text-muted);
+    .admin-section-title .material-symbols-outlined {
+      font-size: 20px;
+      color: var(--primary);
     }
 
-    /* Light theme */
-    [data-theme="light"] .admin-stat-card {
-      background: rgba(255, 255, 255, 0.96);
+    /* Barbeiros inside admin card — two-column layout */
+    .barbeiros-admin-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      align-items: start;
     }
+
+    @media (min-width: 860px) {
+      .barbeiros-admin-layout {
+        grid-template-columns: minmax(260px, 0.75fr) minmax(0, 1.25fr);
+      }
+    }
+
+    /* Form panel inside admin card */
+    .barbeiro-admin-form {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(148, 141, 162, 0.08);
+      border-radius: 18px;
+      padding: 20px 18px;
+    }
+
+    .barbeiro-admin-form h4 {
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--primary);
+    }
+
+    [data-theme="light"] .admin-stat-card { background: rgba(255, 255, 255, 0.96); }
+    [data-theme="light"] .barbeiro-admin-form { background: rgba(0, 0, 0, 0.02); }
   </style>
 </head>
 <body>
@@ -156,10 +179,6 @@
         <span class="material-symbols-outlined">admin_panel_settings</span>
         Administração
       </a>
-      <a href="barbeiros.html" class="sidebar-link" id="barbeiros-nav-link">
-        <span class="material-symbols-outlined">group</span>
-        Barbeiros
-      </a>
     </nav>
     <div class="sidebar-footer">
       <button id="theme-toggle" class="sidebar-theme-btn" type="button" aria-label="Alternar tema">
@@ -186,7 +205,7 @@
           Acesso restrito
         </div>
         <h1 class="page-title">Painel de <span>Administração</span></h1>
-        <p class="page-description">Gerencie serviços, horários disponíveis e clientes cadastrados na plataforma.</p>
+        <p class="page-description">Gerencie serviços, a equipe de barbeiros e os clientes cadastrados na plataforma.</p>
       </div>
     </section>
 
@@ -200,40 +219,41 @@
         </div>
         <div class="admin-stat-card">
           <span class="material-symbols-outlined stat-icon">content_cut</span>
+          <strong id="admin-stat-barbeiros">—</strong>
+          <span>Barbeiros</span>
+        </div>
+        <div class="admin-stat-card">
+          <span class="material-symbols-outlined stat-icon">spa</span>
           <strong id="admin-stat-services">—</strong>
           <span>Serviços</span>
         </div>
         <div class="admin-stat-card">
-          <span class="material-symbols-outlined stat-icon">schedule</span>
-          <strong id="admin-stat-horarios">—</strong>
-          <span>Horários</span>
-        </div>
-        <div class="admin-stat-card">
-          <span class="material-symbols-outlined stat-icon">event_available</span>
-          <strong id="admin-stat-available">—</strong>
-          <span>Disponíveis</span>
+          <span class="material-symbols-outlined stat-icon">pending_actions</span>
+          <strong id="admin-stat-pending">—</strong>
+          <span>Pendentes</span>
         </div>
       </div>
     </section>
 
-    <!-- Management panels -->
+    <!-- Services + Clients -->
     <section class="container admin-section-page">
       <div class="admin-grid">
 
         <!-- Services management -->
         <div class="admin-card">
-          <h3>Serviços</h3>
+          <div class="admin-section-title">
+            <span class="material-symbols-outlined">spa</span>
+            <h3>Serviços</h3>
+          </div>
           <form id="service-form" class="booking-form" novalidate>
             <div class="form-group">
               <label for="service-name">Nome do serviço</label>
               <input id="service-name" placeholder="Ex: Corte Simples" maxlength="80" />
             </div>
-
             <div class="form-group">
               <label for="service-price">Valor (R$)</label>
               <input id="service-price" type="number" min="0" step="0.01" placeholder="45,00" />
             </div>
-
             <div class="form-actions">
               <button id="service-save" class="submit-btn" type="button">
                 <span class="material-symbols-outlined">save</span>
@@ -241,29 +261,109 @@
               </button>
             </div>
           </form>
-
           <div id="services-list" class="admin-list"></div>
-        </div>
-
-        <!-- Horários (somente leitura) -->
-        <div class="admin-card">
-          <h3>Horários</h3>
-          <p class="admin-hint" style="margin-bottom:14px;">
-            Para adicionar, editar ou remover horários, acesse a página
-            <a href="barbeiros.html" style="color:var(--primary);font-weight:700;">Barbeiros</a>.
-          </p>
-          <div id="horarios-list" class="admin-list"></div>
         </div>
 
         <!-- Clients list -->
         <div class="admin-card admin-card-wide">
-          <h3>Clientes cadastrados</h3>
-          <p class="admin-hint">Visualize e gerencie todos os clientes registrados na plataforma.</p>
+          <div class="admin-section-title">
+            <span class="material-symbols-outlined">group</span>
+            <h3>Clientes cadastrados</h3>
+          </div>
+          <p class="admin-hint">Todos os clientes registrados na plataforma.</p>
           <div id="clients-list" class="admin-list"></div>
         </div>
 
       </div>
     </section>
+
+    <!-- Barbeiros management (full width) -->
+    <section class="container admin-section-gap">
+      <div class="admin-card admin-card-wide">
+        <div class="admin-section-title">
+          <span class="material-symbols-outlined">group</span>
+          <h3>Barbeiros</h3>
+        </div>
+
+        <div class="barbeiros-admin-layout">
+
+          <!-- Form -->
+          <div class="barbeiro-admin-form">
+            <h4 id="barbeiro-form-title">Novo barbeiro</h4>
+
+            <!-- Avatar upload -->
+            <div class="barbeiro-avatar-wrap">
+              <div class="barbeiro-avatar" id="barbeiro-avatar">
+                <img id="barbeiro-avatar-img" src="" alt="Foto do barbeiro" />
+                <span id="barbeiro-avatar-initial">B</span>
+              </div>
+              <label for="barbeiro-photo-upload" class="barbeiro-avatar-label">
+                <span class="material-symbols-outlined">photo_camera</span>
+                Alterar foto
+              </label>
+              <input type="file" id="barbeiro-photo-upload" accept="image/*" class="hidden" />
+            </div>
+
+            <!-- Name -->
+            <div class="form-group">
+              <label for="barbeiro-name">Nome</label>
+              <input type="text" id="barbeiro-name" placeholder="Nome do barbeiro" maxlength="80" />
+            </div>
+
+            <!-- Services with duration -->
+            <div class="form-group">
+              <label>Serviços e tempo de execução</label>
+              <div id="barbeiro-services-checks" class="barbeiro-services-checks">
+                <!-- rendered by JS -->
+              </div>
+            </div>
+
+            <!-- Working hours -->
+            <div class="form-group">
+              <label>Horário de atendimento</label>
+              <div class="horario-config-row">
+                <div class="horario-config-field">
+                  <span>Início</span>
+                  <input type="time" id="barbeiro-inicio" value="09:00" />
+                </div>
+                <div class="horario-config-sep">—</div>
+                <div class="horario-config-field">
+                  <span>Fim</span>
+                  <input type="time" id="barbeiro-fim" value="20:00" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Working days -->
+            <div class="form-group">
+              <label>Dias de atendimento</label>
+              <div id="barbeiro-dias-checks" class="barbeiro-dias-checks">
+                <!-- rendered by JS -->
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="form-actions" style="padding-top:8px;">
+              <button id="barbeiro-save-btn" class="submit-btn" type="button">
+                <span class="material-symbols-outlined">save</span>
+                Salvar barbeiro
+              </button>
+              <button id="barbeiro-cancel-btn" class="ghost-btn hidden" type="button">
+                <span class="material-symbols-outlined">close</span>
+                Cancelar edição
+              </button>
+            </div>
+          </div>
+
+          <!-- List -->
+          <div id="barbeiros-admin-list">
+            <!-- rendered by JS -->
+          </div>
+
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <div class="toast" id="toast"></div>
