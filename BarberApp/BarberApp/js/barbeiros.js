@@ -192,6 +192,7 @@ function openAddForm() {
   pendingPhoto = null;
 
   if ($("barbeiro-name"))           $("barbeiro-name").value = "";
+  if ($("barbeiro-bio"))            $("barbeiro-bio").value  = "";
   if ($("barbeiro-inicio"))         $("barbeiro-inicio").value = "09:00";
   if ($("barbeiro-fim"))            $("barbeiro-fim").value   = "20:00";
   if ($("barbeiro-avatar-img"))     { $("barbeiro-avatar-img").src = ""; $("barbeiro-avatar-img").classList.remove("visible"); }
@@ -209,6 +210,7 @@ function openEditForm(b) {
   pendingPhoto = null;
 
   if ($("barbeiro-name"))      $("barbeiro-name").value = b.name || "";
+  if ($("barbeiro-bio"))       $("barbeiro-bio").value  = b.bio  || "";
   if ($("barbeiro-inicio"))    $("barbeiro-inicio").value = b.horarioInicio || "09:00";
   if ($("barbeiro-fim"))       $("barbeiro-fim").value   = b.horarioFim    || "20:00";
   if ($("form-panel-title"))   $("form-panel-title").textContent = "Editar barbeiro";
@@ -343,8 +345,10 @@ async function saveBarbeiro() {
   const diasDisponiveis = getCheckedDias();
   if (!diasDisponiveis.length) return showToast("Selecione ao menos um dia de atendimento.");
 
+  const bio = ($("barbeiro-bio")?.value || "").trim();
   const data = {
     name,
+    bio,
     services,
     diasDisponiveis,
     horarioInicio,

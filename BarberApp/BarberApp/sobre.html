@@ -344,6 +344,13 @@
       line-height: 1.5;
     }
 
+    /* Loading hint */
+    .sobre-loading-hint {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      padding: 16px 0;
+    }
+
     /* CTA */
     .sobre-cta {
       text-align: center;
@@ -563,39 +570,8 @@
       <h2 class="sobre-section-title">Nossos <span>Serviços</span></h2>
       <p class="sobre-section-subtitle">Escolha o serviço ideal para o seu estilo e necessidade.</p>
 
-      <div class="sobre-servicos-grid">
-        <div class="sobre-servico-card">
-          <div class="sobre-servico-icon">
-            <span class="material-symbols-outlined">content_cut</span>
-          </div>
-          <div class="sobre-servico-info">
-            <h3>Corte Simples</h3>
-            <p>Corte clássico com acabamento perfeito. Ideal para o dia a dia.</p>
-          </div>
-          <div class="sobre-servico-price">R$ 30</div>
-        </div>
-
-        <div class="sobre-servico-card">
-          <div class="sobre-servico-icon">
-            <span class="material-symbols-outlined">face</span>
-          </div>
-          <div class="sobre-servico-info">
-            <h3>Corte e Barba</h3>
-            <p>Combo completo com corte e modelagem de barba. Sai pronto para qualquer ocasião.</p>
-          </div>
-          <div class="sobre-servico-price">R$ 45</div>
-        </div>
-
-        <div class="sobre-servico-card">
-          <div class="sobre-servico-icon">
-            <span class="material-symbols-outlined">workspace_premium</span>
-          </div>
-          <div class="sobre-servico-info">
-            <h3>Experiência Premium</h3>
-            <p>Tratamento completo com corte, barba, hidratação e finalização profissional.</p>
-          </div>
-          <div class="sobre-servico-price">R$ 70</div>
-        </div>
+      <div class="sobre-servicos-grid" id="sobre-servicos-grid">
+        <div class="sobre-loading-hint">Carregando serviços...</div>
       </div>
     </section>
 
@@ -604,33 +580,8 @@
       <h2 class="sobre-section-title">Nossa <span>Equipe</span></h2>
       <p class="sobre-section-subtitle">Profissionais apaixonados pela arte do corte masculino.</p>
 
-      <div class="sobre-equipe-grid">
-        <div class="sobre-equipe-card">
-          <div class="equipe-avatar av1">R</div>
-          <div class="equipe-info">
-            <h3>Rafael Mendes</h3>
-            <p class="equipe-role">Barbeiro Sênior</p>
-            <p>Mais de 10 anos de experiência. Especialista em cortes clássicos e modernos. Formado pela escola nacional de barbeiros.</p>
-          </div>
-        </div>
-
-        <div class="sobre-equipe-card">
-          <div class="equipe-avatar av2">L</div>
-          <div class="equipe-info">
-            <h3>Lucas Ferreira</h3>
-            <p class="equipe-role">Barbeiro Especialista</p>
-            <p>Focado em técnicas contemporâneas e degradê. Atualiza constantemente suas técnicas em cursos nacionais.</p>
-          </div>
-        </div>
-
-        <div class="sobre-equipe-card">
-          <div class="equipe-avatar av3">M</div>
-          <div class="equipe-info">
-            <h3>Marcos Oliveira</h3>
-            <p class="equipe-role">Barbeiro & Colorista</p>
-            <p>Especialista em coloração e pigmentação de barba. Transforma o visual com criatividade e precisão.</p>
-          </div>
-        </div>
+      <div class="sobre-equipe-grid" id="sobre-equipe-grid">
+        <div class="sobre-loading-hint">Carregando equipe...</div>
       </div>
     </section>
 
@@ -719,5 +670,118 @@
 
   <script src="js/theme.js"></script>
   <script src="js/sidebar.js"></script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBmWNHnYemnft_N542e9wa_1jRZeqCc5zE",
+      authDomain: "barbearia-7387c.firebaseapp.com",
+      projectId: "barbearia-7387c",
+      storageBucket: "barbearia-7387c.firebasestorage.app",
+      messagingSenderId: "16693210556",
+      appId: "1:16693210556:web:3510e53c285b3dc257cfb9"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    function esc(v = "") {
+      return String(v)
+        .replaceAll("&", "&amp;").replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;").replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    const formatMoney = v =>
+      new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v) || 0);
+
+    const AVATAR_GRADIENTS = [
+      "linear-gradient(135deg,#C4963A,#8A6420)",
+      "linear-gradient(135deg,#5B8DB8,#2A5E8A)",
+      "linear-gradient(135deg,#ffc84d,#c07800)",
+      "linear-gradient(135deg,#7B68EE,#4B3BA8)",
+      "linear-gradient(135deg,#48BB78,#276749)"
+    ];
+
+    async function loadServicos() {
+      const grid = document.getElementById("sobre-servicos-grid");
+      if (!grid) return;
+      try {
+        const snap = await getDocs(collection(db, "services"));
+        const services = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        if (!services.length) {
+          grid.innerHTML = `<p class="sobre-loading-hint">Nenhum serviço cadastrado.</p>`;
+          return;
+        }
+
+        grid.innerHTML = services.map(s => `
+          <div class="sobre-servico-card">
+            <div class="sobre-servico-icon">
+              <span class="material-symbols-outlined">${esc(s.icon || "content_cut")}</span>
+            </div>
+            <div class="sobre-servico-info">
+              <h3>${esc(s.name)}</h3>
+            </div>
+            <div class="sobre-servico-price">${esc(formatMoney(s.price))}</div>
+          </div>
+        `).join("");
+      } catch (err) {
+        console.error(err);
+        grid.innerHTML = `<p class="sobre-loading-hint">Não foi possível carregar os serviços.</p>`;
+      }
+    }
+
+    async function loadEquipe() {
+      const grid = document.getElementById("sobre-equipe-grid");
+      if (!grid) return;
+      try {
+        const snap = await getDocs(collection(db, "barbeiros"));
+        const barbeiros = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        if (!barbeiros.length) {
+          grid.innerHTML = `<p class="sobre-loading-hint">Nenhum barbeiro cadastrado.</p>`;
+          return;
+        }
+
+        grid.innerHTML = barbeiros.map((b, i) => {
+          const svcNames      = Array.isArray(b.services) ? b.services : Object.keys(b.services || {});
+          const especialidades = svcNames.join(" · ") || "Barbeiro";
+          const hasPhoto      = Boolean(b.photo);
+          const gradient      = AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length];
+          const initial       = (b.name || "B").charAt(0).toUpperCase();
+
+          const avatarHTML = hasPhoto
+            ? `<div class="equipe-avatar" style="background:${gradient};padding:0;overflow:hidden;">
+                 <img src="${esc(b.photo)}" alt="${esc(b.name)}" style="width:100%;height:100%;object-fit:cover;display:block;" />
+               </div>`
+            : `<div class="equipe-avatar" style="background:${gradient}">${esc(initial)}</div>`;
+
+          return `
+            <div class="sobre-equipe-card">
+              ${avatarHTML}
+              <div class="equipe-info">
+                <h3>${esc(b.name || "Barbeiro")}</h3>
+                <p class="equipe-role">${esc(especialidades)}</p>
+                ${b.bio ? `<p>${esc(b.bio)}</p>` : ""}
+              </div>
+            </div>
+          `;
+        }).join("");
+      } catch (err) {
+        console.error(err);
+        grid.innerHTML = `<p class="sobre-loading-hint">Não foi possível carregar a equipe.</p>`;
+      }
+    }
+
+    loadServicos();
+    loadEquipe();
+  </script>
 </body>
 </html>
