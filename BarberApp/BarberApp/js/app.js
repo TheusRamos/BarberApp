@@ -1048,31 +1048,34 @@ function showStatusPicker(id, currentStatus, anchorEl) {
 
   statusPickerEl = document.createElement("div");
   statusPickerEl.className = "status-picker-dropdown";
-  statusPickerEl.innerHTML = `
-    <p class="status-picker-label">Alterar status para</p>
-    ${OPTIONS.map(opt => `
-      <button class="status-picker-item ${opt.cls}${opt.value === currentStatus ? " current" : ""}"
-              type="button"
-              data-status="${escapeHTML(opt.value)}"
-              ${opt.value === currentStatus ? "disabled" : ""}>
-        <span class="material-symbols-outlined">${opt.icon}</span>
-        ${escapeHTML(opt.value)}
-      </button>
-    `).join("")}
-  `;
+  statusPickerEl.innerHTML = OPTIONS.map(opt => `
+    <button class="status-picker-item ${opt.cls}${opt.value === currentStatus ? " current" : ""}"
+            type="button"
+            data-status="${escapeHTML(opt.value)}"
+            ${opt.value === currentStatus ? "disabled" : ""}>
+      <span class="material-symbols-outlined">${opt.icon}</span>
+      ${escapeHTML(opt.value)}
+    </button>
+  `).join("");
 
   document.body.appendChild(statusPickerEl);
 
   const rect = anchorEl.getBoundingClientRect();
-  let top  = rect.bottom + 8;
-  let left = rect.left;
-  const pw = statusPickerEl.offsetWidth;
+  const pw   = statusPickerEl.offsetWidth;
+  const ph   = statusPickerEl.offsetHeight;
 
-  if (left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+  let left = rect.left;
+  let top  = rect.bottom + 8;
+
+  // Horizontal overflow: empurra para esquerda se necessário
+  if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
   if (left < 8) left = 8;
 
-  statusPickerEl.style.top  = `${top  + window.scrollY}px`;
-  statusPickerEl.style.left = `${left + window.scrollX}px`;
+  // Vertical overflow: abre acima do botão se não couber abaixo
+  if (top + ph > window.innerHeight - 8) top = rect.top - ph - 8;
+
+  statusPickerEl.style.top  = `${top}px`;
+  statusPickerEl.style.left = `${left}px`;
 
   statusPickerEl.querySelectorAll(".status-picker-item:not(:disabled)").forEach(btn => {
     btn.addEventListener("click", async e => {

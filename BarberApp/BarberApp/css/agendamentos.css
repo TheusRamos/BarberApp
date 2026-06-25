@@ -994,45 +994,38 @@ a.new-booking-btn {
   background: rgba(10, 14, 28, 0.97);
   border: 1px solid rgba(196, 150, 58, 0.18);
   border-radius: 18px;
-  padding: 10px;
+  padding: 8px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(20px);
-  min-width: 188px;
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
   animation: pickerFadeIn 0.16s ease;
 }
 
 @keyframes pickerFadeIn {
-  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  from { opacity: 0; transform: translateY(-4px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0)    scale(1);    }
-}
-
-.status-picker-label {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-soft);
-  padding: 4px 10px 8px;
-  display: block;
 }
 
 .status-picker-item {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 9px;
-  width: 100%;
-  padding: 9px 12px;
-  border-radius: 11px;
-  font-size: 0.88rem;
+  gap: 5px;
+  padding: 10px 13px;
+  border-radius: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
-  text-align: left;
+  text-align: center;
+  white-space: nowrap;
   background: transparent;
   border: none;
   cursor: pointer;
   transition: background var(--transition);
 }
 
-.status-picker-item .material-symbols-outlined { font-size: 17px; }
+.status-picker-item .material-symbols-outlined { font-size: 20px; }
 
 .status-picker-item.pending   { color: var(--warning); }
 .status-picker-item.confirmed { color: var(--success); }
