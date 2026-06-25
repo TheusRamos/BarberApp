@@ -1200,3 +1200,36 @@ body, input, textarea, select, button { font-family: 'Inter', sans-serif; }
   color: var(--primary);
   font-weight: 700;
 }
+
+/* ============================================================
+   SMOOTH ANIMATIONS
+   ============================================================ */
+
+html { scroll-behavior: smooth; }
+
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.app {
+  animation: pageFadeIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.anim-fade-up {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.anim-fade-up.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.anim-d1 { transition-delay: 0.07s; }
+.anim-d2 { transition-delay: 0.14s; }
+.anim-d3 { transition-delay: 0.21s; }
+.anim-d4 { transition-delay: 0.28s; }
+.anim-d5 { transition-delay: 0.35s; }

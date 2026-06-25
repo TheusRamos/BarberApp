@@ -866,7 +866,7 @@ function updateStats(appointments) {
 
 function createAppointmentCard(appointment) {
   const article = document.createElement("article");
-  article.className = "appointment-card";
+  article.className = "appointment-card anim-fade-up";
 
   const observationsText = appointment.observacoes?.trim() ? appointment.observacoes : "Sem observações.";
   const canClientCancel = currentUser && appointment.userId === currentUser.uid && !isAdmin && !["Cancelado", "Concluído"].includes(appointment.status);
@@ -1233,7 +1233,11 @@ function renderAppointments(filteredAppointments = null) {
     return;
   }
 
-  appointments.forEach(appointment => container.appendChild(createAppointmentCard(appointment)));
+  appointments.forEach((appointment, idx) => {
+    const card = createAppointmentCard(appointment);
+    if (idx > 0 && idx <= 5) card.classList.add(`anim-d${idx}`);
+    container.appendChild(card);
+  });
   updateStats(appointments);
   bindCardActions();
 }
@@ -1483,8 +1487,8 @@ function renderCommentsList(items = []) {
   const starsHTML = rating => "★".repeat(Number(rating) || 5) + "☆".repeat(5 - (Number(rating) || 5));
   const initial = name => (name || "C").charAt(0).toUpperCase();
 
-  container.innerHTML = visible.map(comment => `
-    <div class="comment-card">
+  container.innerHTML = visible.map((comment, idx) => `
+    <div class="comment-card anim-fade-up${idx > 0 && idx <= 5 ? ` anim-d${idx}` : ''}">
       <div class="comment-header">
         <div class="comment-avatar">${escapeHTML(initial(comment.authorName))}</div>
         <div class="comment-meta">

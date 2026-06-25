@@ -68,28 +68,58 @@
     }
 
     .sobre-historia-text p + p {
-      margin-top: 16px;
+      margin-top: 18px;
+    }
+
+    .sobre-historia-text p:first-child {
+      font-size: 1.02rem;
+      color: var(--text);
+      padding-left: 16px;
+      border-left: 2px solid var(--primary);
     }
 
     .sobre-historia-highlight {
-      background: rgba(22, 22, 28, 0.9);
-      border: 1px solid rgba(148, 141, 162, 0.1);
-      border-radius: 22px;
-      padding: 28px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-content: start;
     }
 
     .highlight-item {
       display: flex;
+      flex-direction: row;
       align-items: flex-start;
       gap: 14px;
+      padding: 20px 18px;
+      background: rgba(22, 22, 28, 0.96);
+      border: 1px solid rgba(148, 141, 162, 0.1);
+      border-radius: 18px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color var(--transition), transform var(--transition);
+    }
+
+    .highlight-text {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .highlight-item::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), transparent);
+    }
+
+    .highlight-item:hover {
+      border-color: rgba(196, 150, 58, 0.28);
+      transform: translateY(-2px);
     }
 
     .highlight-icon {
-      width: 42px;
-      height: 42px;
+      width: 44px;
+      height: 44px;
       border-radius: 12px;
       background: rgba(196, 150, 58, 0.1);
       display: flex;
@@ -100,19 +130,20 @@
     }
 
     .highlight-icon .material-symbols-outlined {
-      font-size: 20px;
+      font-size: 22px;
     }
 
     .highlight-text strong {
       display: block;
       font-family: 'Manrope', sans-serif;
       font-weight: 700;
-      margin-bottom: 3px;
-      font-size: 0.95rem;
+      margin-bottom: 4px;
+      font-size: 0.92rem;
+      color: var(--text);
     }
 
     .highlight-text span {
-      font-size: 0.88rem;
+      font-size: 0.82rem;
       color: var(--text-muted);
       line-height: 1.6;
     }
@@ -496,23 +527,23 @@
 
     <!-- Hero -->
     <section class="container sobre-hero">
-      <div class="welcome-badge">
+      <div class="welcome-badge anim-fade-up">
         <span class="welcome-dot"></span>
         <span class="welcome-text">Nossa história</span>
       </div>
-      <h1 class="hero-title">Sobre <span>Nós</span></h1>
-      <p class="hero-description">
+      <h1 class="hero-title anim-fade-up anim-d1">Sobre <span>Nós</span></h1>
+      <p class="hero-description anim-fade-up anim-d2">
         Somos mais do que uma barbearia. Somos um espaço onde estilo, tradição e cuidado se encontram para transformar sua experiência de grooming.
       </p>
     </section>
 
     <!-- Nossa História -->
     <section class="container sobre-section">
-      <h2 class="sobre-section-title">Nossa <span>História</span></h2>
-      <p class="sobre-section-subtitle">Fundada com a missão de oferecer o melhor do cuidado masculino.</p>
+      <h2 class="sobre-section-title anim-fade-up">Nossa <span>História</span></h2>
+      <p class="sobre-section-subtitle anim-fade-up anim-d1">Fundada com a missão de oferecer o melhor do cuidado masculino.</p>
 
       <div class="sobre-historia-grid">
-        <div class="sobre-historia-text">
+        <div class="sobre-historia-text anim-fade-up anim-d1">
           <p>
             A BarberApp nasceu da paixão de um grupo de barbeiros comprometidos com a excelência. Desde o primeiro dia, nosso foco é proporcionar uma experiência completa — do atendimento personalizado ao resultado final impecável.
           </p>
@@ -525,7 +556,7 @@
         </div>
 
         <div class="sobre-historia-highlight">
-          <div class="highlight-item">
+          <div class="highlight-item anim-fade-up">
             <div class="highlight-icon">
               <span class="material-symbols-outlined">workspace_premium</span>
             </div>
@@ -534,7 +565,7 @@
               <span>Produtos profissionais e técnicas atualizadas para o melhor resultado.</span>
             </div>
           </div>
-          <div class="highlight-item">
+          <div class="highlight-item anim-fade-up anim-d1">
             <div class="highlight-icon">
               <span class="material-symbols-outlined">handshake</span>
             </div>
@@ -543,7 +574,7 @@
               <span>Cada cliente recebe atenção individual e exclusiva durante o atendimento.</span>
             </div>
           </div>
-          <div class="highlight-item">
+          <div class="highlight-item anim-fade-up anim-d2">
             <div class="highlight-icon">
               <span class="material-symbols-outlined">verified</span>
             </div>
@@ -552,7 +583,7 @@
               <span>Equipe com formação técnica e anos de experiência no mercado.</span>
             </div>
           </div>
-          <div class="highlight-item">
+          <div class="highlight-item anim-fade-up anim-d3">
             <div class="highlight-icon">
               <span class="material-symbols-outlined">favorite</span>
             </div>
@@ -567,8 +598,8 @@
 
     <!-- Serviços -->
     <section class="container sobre-section">
-      <h2 class="sobre-section-title">Nossos <span>Serviços</span></h2>
-      <p class="sobre-section-subtitle">Escolha o serviço ideal para o seu estilo e necessidade.</p>
+      <h2 class="sobre-section-title anim-fade-up">Nossos <span>Serviços</span></h2>
+      <p class="sobre-section-subtitle anim-fade-up anim-d1">Escolha o serviço ideal para o seu estilo e necessidade.</p>
 
       <div class="sobre-servicos-grid" id="sobre-servicos-grid">
         <div class="sobre-loading-hint">Carregando serviços...</div>
@@ -577,8 +608,8 @@
 
     <!-- Equipe -->
     <section class="container sobre-section">
-      <h2 class="sobre-section-title">Nossa <span>Equipe</span></h2>
-      <p class="sobre-section-subtitle">Profissionais apaixonados pela arte do corte masculino.</p>
+      <h2 class="sobre-section-title anim-fade-up">Nossa <span>Equipe</span></h2>
+      <p class="sobre-section-subtitle anim-fade-up anim-d1">Profissionais apaixonados pela arte do corte masculino.</p>
 
       <div class="sobre-equipe-grid" id="sobre-equipe-grid">
         <div class="sobre-loading-hint">Carregando equipe...</div>
@@ -587,11 +618,11 @@
 
     <!-- Horários e Contato -->
     <section class="container sobre-section">
-      <h2 class="sobre-section-title">Funcionamento e <span>Contato</span></h2>
-      <p class="sobre-section-subtitle">Estamos prontos para atendê-lo nos melhores horários.</p>
+      <h2 class="sobre-section-title anim-fade-up">Funcionamento e <span>Contato</span></h2>
+      <p class="sobre-section-subtitle anim-fade-up anim-d1">Estamos prontos para atendê-lo nos melhores horários.</p>
 
       <div class="sobre-info-grid">
-        <div class="sobre-info-card">
+        <div class="sobre-info-card anim-fade-up anim-d1">
           <div class="sobre-info-card-title">
             <span class="material-symbols-outlined">schedule</span>
             Horário de funcionamento
@@ -616,7 +647,7 @@
           </div>
         </div>
 
-        <div class="sobre-info-card">
+        <div class="sobre-info-card anim-fade-up anim-d2">
           <div class="sobre-info-card-title">
             <span class="material-symbols-outlined">location_on</span>
             Localização e contato
@@ -657,8 +688,8 @@
 
     <!-- CTA -->
     <section class="container sobre-cta">
-      <h2>Pronto para o próximo <span>nível?</span></h2>
-      <p>Agende agora mesmo e garanta seu horário com nossos profissionais.</p>
+      <h2 class="anim-fade-up">Pronto para o próximo <span>nível?</span></h2>
+      <p class="anim-fade-up anim-d1">Agende agora mesmo e garanta seu horário com nossos profissionais.</p>
       <a href="index.html" class="sobre-cta-btn">
         <span class="material-symbols-outlined">content_cut</span>
         Agendar agora
@@ -670,6 +701,7 @@
 
   <script src="js/theme.js"></script>
   <script src="js/sidebar.js"></script>
+  <script src="js/animations.js"></script>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -721,8 +753,8 @@
           return;
         }
 
-        grid.innerHTML = services.map(s => `
-          <div class="sobre-servico-card">
+        grid.innerHTML = services.map((s, idx) => `
+          <div class="sobre-servico-card anim-fade-up${idx > 0 && idx <= 5 ? ` anim-d${idx}` : ''}">
             <div class="sobre-servico-icon">
               <span class="material-symbols-outlined">${esc(s.icon || "content_cut")}</span>
             </div>
@@ -764,7 +796,7 @@
             : `<div class="equipe-avatar" style="background:${gradient}">${esc(initial)}</div>`;
 
           return `
-            <div class="sobre-equipe-card">
+            <div class="sobre-equipe-card anim-fade-up${i > 0 && i <= 5 ? ` anim-d${i}` : ''}">
               ${avatarHTML}
               <div class="equipe-info">
                 <h3>${esc(b.name || "Barbeiro")}</h3>
