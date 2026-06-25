@@ -274,6 +274,136 @@
       background: rgba(138, 97, 32, 0.05);
       border-color: rgba(138, 97, 32, 0.12);
     }
+
+    /* ============================================================
+       ADMIN COMMENT REVIEW PANEL
+       ============================================================ */
+
+    .admin-review-panel {
+      background: rgba(22, 22, 28, 0.96);
+      border: 1px solid rgba(196, 150, 58, 0.22);
+      border-radius: 26px;
+      padding: 24px;
+      box-shadow: var(--card-shadow);
+    }
+
+    .admin-review-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(148, 141, 162, 0.1);
+    }
+
+    .admin-review-header > .material-symbols-outlined {
+      font-size: 28px;
+      color: var(--primary);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .admin-review-header h3 {
+      font-family: 'Manrope', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .admin-review-desc {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    .pending-badge {
+      margin-left: auto;
+      background: var(--primary);
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 99px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .pending-badge:empty {
+      display: none;
+    }
+
+    .review-item {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 16px;
+      border: 1px solid rgba(148, 141, 162, 0.1);
+      border-radius: 16px;
+      margin-bottom: 12px;
+      transition: border-color var(--transition);
+    }
+
+    .review-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .review-item:hover {
+      border-color: rgba(196, 150, 58, 0.18);
+    }
+
+    .review-item-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .review-item-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .approve-btn {
+      background: rgba(34, 197, 94, 0.12);
+      color: #22c55e;
+      border: 1px solid rgba(34, 197, 94, 0.22);
+    }
+
+    .approve-btn:hover {
+      background: rgba(34, 197, 94, 0.22);
+    }
+
+    .reject-btn {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .reject-btn:hover {
+      background: rgba(239, 68, 68, 0.2);
+    }
+
+    .empty-review {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--text-muted);
+    }
+
+    .empty-review .material-symbols-outlined {
+      font-size: 36px;
+      color: #22c55e;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .empty-review p {
+      font-size: 0.9rem;
+    }
+
+    [data-theme="light"] .admin-review-panel {
+      background: rgba(255, 255, 255, 0.96);
+    }
   </style>
 </head>
 <body>
@@ -407,6 +537,26 @@
           </div>
         </div>
 
+      </div>
+    </section>
+
+    <!-- Admin moderation panel (only visible to admins) -->
+    <section class="container" id="admin-comment-review-section" style="display:none; margin-top: 28px; margin-bottom: 28px;">
+      <div class="admin-review-panel">
+        <div class="admin-review-header">
+          <span class="material-symbols-outlined">admin_panel_settings</span>
+          <div>
+            <h3>Moderação de Avaliações</h3>
+            <p class="admin-review-desc">Aprove ou reprove os comentários antes de exibi-los para os clientes.</p>
+          </div>
+          <span class="pending-badge" id="pending-count-badge"></span>
+        </div>
+        <div id="admin-review-list">
+          <div class="empty-review">
+            <span class="material-symbols-outlined">check_circle</span>
+            <p>Nenhuma avaliação pendente de revisão.</p>
+          </div>
+        </div>
       </div>
     </section>
   </main>

@@ -1283,8 +1283,8 @@ function renderCommentsList(items = []) {
   const container = $("comments-list");
   if (!container) return;
 
-  // Clientes só veem avaliações de 5 estrelas; admins veem todas
-  const visible = isAdmin ? items : items.filter(c => Number(c.rating) === 5);
+  // Apenas comentários aprovados (ou antigos sem o campo, tratados como aprovados)
+  const visible = items.filter(c => c.approved !== false);
 
   if (!visible.length) {
     container.innerHTML = `
@@ -1329,6 +1329,83 @@ function renderCommentsList(items = []) {
   });
 }
 
+function renderAdminCommentReview() {
+  const section = $("admin-comment-review-section");
+  const list = $("admin-review-list");
+  const badge = $("pending-count-badge");
+
+  if (!section || !list) return;
+
+  if (!isAdmin) {
+    section.style.display = "none";
+    return;
+  }
+
+  section.style.display = "";
+
+  const pending = commentsCache.filter(c => c.approved === false);
+
+  if (badge) badge.textContent = pending.length ? `${pending.length} pendente${pending.length > 1 ? "s" : ""}` : "";
+
+  if (!pending.length) {
+    list.innerHTML = `
+      <div class="empty-review">
+        <span class="material-symbols-outlined">check_circle</span>
+        <p>Nenhuma avaliação pendente de revisão.</p>
+      </div>`;
+    return;
+  }
+
+  const starsHTML = rating => "★".repeat(Number(rating) || 5) + "☆".repeat(5 - (Number(rating) || 5));
+  const initial = name => (name || "C").charAt(0).toUpperCase();
+
+  list.innerHTML = pending.map(comment => `
+    <div class="review-item">
+      <div class="review-item-header">
+        <div class="comment-avatar">${escapeHTML(initial(comment.authorName))}</div>
+        <div class="comment-meta">
+          <strong>${escapeHTML(comment.authorName || "Cliente")}</strong>
+          <div class="comment-stars">${starsHTML(comment.rating)}</div>
+        </div>
+      </div>
+      <p class="comment-body">${escapeHTML(comment.text || "")}</p>
+      <div class="review-item-actions">
+        <button class="action-btn reject-btn reject-comment" type="button" data-id="${escapeHTML(comment.id)}">
+          <span class="material-symbols-outlined" style="font-size:16px">close</span> Reprovar
+        </button>
+        <button class="action-btn approve-btn approve-comment" type="button" data-id="${escapeHTML(comment.id)}">
+          <span class="material-symbols-outlined" style="font-size:16px">check</span> Aprovar
+        </button>
+      </div>
+    </div>
+  `).join("");
+
+  list.querySelectorAll(".approve-comment").forEach(button => {
+    button.addEventListener("click", async () => {
+      try {
+        await updateDoc(doc(db, "comments", button.dataset.id), { approved: true });
+        showToast("Avaliação aprovada.");
+      } catch (error) {
+        console.error(error);
+        showToast("Erro ao aprovar avaliação.");
+      }
+    });
+  });
+
+  list.querySelectorAll(".reject-comment").forEach(button => {
+    button.addEventListener("click", async () => {
+      if (!confirm("Reprovar e remover esta avaliação?")) return;
+      try {
+        await deleteDoc(doc(db, "comments", button.dataset.id));
+        showToast("Avaliação reprovada.");
+      } catch (error) {
+        console.error(error);
+        showToast("Erro ao reprovar avaliação.");
+      }
+    });
+  });
+}
+
 function subscribeBarbeiros() {
   if (typeof unsubscribers.barbeiros === "function") return;
 
@@ -1366,6 +1443,7 @@ function subscribeComments() {
         .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
         .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       renderCommentsList(commentsCache);
+      renderAdminCommentReview();
     },
     error => {
       console.error("Erro ao carregar comentários:", error);
@@ -1391,6 +1469,7 @@ async function saveComment() {
       authorName: currentUserData?.name || currentUser.displayName || "Cliente",
       rating,
       text,
+      approved: false,
       createdAt: serverTimestamp()
     });
 
@@ -1497,6 +1576,7 @@ async function initAuth() {
     updateAdminVisibility();
     prefillUserData();
     renderCommentsList(commentsCache);
+    renderAdminCommentReview();
 
     const currentPage = window.location.pathname.split("/").pop() || "index.html";
     if (currentPage === "agendamentos.html" && !currentUser) {
