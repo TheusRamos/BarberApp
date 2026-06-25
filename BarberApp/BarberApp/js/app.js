@@ -10,6 +10,7 @@ import {
   serverTimestamp,
   onSnapshot,
   getDoc,
+  getDocs,
   runTransaction,
   query,
   where
@@ -40,6 +41,7 @@ const slotsCollection = collection(db, "slots");
 const commentsCollection = collection(db, "comments");
 const usersCollection = collection(db, "users");
 const barbeirosCollection = collection(db, "barbeiros");
+const waitlistCollection  = collection(db, "waitlist");
 
 const EDIT_KEY = "barber_agendamento_editando";
 const STATUS_SEQUENCE = ["Pendente", "Confirmado", "Concluído", "Cancelado"];
@@ -69,6 +71,8 @@ let usersCache = [];
 let barbeirosCache = [];
 let selectedBarbeiroId = null;
 let pendingEditAppointment = null;
+let statusPickerEl = null;
+let lastFailedPayload = null;
 
 const unsubscribers = {
   appointments: null,
@@ -820,7 +824,13 @@ function loadFormPage() {
       }, 650);
     } catch (error) {
       console.error("Erro ao salvar agendamento:", error);
-      showToast(error.message || "Erro ao salvar no Firebase.");
+      if (error.message === "Horário já reservado." && currentUser && !currentEditId) {
+        lastFailedPayload = buildAppointmentPayload();
+        showToast("Horário já reservado. Você pode entrar na fila de espera.");
+        $("waitlist-offer")?.classList.remove("hidden");
+      } else {
+        showToast(error.message || "Erro ao salvar no Firebase.");
+      }
     } finally {
       if (submitBtn) submitBtn.disabled = false;
     }
@@ -828,22 +838,30 @@ function loadFormPage() {
 }
 
 function updateStats(appointments) {
-  const totalElement = $("stat-total");
+  const totalElement     = $("stat-total");
   const confirmedElement = $("stat-confirmed");
-  const pendingElement = $("stat-pending");
-  const revenueElement = $("stat-revenue");
+  const pendingElement   = $("stat-pending");
+  const revenueElement   = $("stat-revenue");
+  const billedElement    = $("stat-billed");
 
   if (!totalElement || !confirmedElement || !pendingElement || !revenueElement) return;
 
-  const activeAppointments = appointments.filter(item => item.status !== "Cancelado");
   const confirmed = appointments.filter(item => item.status === "Confirmado").length;
-  const pending = appointments.filter(item => item.status === "Pendente").length;
-  const revenue = activeAppointments.reduce((sum, item) => sum + (Number(item.valor) || getServicePrice(item.servico)), 0);
+  const pending   = appointments.filter(item => item.status === "Pendente").length;
 
-  totalElement.textContent = String(appointments.length);
+  const forecast = appointments
+    .filter(item => ["Pendente", "Confirmado"].includes(item.status))
+    .reduce((sum, item) => sum + (Number(item.valor) || getServicePrice(item.servico)), 0);
+
+  const billed = appointments
+    .filter(item => item.status === "Concluído")
+    .reduce((sum, item) => sum + (Number(item.valor) || getServicePrice(item.servico)), 0);
+
+  totalElement.textContent     = String(appointments.length);
   confirmedElement.textContent = String(confirmed);
-  pendingElement.textContent = String(pending);
-  revenueElement.textContent = formatMoney(revenue);
+  pendingElement.textContent   = String(pending);
+  revenueElement.textContent   = formatMoney(forecast);
+  if (billedElement) billedElement.textContent = formatMoney(billed);
 }
 
 function createAppointmentCard(appointment) {
@@ -875,7 +893,7 @@ function createAppointmentCard(appointment) {
     <div class="card-actions">
       ${isAdmin ? `
         <button class="action-btn edit-btn" type="button" data-id="${escapeHTML(appointment.id)}"><span class="material-symbols-outlined">edit</span>Editar</button>
-        <button class="action-btn status-btn" type="button" data-id="${escapeHTML(appointment.id)}"><span class="material-symbols-outlined">sync</span>Status</button>
+        <button class="action-btn status-btn" type="button" data-id="${escapeHTML(appointment.id)}"><span class="material-symbols-outlined">edit_note</span>Status</button>
         <button class="action-btn delete-btn" type="button" data-id="${escapeHTML(appointment.id)}"><span class="material-symbols-outlined">delete</span>Excluir</button>
       ` : ""}
       ${canClientCancel ? `
@@ -885,12 +903,6 @@ function createAppointmentCard(appointment) {
   `;
 
   return article;
-}
-
-function getNextStatus(currentStatus) {
-  const currentIndex = STATUS_SEQUENCE.indexOf(currentStatus);
-  if (currentIndex === -1) return STATUS_SEQUENCE[0];
-  return STATUS_SEQUENCE[(currentIndex + 1) % STATUS_SEQUENCE.length];
 }
 
 async function releaseSlotForAppointment(transaction, appointmentId, appointmentData) {
@@ -905,6 +917,7 @@ async function releaseSlotForAppointment(transaction, appointmentId, appointment
 }
 
 async function cancelAppointment(id) {
+  const cached = appointmentsCache.find(a => a.id === id);
   const appointmentRef = doc(db, "agendamentos", id);
 
   await runTransaction(db, async transaction => {
@@ -919,6 +932,8 @@ async function cancelAppointment(id) {
       updatedAt: serverTimestamp()
     });
   });
+
+  if (cached) await processWaitlistForSlot(cached);
 }
 
 async function handleDelete(id) {
@@ -948,11 +963,10 @@ function handleEdit(id) {
   window.location.href = "index.html";
 }
 
-async function handleStatusChange(id) {
+async function setAppointmentStatus(id, targetStatus) {
   const appointment = appointmentsCache.find(item => item.id === id);
   if (!appointment) return;
 
-  const nextStatus = getNextStatus(appointment.status || "Pendente");
   const appointmentRef = doc(db, "agendamentos", id);
 
   try {
@@ -960,46 +974,209 @@ async function handleStatusChange(id) {
       const appointmentSnap = await transaction.get(appointmentRef);
       if (!appointmentSnap.exists()) throw new Error("Agendamento não encontrado.");
 
-      const currentAppointment = appointmentSnap.data();
+      const current = appointmentSnap.data();
 
-      if (nextStatus === "Cancelado" || nextStatus === "Concluído") {
-        await releaseSlotForAppointment(transaction, id, currentAppointment);
-      } else if ((currentAppointment.status || "") === "Cancelado") {
-        const horarioId  = currentAppointment.horarioId || `${currentAppointment.data}_${currentAppointment.hora}`;
-        const slotRef    = doc(db, "slots", horarioId);
-        const slotSnap   = await transaction.get(slotRef);
+      if (targetStatus === "Cancelado" || targetStatus === "Concluído") {
+        await releaseSlotForAppointment(transaction, id, current);
+      } else if ((current.status || "") === "Cancelado") {
+        const horarioId = current.horarioId || `${current.data}_${current.hora}`;
+        const slotRef   = doc(db, "slots", horarioId);
+        const slotSnap  = await transaction.get(slotRef);
 
-        if (slotSnap.exists() && slotSnap.data().appointmentId !== id) throw new Error("Horário já reservado.");
+        if (slotSnap.exists() && slotSnap.data().appointmentId !== id) {
+          throw new Error("Horário já reservado por outro cliente.");
+        }
 
-        // Only check horario document for legacy (non-barber) slots
-        if (!currentAppointment.barbeiroId) {
+        if (!current.barbeiroId) {
           const horarioSnap = await transaction.get(doc(db, "horarios", horarioId));
           if (!horarioSnap.exists()) throw new Error("Horário não existe mais.");
         }
 
         transaction.set(slotRef, {
           appointmentId: id,
-          userId:        currentAppointment.userId,
-          data:          currentAppointment.data,
-          hora:          currentAppointment.hora,
+          userId:        current.userId,
+          data:          current.data,
+          hora:          current.hora,
           horarioId,
-          barbeiroId:    currentAppointment.barbeiroId || "",
-          servico:       currentAppointment.servico,
-          duracao:       currentAppointment.duracao || 0,
+          barbeiroId:    current.barbeiroId || "",
+          servico:       current.servico,
+          duracao:       current.duracao || 0,
           updatedAt:     serverTimestamp()
         }, { merge: true });
       }
 
       transaction.update(appointmentRef, {
-        status: nextStatus,
+        status: targetStatus,
         updatedAt: serverTimestamp()
       });
     });
 
-    showToast(`Status alterado para ${nextStatus}.`);
+    showToast(`Status alterado para ${targetStatus}.`);
+
+    if (targetStatus === "Cancelado") {
+      await processWaitlistForSlot(appointment);
+    }
   } catch (error) {
     console.error("Erro ao alterar status:", error);
     showToast(error.message || "Erro ao atualizar status.");
+  }
+}
+
+function closeStatusPicker() {
+  if (statusPickerEl) {
+    statusPickerEl.remove();
+    statusPickerEl = null;
+  }
+  document.removeEventListener("click", onOutsidePickerClick, true);
+}
+
+function onOutsidePickerClick(e) {
+  if (statusPickerEl && !statusPickerEl.contains(e.target)) {
+    closeStatusPicker();
+  }
+}
+
+function showStatusPicker(id, currentStatus, anchorEl) {
+  closeStatusPicker();
+
+  const OPTIONS = [
+    { value: "Pendente",   icon: "schedule",    cls: "pending"   },
+    { value: "Confirmado", icon: "check_circle", cls: "confirmed" },
+    { value: "Concluído",  icon: "task_alt",     cls: "completed" },
+    { value: "Cancelado",  icon: "cancel",       cls: "cancelled" }
+  ];
+
+  statusPickerEl = document.createElement("div");
+  statusPickerEl.className = "status-picker-dropdown";
+  statusPickerEl.innerHTML = `
+    <p class="status-picker-label">Alterar status para</p>
+    ${OPTIONS.map(opt => `
+      <button class="status-picker-item ${opt.cls}${opt.value === currentStatus ? " current" : ""}"
+              type="button"
+              data-status="${escapeHTML(opt.value)}"
+              ${opt.value === currentStatus ? "disabled" : ""}>
+        <span class="material-symbols-outlined">${opt.icon}</span>
+        ${escapeHTML(opt.value)}
+      </button>
+    `).join("")}
+  `;
+
+  document.body.appendChild(statusPickerEl);
+
+  const rect = anchorEl.getBoundingClientRect();
+  let top  = rect.bottom + 8;
+  let left = rect.left;
+  const pw = statusPickerEl.offsetWidth;
+
+  if (left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+  if (left < 8) left = 8;
+
+  statusPickerEl.style.top  = `${top  + window.scrollY}px`;
+  statusPickerEl.style.left = `${left + window.scrollX}px`;
+
+  statusPickerEl.querySelectorAll(".status-picker-item:not(:disabled)").forEach(btn => {
+    btn.addEventListener("click", async e => {
+      e.stopPropagation();
+      closeStatusPicker();
+      await setAppointmentStatus(id, btn.dataset.status);
+    });
+  });
+
+  setTimeout(() => document.addEventListener("click", onOutsidePickerClick, true), 0);
+}
+
+async function processWaitlistForSlot(appointment) {
+  const horarioId = appointment.horarioId || `${appointment.data}_${appointment.hora}`;
+  if (!horarioId) return;
+
+  try {
+    const snap = await getDocs(query(waitlistCollection, where("horarioId", "==", horarioId)));
+    if (snap.empty) return;
+
+    const entries = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+
+    const first  = entries[0];
+    const newRef = doc(collection(db, "agendamentos"));
+    const slotRef = doc(db, "slots", first.horarioId);
+
+    await runTransaction(db, async transaction => {
+      const slotSnap = await transaction.get(slotRef);
+      if (slotSnap.exists()) return;
+
+      transaction.set(newRef, {
+        nome:        first.nome,
+        email:       first.email,
+        servico:     first.servico,
+        data:        first.data,
+        hora:        first.hora,
+        horarioId:   first.horarioId,
+        barbeiroId:  first.barbeiroId  || "",
+        barbeiro:    first.barbeiro    || "",
+        duracao:     first.duracao     || 0,
+        valor:       first.valor       || 0,
+        observacoes: first.observacoes || "",
+        status:      "Pendente",
+        userId:      first.userId,
+        fromWaitlist: true,
+        createdAt:   serverTimestamp(),
+        updatedAt:   serverTimestamp()
+      });
+
+      transaction.set(slotRef, {
+        appointmentId: newRef.id,
+        userId:     first.userId,
+        data:       first.data,
+        hora:       first.hora,
+        horarioId:  first.horarioId,
+        barbeiroId: first.barbeiroId || "",
+        servico:    first.servico,
+        duracao:    first.duracao || 0,
+        createdAt:  serverTimestamp(),
+        updatedAt:  serverTimestamp()
+      });
+
+      transaction.delete(doc(db, "waitlist", first.id));
+    });
+
+    showToast(`Horário liberado! ${first.nome} da fila foi reagendado automaticamente.`);
+  } catch (error) {
+    console.error("Erro ao processar fila de espera:", error);
+  }
+}
+
+async function joinWaitlist() {
+  if (!currentUser) return showToast("Faça login para entrar na fila de espera.");
+  if (!lastFailedPayload) return;
+
+  const payload = lastFailedPayload;
+
+  try {
+    const existing = await getDocs(
+      query(waitlistCollection,
+        where("horarioId", "==", payload.horarioId),
+        where("userId",    "==", currentUser.uid))
+    );
+
+    if (!existing.empty) {
+      showToast("Você já está na fila para este horário.");
+      $("waitlist-offer")?.classList.add("hidden");
+      return;
+    }
+
+    await addDoc(waitlistCollection, {
+      ...payload,
+      userId:    currentUser.uid,
+      createdAt: serverTimestamp()
+    });
+
+    lastFailedPayload = null;
+    $("waitlist-offer")?.classList.add("hidden");
+    showToast("Você entrou na fila! Será reagendado automaticamente se o horário abrir.");
+  } catch (error) {
+    console.error(error);
+    showToast("Erro ao entrar na fila de espera.");
   }
 }
 
@@ -1013,7 +1190,11 @@ function bindCardActions() {
   });
 
   document.querySelectorAll(".status-btn").forEach(button => {
-    button.addEventListener("click", () => handleStatusChange(button.dataset.id));
+    button.addEventListener("click", e => {
+      e.stopPropagation();
+      const appt = appointmentsCache.find(a => a.id === button.dataset.id);
+      showStatusPicker(button.dataset.id, appt?.status || "Pendente", button);
+    });
   });
 
   document.querySelectorAll(".cancel-btn").forEach(button => {
@@ -1914,4 +2095,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const commentSave = $("comment-save");
   if (commentSave) commentSave.addEventListener("click", saveComment);
+
+  const waitlistJoinBtn = $("waitlist-join-btn");
+  if (waitlistJoinBtn) waitlistJoinBtn.addEventListener("click", joinWaitlist);
+
+  const waitlistDismissBtn = $("waitlist-dismiss-btn");
+  if (waitlistDismissBtn) waitlistDismissBtn.addEventListener("click", () => {
+    $("waitlist-offer")?.classList.add("hidden");
+    lastFailedPayload = null;
+  });
 });

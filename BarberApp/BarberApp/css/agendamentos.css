@@ -930,7 +930,7 @@ a.new-booking-btn {
   }
 
   .stats-section {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
   }
 
   .appointments-grid {
@@ -982,6 +982,76 @@ a.new-booking-btn {
   .appointment-card {
     padding: 22px;
   }
+}
+
+/* ============================================================
+   STATUS PICKER DROPDOWN
+   ============================================================ */
+
+.status-picker-dropdown {
+  position: fixed;
+  z-index: 200;
+  background: rgba(10, 14, 28, 0.97);
+  border: 1px solid rgba(196, 150, 58, 0.18);
+  border-radius: 18px;
+  padding: 10px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  min-width: 188px;
+  animation: pickerFadeIn 0.16s ease;
+}
+
+@keyframes pickerFadeIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+.status-picker-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+  padding: 4px 10px 8px;
+  display: block;
+}
+
+.status-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 11px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.status-picker-item .material-symbols-outlined { font-size: 17px; }
+
+.status-picker-item.pending   { color: var(--warning); }
+.status-picker-item.confirmed { color: var(--success); }
+.status-picker-item.completed { color: var(--info);    }
+.status-picker-item.cancelled { color: var(--danger);  }
+
+.status-picker-item:hover:not(:disabled) {
+  background: rgba(148, 141, 162, 0.1);
+}
+
+.status-picker-item.current,
+.status-picker-item:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+[data-theme="light"] .status-picker-dropdown {
+  background: rgba(255, 252, 245, 0.98);
+  border-color: rgba(138, 97, 32, 0.16);
 }
 
 /* ============================================================

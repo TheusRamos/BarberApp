@@ -11,6 +11,46 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
 
   <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .waitlist-offer {
+      margin-top: 14px;
+      background: rgba(196, 150, 58, 0.06);
+      border: 1px solid rgba(196, 150, 58, 0.2);
+      border-radius: 18px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .waitlist-offer-body {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .waitlist-offer-body > .material-symbols-outlined {
+      color: var(--primary);
+      font-size: 26px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .waitlist-offer-body strong {
+      display: block;
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+    }
+    .waitlist-offer-body p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin: 0;
+    }
+    .waitlist-offer-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+  </style>
 </head>
 <body>
 
@@ -163,6 +203,23 @@
               <span class="material-symbols-outlined">close</span>
               Cancelar edição
             </button>
+          </div>
+
+          <div id="waitlist-offer" class="waitlist-offer hidden">
+            <div class="waitlist-offer-body">
+              <span class="material-symbols-outlined">queue</span>
+              <div>
+                <strong>Horário indisponível</strong>
+                <p>Este horário já está reservado. Quer entrar na fila? Você será reagendado automaticamente se o horário abrir.</p>
+              </div>
+            </div>
+            <div class="waitlist-offer-actions">
+              <button type="button" class="ghost-btn" id="waitlist-dismiss-btn">Fechar</button>
+              <button type="button" class="secondary-btn" id="waitlist-join-btn">
+                <span class="material-symbols-outlined">queue</span>
+                Entrar na fila
+              </button>
+            </div>
           </div>
         </form>
       </div>
