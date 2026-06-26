@@ -431,6 +431,22 @@
       filter: brightness(1.05);
     }
 
+    /* Light theme adjustments */
+    [data-theme="light"] .highlight-item,
+    [data-theme="light"] .sobre-servico-card,
+    [data-theme="light"] .sobre-equipe-card,
+    [data-theme="light"] .sobre-info-card {
+      background: transparent;
+      border-color: rgba(138, 100, 32, 0.4);
+      box-shadow: none;
+    }
+
+    [data-theme="light"] .highlight-item:hover,
+    [data-theme="light"] .sobre-servico-card:hover,
+    [data-theme="light"] .sobre-equipe-card:hover {
+      border-color: var(--primary, #8A6420);
+    }
+
     /* Responsive */
     @media (min-width: 768px) {
       .sobre-historia-grid {

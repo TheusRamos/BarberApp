@@ -1063,6 +1063,42 @@ a.new-booking-btn {
   background: rgba(201, 64, 64, 0.1);
 }
 
+[data-theme="light"] .filter-group {
+  background: transparent;
+  border-color: rgba(138, 100, 32, 0.4);
+  box-shadow: none;
+}
+
+[data-theme="light"] .stat-item {
+  background: transparent;
+  border-color: rgba(138, 100, 32, 0.4);
+  box-shadow: none;
+}
+
+[data-theme="light"] .appointment-card {
+  background: transparent;
+  border-color: rgba(138, 100, 32, 0.35);
+  box-shadow: none;
+}
+
+[data-theme="light"] .appointment-card:hover {
+  border-color: var(--primary);
+}
+
+[data-theme="light"] .admin-card,
+[data-theme="light"] .comment-form {
+  background: transparent;
+  border-color: rgba(138, 100, 32, 0.4);
+  box-shadow: none;
+}
+
+[data-theme="light"] .service-row,
+[data-theme="light"] .comment-row,
+[data-theme="light"] .empty-row {
+  background: transparent;
+  border-color: rgba(138, 100, 32, 0.35);
+}
+
 /* ============================================================
    LIGHT THEME
    ============================================================ */
