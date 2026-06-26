@@ -1047,6 +1047,22 @@ a.new-booking-btn {
   border-color: rgba(138, 97, 32, 0.16);
 }
 
+[data-theme="light"] .status-badge.confirmed {
+  background: rgba(58, 158, 104, 0.1);
+}
+
+[data-theme="light"] .status-badge.pending {
+  background: rgba(184, 120, 24, 0.1);
+}
+
+[data-theme="light"] .status-badge.completed {
+  background: rgba(122, 110, 96, 0.1);
+}
+
+[data-theme="light"] .status-badge.cancelled {
+  background: rgba(201, 64, 64, 0.1);
+}
+
 /* ============================================================
    LIGHT THEME
    ============================================================ */
@@ -1062,7 +1078,11 @@ a.new-booking-btn {
   --text-soft: #7A6E58;
   --primary: #8A6420;
   --primary-strong: #5C4010;
-  --tertiary: #2A6EA0;
+  --tertiary: #7A6E60;
+  --info: #7A6E60;
+  --success: #3A9E68;
+  --danger: #C94040;
+  --warning: #B87818;
   --card-shadow: 0 16px 36px rgba(12, 10, 5, 0.06);
 }
 
