@@ -33,6 +33,7 @@ BarberApp/
 ├── js/
 │   ├── app.js              # Lógica principal (agendamentos, fila de espera, admin, comentários)
 │   ├── auth.js             # Autenticação e perfil do usuário
+│   ├── animations.js       # Animações de entrada via IntersectionObserver
 │   ├── barbeiros.js        # Página pública de barbeiros
 │   ├── sidebar.js          # Navegação lateral
 │   └── theme.js            # Alternância de tema claro/escuro
@@ -98,7 +99,8 @@ BarberApp/
 
 ### Autenticação
 
-- Cadastro e login via Firebase Authentication
+- Cadastro e login via Firebase Authentication (e-mail + senha)
+- Login com Google (Google Sign-In via popup)
 - Identificação automática de perfil (cliente / admin)
 - Perfil editável com foto
 
@@ -240,9 +242,10 @@ BarberApp/
 | Camada | Tecnologia |
 |---|---|
 | Frontend | HTML5, CSS3, JavaScript ES Modules |
-| Autenticação | Firebase Authentication |
+| Autenticação | Firebase Authentication (e-mail/senha + Google Sign-In) |
 | Banco de dados | Cloud Firestore (tempo real) |
 | Fontes e ícones | Google Fonts (Manrope, Inter), Material Symbols |
+| Hospedagem | GitHub Pages (deploy automático via GitHub Actions) |
 
 > O projeto **não utiliza frameworks visuais**, sendo estilizado com CSS próprio.
 
