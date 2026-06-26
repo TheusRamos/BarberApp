@@ -84,6 +84,17 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /barbeiros/{barbeiroId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /waitlist/{waitlistId} {
+      allow read: if signedIn();
+      allow create: if signedIn();
+      allow delete: if isAdmin() || isOwner(resource.data.userId);
+    }
+
     match /comments/{commentId} {
       allow read: if true;
 
