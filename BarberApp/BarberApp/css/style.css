@@ -1176,6 +1176,11 @@ input:focus, textarea:focus, select:focus, button:focus-visible {
   color: var(--text);
 }
 
+[data-theme="light"] .welcome-badge {
+  background: transparent;
+  border-color: rgba(138, 100, 32, 0.4);
+}
+
 [data-theme="light"] .form-panel {
   background: transparent;
   border-color: rgba(138, 100, 32, 0.4);

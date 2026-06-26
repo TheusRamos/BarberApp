@@ -1063,6 +1063,11 @@ a.new-booking-btn {
   background: rgba(201, 64, 64, 0.1);
 }
 
+[data-theme="light"] .welcome-badge {
+  background: transparent;
+  border-color: rgba(138, 100, 32, 0.4);
+}
+
 [data-theme="light"] .filter-group {
   background: transparent;
   border-color: rgba(138, 100, 32, 0.4);
