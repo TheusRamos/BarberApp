@@ -29,19 +29,23 @@
 
   --transition: 0.24s ease;
 
-  --font-base: 16px;
+  --font-base: 1rem;
   --leading-tight: 1.1;
   --leading-normal: 1.65;
   --heading-weight: 800;
   --body-weight: 400;
 
-  --sidebar-w: 256px;
+  --sidebar-w: 230px;
 }
 
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+html {
+  font-size: 90%;
 }
 
 html, body {
@@ -90,14 +94,14 @@ input[type="time"] {
   position: relative;
   overflow: hidden;
   min-height: 100vh;
-  padding: 72px 0 56px;
+  padding: 64px 0 50px;
   background:
     radial-gradient(ellipse at top right, rgba(196, 150, 58, 0.06), transparent 40%),
     linear-gradient(180deg, #0D1220 0%, #090C16 100%);
 }
 
 .container {
-  width: min(1140px, calc(100% - 32px));
+  width: min(1024px, calc(100% - 28px));
   margin: 0 auto;
 }
 
