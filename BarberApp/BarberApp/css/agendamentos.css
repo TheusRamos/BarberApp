@@ -989,6 +989,68 @@ a.new-booking-btn {
 }
 
 /* ============================================================
+   MOBILE — admin panel fixes (< 600px)
+   ============================================================ */
+
+@media (max-width: 599px) {
+  .admin-card,
+  .comment-form {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  /* Service & client rows — stack content + actions vertically */
+  .service-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .service-row > div:first-child {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .service-row > div:first-child span {
+    display: block;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .row-actions {
+    justify-content: flex-start;
+  }
+
+  /* Buttons — full width in form-actions */
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions .ghost-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Admin sections spacing */
+  .admin-section,
+  .admin-section-page,
+  .admin-section-gap {
+    margin-top: 16px;
+  }
+
+  /* Booking form */
+  .booking-form {
+    gap: 12px;
+  }
+
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    padding: 11px 12px;
+  }
+}
+
+/* ============================================================
    STATUS PICKER DROPDOWN
    ============================================================ */
 
