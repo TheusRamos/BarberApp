@@ -1,42 +1,11 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
-  signOut,
-  updateProfile,
-  GoogleAuthProvider,
-  signInWithPopup
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {
-  getFirestore,
-  doc,
-  setDoc,
-  getDoc,
-  serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyBmWNHnYemnft_N542e9wa_1jRZeqCc5zE",
-  authDomain: "barbearia-7387c.firebaseapp.com",
-  projectId: "barbearia-7387c",
-  storageBucket: "barbearia-7387c.firebasestorage.app",
-  messagingSenderId: "16693210556",
-  appId: "1:16693210556:web:3510e53c285b3dc257cfb9",
-  measurementId: "G-WXJJ75FC11"
-};
-
-const firebaseApp = initializeApp(firebaseConfig);
-const auth = getAuth(firebaseApp);
-const db = getFirestore(firebaseApp);
-const googleProvider = new GoogleAuthProvider();
+import { api, getToken, setToken } from "./api.js";
 
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const shouldLogout = params.get("logout") === "1";
 
 let pendingPhotoBase64 = null;
+let currentUser = null;
 
 // ============================================================
 // TOAST
@@ -77,28 +46,17 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function translateFirebaseError(error) {
+function translateApiError(error) {
   const code = error?.code || "";
   const map = {
-    "auth/invalid-email": "Email inválido.",
-    "auth/missing-password": "Informe a senha.",
-    "auth/invalid-credential": "Email ou senha incorretos.",
-    "auth/user-not-found": "Usuário não encontrado.",
-    "auth/wrong-password": "Senha incorreta.",
-    "auth/email-already-in-use": "Este email já está cadastrado.",
-    "auth/weak-password": "A senha precisa ter pelo menos 6 caracteres.",
-    "auth/network-request-failed": "Falha de conexão. Verifique sua internet.",
-    "auth/operation-not-allowed": "Login por e-mail não está ativado no Firebase Console.",
-    "auth/too-many-requests": "Muitas tentativas. Aguarde alguns minutos e tente novamente.",
-    "auth/user-disabled": "Esta conta foi desativada.",
-    "auth/popup-closed-by-user": "Login cancelado.",
-    "auth/popup-blocked": "Pop-up bloqueado pelo navegador. Permita pop-ups e tente novamente.",
-    "auth/cancelled-popup-request": "Login cancelado.",
-    "auth/account-exists-with-different-credential": "Este e-mail já está cadastrado com outro método de login.",
-    "permission-denied": "Sem permissão para salvar os dados. Verifique as regras do Firestore.",
-    "unavailable": "Serviço temporariamente indisponível. Tente novamente."
+    "INVALID_CREDENTIALS": "Email ou senha incorretos.",
+    "USER_NOT_FOUND": "Usuário não encontrado.",
+    "EMAIL_IN_USE": "Este email já está cadastrado.",
+    "WEAK_PASSWORD": "A senha precisa ter pelo menos 6 caracteres.",
+    "UNAUTHORIZED": "Sessão expirada. Faça login novamente.",
+    "NETWORK_ERROR": "Falha de conexão. Verifique sua internet e tente novamente."
   };
-  return map[code] || `Erro inesperado (${code || "desconhecido"}). Tente novamente.`;
+  return map[code] || error?.message || "Erro inesperado. Tente novamente.";
 }
 
 // ============================================================
@@ -125,7 +83,7 @@ function showRegister() {
 // PANEL VISIBILITY
 // ============================================================
 
-function showLoggedPanel(user, userDoc = null) {
+function showLoggedPanel(user) {
   $("auth-panel")?.classList.add("hidden");
   $("logged-panel")?.classList.remove("hidden");
 
@@ -134,12 +92,9 @@ function showLoggedPanel(user, userDoc = null) {
   if (title) title.textContent = "Meu Perfil";
   if (subtitle) subtitle.textContent = "Gerencie suas informações pessoais.";
 
-  // Hide auth-only elements (google btn, divider, auth-footer)
-  document.querySelector(".auth-divider")?.classList.add("hidden");
-  $("google-sign-in")?.classList.add("hidden");
   document.querySelector(".auth-footer")?.classList.add("hidden");
 
-  populateProfileForm(user, userDoc);
+  populateProfileForm(user);
 }
 
 function showAuthPanel() {
@@ -151,8 +106,6 @@ function showAuthPanel() {
   if (title) title.textContent = "Acessar conta";
   if (subtitle) subtitle.textContent = "Faça login ou crie um novo cadastro.";
 
-  document.querySelector(".auth-divider")?.classList.remove("hidden");
-  $("google-sign-in")?.classList.remove("hidden");
   document.querySelector(".auth-footer")?.classList.remove("hidden");
 }
 
@@ -160,11 +113,11 @@ function showAuthPanel() {
 // PROFILE – POPULATE
 // ============================================================
 
-function populateProfileForm(user, userDoc) {
-  const name = userDoc?.name || user?.displayName || "";
-  const phone = userDoc?.phone || "";
+function populateProfileForm(user) {
+  const name = user?.name || "";
+  const phone = user?.phone || "";
   const email = user?.email || "";
-  const photoURL = userDoc?.photoURL || user?.photoURL || "";
+  const photoURL = user?.photoURL || "";
 
   const nameInput = $("profile-name");
   const phoneInput = $("profile-phone");
@@ -257,8 +210,7 @@ async function handleProfileSave(event) {
     return;
   }
 
-  const user = auth.currentUser;
-  if (!user) {
+  if (!currentUser) {
     showToast("Sessão expirada. Faça login novamente.");
     return;
   }
@@ -267,13 +219,10 @@ async function handleProfileSave(event) {
   if (saveBtn) saveBtn.disabled = true;
 
   try {
-    const profileUpdate = { displayName: name };
-    if (pendingPhotoBase64) profileUpdate.photoURL = pendingPhotoBase64;
-    await updateProfile(user, profileUpdate);
+    const payload = { name, phone };
+    if (pendingPhotoBase64) payload.photoURL = pendingPhotoBase64;
 
-    const firestoreData = { name, phone, updatedAt: serverTimestamp() };
-    if (pendingPhotoBase64) firestoreData.photoURL = pendingPhotoBase64;
-    await setDoc(doc(db, "users", user.uid), firestoreData, { merge: true });
+    currentUser = await api.users.update(currentUser.id, payload);
 
     const nameDisplay = $("profile-name-display");
     if (nameDisplay) nameDisplay.textContent = name;
@@ -282,7 +231,7 @@ async function handleProfileSave(event) {
     showToast("Perfil atualizado com sucesso!");
   } catch (error) {
     console.error("Erro ao salvar perfil:", error);
-    showToast("Erro ao salvar perfil. Tente novamente.");
+    showToast(translateApiError(error));
   } finally {
     if (saveBtn) saveBtn.disabled = false;
   }
@@ -305,12 +254,14 @@ async function handleLogin(event) {
   if (!valid) return;
 
   try {
-    await signInWithEmailAndPassword(auth, email, password);
+    const { token, user } = await api.auth.login({ email, password });
+    setToken(token);
+    currentUser = user;
     showToast("Login realizado com sucesso.");
     setTimeout(() => (window.location.href = "index.html"), 650);
   } catch (error) {
     console.error(error);
-    showToast(translateFirebaseError(error));
+    showToast(translateApiError(error));
   }
 }
 
@@ -332,82 +283,28 @@ async function handleRegister(event) {
   if (password !== confirm)                           { setError("register-password-confirm", "As senhas não coincidem."); valid = false; }
   if (!valid) return;
 
-  let credential = null;
   try {
-    credential = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(credential.user, { displayName: name });
-  } catch (authError) {
-    console.error("Erro de autenticação:", authError);
-    showToast(translateFirebaseError(authError));
-    return;
-  }
-
-  try {
-    await setDoc(doc(db, "users", credential.user.uid), {
-      name,
-      email,
-      phone,
-      role: "client",
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
-
+    const { token, user } = await api.auth.register({ name, email, phone, password });
+    setToken(token);
+    currentUser = user;
     showToast("Cadastro realizado com sucesso.");
     setTimeout(() => (window.location.href = "index.html"), 700);
-  } catch (firestoreError) {
-    console.error("Erro ao salvar perfil no Firestore:", firestoreError);
-    showToast(translateFirebaseError(firestoreError));
-  }
-}
-
-async function handleGoogleSignIn() {
-  try {
-    const result = await signInWithPopup(auth, googleProvider);
-    const user = result.user;
-
-    const userSnap = await getDoc(doc(db, "users", user.uid));
-    if (!userSnap.exists()) {
-      await setDoc(doc(db, "users", user.uid), {
-        name: user.displayName || "Usuário Google",
-        email: user.email || "",
-        phone: "",
-        role: "client",
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-    }
-
-    showToast("Login realizado com sucesso.");
-    setTimeout(() => (window.location.href = "index.html"), 650);
   } catch (error) {
-    if (error.code === "auth/popup-closed-by-user" || error.code === "auth/cancelled-popup-request") return;
-    console.error("Erro no login com Google:", error);
-    showToast(translateFirebaseError(error));
+    console.error("Erro no cadastro:", error);
+    showToast(translateApiError(error));
   }
 }
 
 async function handleLogout() {
   try {
-    await signOut(auth);
+    await api.auth.logout();
+  } catch (error) {
+    console.warn("Erro ao encerrar sessão no servidor:", error);
+  } finally {
+    setToken(null);
+    currentUser = null;
     showToast("Você saiu da conta.");
     setTimeout(() => (window.location.href = "auth.html"), 600);
-  } catch (error) {
-    console.error(error);
-    showToast("Erro ao sair da conta.");
-  }
-}
-
-// ============================================================
-// FIRESTORE USER DOC
-// ============================================================
-
-async function readUserDoc(user) {
-  try {
-    const userSnap = await getDoc(doc(db, "users", user.uid));
-    return userSnap.exists() ? userSnap.data() : null;
-  } catch (error) {
-    console.warn("Não foi possível ler o documento do usuário.", error);
-    return null;
   }
 }
 
@@ -415,13 +312,24 @@ async function readUserDoc(user) {
 // INIT
 // ============================================================
 
-document.addEventListener("DOMContentLoaded", () => {
+async function loadCurrentUser() {
+  if (!getToken()) return null;
+  try {
+    const { user } = await api.auth.me();
+    return user;
+  } catch (error) {
+    console.warn("Sessão inválida ou expirada.", error);
+    setToken(null);
+    return null;
+  }
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
   $("tab-login")?.addEventListener("click", showLogin);
   $("tab-register")?.addEventListener("click", showRegister);
   $("login-form")?.addEventListener("submit", handleLogin);
   $("register-form")?.addEventListener("submit", handleRegister);
   $("logout-btn")?.addEventListener("click", handleLogout);
-  $("google-sign-in")?.addEventListener("click", handleGoogleSignIn);
   $("profile-form")?.addEventListener("submit", handleProfileSave);
   $("photo-upload")?.addEventListener("change", handlePhotoUpload);
 
@@ -432,18 +340,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  onAuthStateChanged(auth, async user => {
-    if (shouldLogout) {
-      if (user) await handleLogout();
-      else showAuthPanel();
-      return;
-    }
+  currentUser = await loadCurrentUser();
 
-    if (user) {
-      const userDoc = await readUserDoc(user);
-      showLoggedPanel(user, userDoc);
-    } else {
-      showAuthPanel();
-    }
-  });
+  if (shouldLogout) {
+    if (currentUser) await handleLogout();
+    else showAuthPanel();
+    return;
+  }
+
+  if (currentUser) showLoggedPanel(currentUser);
+  else showAuthPanel();
 });

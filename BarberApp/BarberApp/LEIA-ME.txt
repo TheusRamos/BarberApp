@@ -1,45 +1,46 @@
-BARBERAPP - VERSÃO CORRIGIDA
+BARBERAPP - FRONTEND PREPARADO PARA API PRÓPRIA
 
 Arquivos principais:
 - index.html: tela de novo agendamento.
 - agendamentos.html: painel de agendamentos, área administrativa e avaliações.
-- auth.html: login, cadastro e saída da conta.
-- app.js: lógica principal do sistema.
-- auth.js: lógica de autenticação.
-- style.css / agendamentos.css / theme.js: visual e alternância de tema.
-- firestore.rules: regras de segurança do Cloud Firestore.
+- admin.html: painel do administrador (serviços, barbeiros, clientes).
+- auth.html: login, cadastro, perfil e saída da conta.
+- js/api.js: cliente REST — única camada que fala com o backend (contrato de endpoints documentado no topo do arquivo).
+- js/app.js: lógica principal do sistema.
+- js/auth.js: lógica de autenticação.
+- style.css / agendamentos.css / barbeiros.css: visual (tema único claro).
 
-O que foi corrigido:
-1. Corrigido o erro de JavaScript que quebrava o app.js.
-2. Corrigido o cadastro e login com Firebase Authentication.
-3. O cliente precisa estar logado para agendar.
-4. Cliente visualiza apenas os próprios agendamentos.
-5. Administrador visualiza todos os agendamentos.
-6. Sistema identifica administrador pelo campo role = "admin" no documento users/{uid}.
-7. Horários disponíveis agora vêm da coleção horarios.
-8. Horário reservado não aparece mais para outros clientes.
-9. Criação e edição de agendamentos usam transação para evitar dois clientes no mesmo horário.
-10. Ao cancelar ou excluir agendamento, o slot do horário é liberado corretamente.
-11. Administração de serviços e horários corrigida.
-12. Comentários ficam visíveis para usuários e administradores.
-13. Cliente só consegue comentar após 3 serviços concluídos.
-14. Corrigidas regras do Firestore, removendo leitura pública indevida de agendamentos.
-15. Melhoradas validações de formulário e proteção contra HTML indevido nos dados exibidos.
+Status atual do backend:
+O frontend não tem mais nenhuma integração com serviços de terceiros — ele
+chama endpoints REST através de js/api.js, mas esses endpoints AINDA NÃO EXISTEM.
+Até que o backend (planejado em PostgreSQL) seja implementado, nenhuma ação
+que dependa de dados (login, cadastro, agendar, avaliar, gerenciar
+barbeiros/serviços etc.) vai funcionar — as chamadas vão falhar com erro de
+conexão, o que é esperado.
+
+O que o backend precisa implementar:
+Veja o contrato completo de rotas, payloads e códigos de erro esperados
+nos comentários no topo de js/api.js. Resumo das entidades:
+- users (perfis, com campo role = "client" | "admin")
+- agendamentos
+- slots (controle de conflito de horário)
+- waitlist (fila de espera)
+- services
+- barbeiros
+- horarios (legado, fallback quando não há barbeiro selecionado)
+- comments (avaliações, com campo approved)
+
+Regras de negócio que o backend deve preservar (herdadas da versão anterior):
+1. Cliente precisa estar autenticado para agendar, entrar na fila ou avaliar.
+2. Cliente visualiza apenas os próprios agendamentos; administrador visualiza todos.
+3. Perfil de administrador identificado pelo campo role = "admin" no registro do usuário.
+4. Horário reservado não pode ser reservado por outro cliente (checagem atômica no create/update de agendamento).
+5. Ao cancelar ou excluir um agendamento, o horário deve ser liberado e a fila de espera processada automaticamente.
+6. Comentários ficam pendentes (approved = false) até aprovação do admin.
+7. Validação de formulário e sanitização de dados permanecem responsabilidade também do backend (nunca confiar apenas na validação do cliente).
 
 Como criar o primeiro administrador:
-1. Cadastre normalmente o usuário pelo app.
-2. No Firebase Console, abra Firestore > coleção users.
-3. Encontre o documento do usuário cadastrado.
-4. Altere o campo role de "client" para "admin".
-5. Faça login novamente. A área Administração será liberada.
-
-Coleções utilizadas no Firestore:
-- users
-- agendamentos
-- horarios
-- slots
-- services
-- comments
-
-Observação:
-Para testar a disponibilidade de horários, primeiro entre como administrador, cadastre horários na tela Agendamentos e depois faça um agendamento como cliente.
+Depende de como o backend for implementado. Duas opções comuns:
+1. Permitir promoção manual: cadastre um usuário normalmente pelo app e,
+   depois, atualize o campo role para "admin" diretamente no banco PostgreSQL.
+2. Criar um script/seed de setup que insere o primeiro admin direto no banco.

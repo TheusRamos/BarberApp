@@ -37,8 +37,8 @@
       gap: 14px;
       padding: 16px 20px;
       border-radius: 16px;
-      background: rgba(196, 150, 58, 0.07);
-      border: 1px solid rgba(196, 150, 58, 0.14);
+      background: transparent;
+      border: 1px solid rgba(138, 97, 32, 0.35);
       margin-bottom: 28px;
     }
 
@@ -140,11 +140,11 @@
 
     /* Form card */
     .comment-form-card {
-      background: rgba(22, 22, 28, 0.96);
-      border: 1px solid rgba(148, 141, 162, 0.1);
+      background: transparent;
+      border: 1px solid rgba(138, 100, 32, 0.4);
       border-radius: 26px;
       padding: 24px;
-      box-shadow: var(--card-shadow);
+      box-shadow: none;
       position: sticky;
       top: 24px;
     }
@@ -223,11 +223,11 @@
     }
 
     .comment-card {
-      background: rgba(22, 22, 28, 0.96);
-      border: 1px solid rgba(148, 141, 162, 0.1);
+      background: transparent;
+      border: 1px solid rgba(138, 100, 32, 0.4);
       border-radius: 20px;
       padding: 18px 20px;
-      box-shadow: var(--card-shadow);
+      box-shadow: none;
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -241,8 +241,8 @@
     .empty-comments {
       text-align: center;
       padding: 48px 20px;
-      background: rgba(22, 22, 28, 0.96);
-      border: 1px solid rgba(148, 141, 162, 0.1);
+      background: transparent;
+      border: 1px solid rgba(138, 100, 32, 0.4);
       border-radius: 20px;
     }
 
@@ -263,41 +263,16 @@
       line-height: 1.6;
     }
 
-    /* Light theme adjustments */
-    [data-theme="light"] .comment-form-card,
-    [data-theme="light"] .comment-card,
-    [data-theme="light"] .empty-comments {
-      background: transparent;
-      border-color: rgba(138, 100, 32, 0.4);
-      box-shadow: none;
-    }
-
-    [data-theme="light"] .eligibility-banner {
-      background: transparent;
-      border-color: rgba(138, 97, 32, 0.35);
-    }
-
-    [data-theme="light"] .admin-review-panel {
-      background: transparent;
-      border-color: rgba(138, 100, 32, 0.4);
-      box-shadow: none;
-    }
-
-    [data-theme="light"] .review-item {
-      background: transparent;
-      border-color: rgba(138, 100, 32, 0.3);
-    }
-
     /* ============================================================
        ADMIN COMMENT REVIEW PANEL
        ============================================================ */
 
     .admin-review-panel {
-      background: rgba(22, 22, 28, 0.96);
-      border: 1px solid rgba(196, 150, 58, 0.22);
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid rgba(138, 100, 32, 0.4);
       border-radius: 26px;
       padding: 24px;
-      box-shadow: var(--card-shadow);
+      box-shadow: none;
     }
 
     .admin-review-header {
@@ -351,7 +326,7 @@
       flex-direction: column;
       gap: 10px;
       padding: 16px;
-      border: 1px solid rgba(148, 141, 162, 0.1);
+      border: 1px solid rgba(138, 100, 32, 0.3);
       border-radius: 16px;
       margin-bottom: 12px;
       transition: border-color var(--transition);
@@ -413,10 +388,6 @@
     .empty-review p {
       font-size: 0.9rem;
     }
-
-    [data-theme="light"] .admin-review-panel {
-      background: rgba(255, 255, 255, 0.96);
-    }
   </style>
 </head>
 <body>
@@ -459,12 +430,6 @@
         Administração
       </a>
     </nav>
-    <div class="sidebar-footer">
-      <button id="theme-toggle" class="sidebar-theme-btn" type="button" aria-label="Alternar tema">
-        <span class="material-symbols-outlined">light_mode</span>
-        <span class="theme-label">Modo claro</span>
-      </button>
-    </div>
   </aside>
 
   <!-- Mobile toggle -->
@@ -577,7 +542,6 @@
   <div class="toast" id="toast"></div>
 
   <script type="module" src="js/app.js"></script>
-  <script src="js/theme.js"></script>
   <script src="js/sidebar.js"></script>
   <script src="js/animations.js"></script>
 

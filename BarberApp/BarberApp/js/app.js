@@ -1,47 +1,4 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  serverTimestamp,
-  onSnapshot,
-  getDoc,
-  getDocs,
-  runTransaction,
-  query,
-  where
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import {
-  getAuth,
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyBmWNHnYemnft_N542e9wa_1jRZeqCc5zE",
-  authDomain: "barbearia-7387c.firebaseapp.com",
-  projectId: "barbearia-7387c",
-  storageBucket: "barbearia-7387c.firebasestorage.app",
-  messagingSenderId: "16693210556",
-  appId: "1:16693210556:web:3510e53c285b3dc257cfb9",
-  measurementId: "G-WXJJ75FC11"
-};
-
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp);
-const auth = getAuth(firebaseApp);
-
-const appointmentsCollection = collection(db, "agendamentos");
-const servicesCollection = collection(db, "services");
-const horariosCollection = collection(db, "horarios");
-const slotsCollection = collection(db, "slots");
-const commentsCollection = collection(db, "comments");
-const usersCollection = collection(db, "users");
-const barbeirosCollection = collection(db, "barbeiros");
-const waitlistCollection  = collection(db, "waitlist");
+import { api, getToken } from "./api.js";
 
 const EDIT_KEY = "barber_agendamento_editando";
 const STATUS_SEQUENCE = ["Pendente", "Confirmado", "Concluído", "Cancelado"];
@@ -56,9 +13,7 @@ const DIAS_SEMANA = [
   { value: 6, label: "Sáb" }
 ];
 
-
 let currentUser = null;
-let currentUserData = null;
 let isAdmin = false;
 let pendingPhoto = null;
 let editingBarbeiroId = null;
@@ -74,16 +29,6 @@ let pendingEditAppointment = null;
 let statusPickerEl = null;
 let lastFailedPayload = null;
 
-const unsubscribers = {
-  appointments: null,
-  services: null,
-  horarios: null,
-  slots: null,
-  comments: null,
-  users: null,
-  barbeiros: null
-};
-
 const $ = id => document.getElementById(id);
 
 function showToast(message) {
@@ -95,6 +40,10 @@ function showToast(message) {
 
   clearTimeout(showToast._timer);
   showToast._timer = setTimeout(() => toast.classList.remove("show"), 2600);
+}
+
+function apiErrorMessage(error, fallback) {
+  return error?.message || fallback;
 }
 
 function escapeHTML(value = "") {
@@ -109,7 +58,7 @@ function escapeHTML(value = "") {
 function slugify(value = "") {
   return String(value)
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "") || "principal";
@@ -250,7 +199,7 @@ function updateAuthLink() {
 
   if (currentUser) {
     link.href = "auth.html";
-    link.innerHTML = `<span class="material-symbols-outlined">person</span>${escapeHTML(currentUser.displayName || currentUser.email || "Perfil")}`;
+    link.innerHTML = `<span class="material-symbols-outlined">person</span>${escapeHTML(currentUser.name || currentUser.email || "Perfil")}`;
   } else {
     link.href = "auth.html";
     link.innerHTML = `<span class="material-symbols-outlined">person</span>Entrar`;
@@ -404,11 +353,12 @@ function renderServicesList() {
       if (!confirm("Remover este serviço?")) return;
 
       try {
-        await deleteDoc(doc(db, "services", button.dataset.id));
+        await api.services.remove(button.dataset.id);
         showToast("Serviço removido.");
+        await loadServices();
       } catch (error) {
         console.error(error);
-        showToast("Erro ao remover serviço.");
+        showToast(apiErrorMessage(error, "Erro ao remover serviço."));
       }
     });
   });
@@ -579,25 +529,23 @@ function prefillUserData() {
   const emailInput = $("email");
 
   if (nameInput && !nameInput.value) {
-    nameInput.value = currentUserData?.name || currentUser.displayName || "";
+    nameInput.value = currentUser.name || "";
   }
 
   if (emailInput && !emailInput.value) {
-    emailInput.value = currentUser.email || currentUserData?.email || "";
+    emailInput.value = currentUser.email || "";
   }
 }
 
 async function fillFormForEdit(docId) {
   try {
-    const docRef = doc(db, "agendamentos", docId);
-    const snap = await getDoc(docRef);
+    const appointment = await api.agendamentos.get(docId);
 
-    if (!snap.exists()) {
+    if (!appointment) {
       localStorage.removeItem(EDIT_KEY);
       return;
     }
 
-    const appointment = { id: snap.id, ...snap.data() };
     pendingEditAppointment = appointment;
 
     if ($("nome")) $("nome").value = appointment.nome || "";
@@ -678,80 +626,11 @@ function buildAppointmentPayload() {
 }
 
 async function createAppointment(payload) {
-  const appointmentRef = doc(collection(db, "agendamentos"));
-  const slotRef        = doc(db, "slots", payload.horarioId);
-
-  await runTransaction(db, async transaction => {
-    const slotSnap = await transaction.get(slotRef);
-    if (slotSnap.exists()) throw new Error("Horário já reservado.");
-
-    const appointmentData = {
-      ...payload,
-      status: "Pendente",
-      userId: currentUser.uid,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    };
-
-    transaction.set(appointmentRef, appointmentData);
-    transaction.set(slotRef, {
-      appointmentId: appointmentRef.id,
-      userId:       currentUser.uid,
-      data:         payload.data,
-      hora:         payload.hora,
-      horarioId:    payload.horarioId,
-      barbeiroId:   payload.barbeiroId || "",
-      servico:      payload.servico,
-      duracao:      payload.duracao || 0,
-      createdAt:    serverTimestamp(),
-      updatedAt:    serverTimestamp()
-    });
-  });
+  return api.agendamentos.create(payload);
 }
 
 async function updateAppointment(appointmentId, payload) {
-  const appointmentRef = doc(db, "agendamentos", appointmentId);
-  const newSlotRef     = doc(db, "slots", payload.horarioId);
-
-  await runTransaction(db, async transaction => {
-    const appointmentSnap = await transaction.get(appointmentRef);
-    if (!appointmentSnap.exists()) throw new Error("Agendamento não encontrado.");
-
-    const oldAppointment = appointmentSnap.data();
-    const oldHorarioId   = oldAppointment.horarioId || `${oldAppointment.data}_${oldAppointment.hora}`;
-    const ownerId        = oldAppointment.userId || currentUser.uid;
-
-    const newSlotSnap = await transaction.get(newSlotRef);
-    if (newSlotSnap.exists() && newSlotSnap.data().appointmentId !== appointmentId) {
-      throw new Error("Horário já reservado.");
-    }
-
-    if (oldHorarioId && oldHorarioId !== payload.horarioId) {
-      const oldSlotRef = doc(db, "slots", oldHorarioId);
-      const oldSlotSnap = await transaction.get(oldSlotRef);
-      if (oldSlotSnap.exists() && oldSlotSnap.data().appointmentId === appointmentId) {
-        transaction.delete(oldSlotRef);
-      }
-    }
-
-    transaction.update(appointmentRef, {
-      ...payload,
-      userId: ownerId,
-      updatedAt: serverTimestamp()
-    });
-
-    transaction.set(newSlotRef, {
-      appointmentId,
-      userId:     ownerId,
-      data:       payload.data,
-      hora:       payload.hora,
-      horarioId:  payload.horarioId,
-      barbeiroId: payload.barbeiroId || "",
-      servico:    payload.servico,
-      duracao:    payload.duracao || 0,
-      updatedAt:  serverTimestamp()
-    }, { merge: true });
-  });
+  return api.agendamentos.update(appointmentId, payload);
 }
 
 function loadFormPage() {
@@ -824,12 +703,12 @@ function loadFormPage() {
       }, 650);
     } catch (error) {
       console.error("Erro ao salvar agendamento:", error);
-      if (error.message === "Horário já reservado." && currentUser && !currentEditId) {
+      if (error.code === "SLOT_TAKEN" && currentUser && !currentEditId) {
         lastFailedPayload = buildAppointmentPayload();
         showToast("Horário já reservado. Você pode entrar na fila de espera.");
         $("waitlist-offer")?.classList.remove("hidden");
       } else {
-        showToast(error.message || "Erro ao salvar no Firebase.");
+        showToast(apiErrorMessage(error, "Erro ao salvar agendamento."));
       }
     } finally {
       if (submitBtn) submitBtn.disabled = false;
@@ -869,7 +748,7 @@ function createAppointmentCard(appointment) {
   article.className = "appointment-card anim-fade-up";
 
   const observationsText = appointment.observacoes?.trim() ? appointment.observacoes : "Sem observações.";
-  const canClientCancel = currentUser && appointment.userId === currentUser.uid && !isAdmin && !["Cancelado", "Concluído"].includes(appointment.status);
+  const canClientCancel = currentUser && appointment.userId === currentUser.id && !isAdmin && !["Cancelado", "Concluído"].includes(appointment.status);
 
   article.innerHTML = `
     <div class="card-top">
@@ -905,56 +784,22 @@ function createAppointmentCard(appointment) {
   return article;
 }
 
-async function releaseSlotForAppointment(transaction, appointmentId, appointmentData) {
-  const horarioId = appointmentData.horarioId || `${appointmentData.data}_${appointmentData.hora}`;
-  if (!horarioId) return;
-
-  const slotRef = doc(db, "slots", horarioId);
-  const slotSnap = await transaction.get(slotRef);
-  if (slotSnap.exists() && slotSnap.data().appointmentId === appointmentId) {
-    transaction.delete(slotRef);
-  }
-}
-
 async function cancelAppointment(id) {
-  const cached = appointmentsCache.find(a => a.id === id);
-  const appointmentRef = doc(db, "agendamentos", id);
-
-  await runTransaction(db, async transaction => {
-    const appointmentSnap = await transaction.get(appointmentRef);
-    if (!appointmentSnap.exists()) throw new Error("Agendamento não encontrado.");
-
-    const appointment = appointmentSnap.data();
-    await releaseSlotForAppointment(transaction, id, appointment);
-
-    transaction.update(appointmentRef, {
-      status: "Cancelado",
-      updatedAt: serverTimestamp()
-    });
-  });
-
-  if (cached) await processWaitlistForSlot(cached);
+  // Liberação do slot e promoção da fila de espera ficam a cargo do backend
+  // (endpoint POST /agendamentos/:id/cancel), de forma atômica.
+  await api.agendamentos.cancel(id);
 }
 
 async function handleDelete(id) {
   if (!confirm("Deseja realmente excluir este agendamento?")) return;
 
-  const appointmentRef = doc(db, "agendamentos", id);
-
   try {
-    await runTransaction(db, async transaction => {
-      const appointmentSnap = await transaction.get(appointmentRef);
-      if (!appointmentSnap.exists()) return;
-
-      const appointment = appointmentSnap.data();
-      await releaseSlotForAppointment(transaction, id, appointment);
-      transaction.delete(appointmentRef);
-    });
-
+    await api.agendamentos.remove(id);
     showToast("Agendamento excluído.");
+    await loadAppointments();
   } catch (error) {
     console.error("Erro ao excluir agendamento:", error);
-    showToast("Erro ao excluir no Firebase.");
+    showToast(apiErrorMessage(error, "Erro ao excluir agendamento."));
   }
 }
 
@@ -964,61 +809,15 @@ function handleEdit(id) {
 }
 
 async function setAppointmentStatus(id, targetStatus) {
-  const appointment = appointmentsCache.find(item => item.id === id);
-  if (!appointment) return;
-
-  const appointmentRef = doc(db, "agendamentos", id);
-
   try {
-    await runTransaction(db, async transaction => {
-      const appointmentSnap = await transaction.get(appointmentRef);
-      if (!appointmentSnap.exists()) throw new Error("Agendamento não encontrado.");
-
-      const current = appointmentSnap.data();
-
-      if (targetStatus === "Cancelado" || targetStatus === "Concluído") {
-        await releaseSlotForAppointment(transaction, id, current);
-      } else if ((current.status || "") === "Cancelado") {
-        const horarioId = current.horarioId || `${current.data}_${current.hora}`;
-        const slotRef   = doc(db, "slots", horarioId);
-        const slotSnap  = await transaction.get(slotRef);
-
-        if (slotSnap.exists() && slotSnap.data().appointmentId !== id) {
-          throw new Error("Horário já reservado por outro cliente.");
-        }
-
-        if (!current.barbeiroId) {
-          const horarioSnap = await transaction.get(doc(db, "horarios", horarioId));
-          if (!horarioSnap.exists()) throw new Error("Horário não existe mais.");
-        }
-
-        transaction.set(slotRef, {
-          appointmentId: id,
-          userId:        current.userId,
-          data:          current.data,
-          hora:          current.hora,
-          horarioId,
-          barbeiroId:    current.barbeiroId || "",
-          servico:       current.servico,
-          duracao:       current.duracao || 0,
-          updatedAt:     serverTimestamp()
-        }, { merge: true });
-      }
-
-      transaction.update(appointmentRef, {
-        status: targetStatus,
-        updatedAt: serverTimestamp()
-      });
-    });
-
+    // Liberação/reocupação de slot e promoção da fila de espera ficam a
+    // cargo do backend (endpoint PATCH /agendamentos/:id/status).
+    await api.agendamentos.updateStatus(id, targetStatus);
     showToast(`Status alterado para ${targetStatus}.`);
-
-    if (targetStatus === "Cancelado") {
-      await processWaitlistForSlot(appointment);
-    }
+    await loadAppointments();
   } catch (error) {
     console.error("Erro ao alterar status:", error);
-    showToast(error.message || "Erro ao atualizar status.");
+    showToast(apiErrorMessage(error, "Erro ao atualizar status."));
   }
 }
 
@@ -1088,67 +887,6 @@ function showStatusPicker(id, currentStatus, anchorEl) {
   setTimeout(() => document.addEventListener("click", onOutsidePickerClick, true), 0);
 }
 
-async function processWaitlistForSlot(appointment) {
-  const horarioId = appointment.horarioId || `${appointment.data}_${appointment.hora}`;
-  if (!horarioId) return;
-
-  try {
-    const snap = await getDocs(query(waitlistCollection, where("horarioId", "==", horarioId)));
-    if (snap.empty) return;
-
-    const entries = snap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
-
-    const first  = entries[0];
-    const newRef = doc(collection(db, "agendamentos"));
-    const slotRef = doc(db, "slots", first.horarioId);
-
-    await runTransaction(db, async transaction => {
-      const slotSnap = await transaction.get(slotRef);
-      if (slotSnap.exists()) return;
-
-      transaction.set(newRef, {
-        nome:        first.nome,
-        email:       first.email,
-        servico:     first.servico,
-        data:        first.data,
-        hora:        first.hora,
-        horarioId:   first.horarioId,
-        barbeiroId:  first.barbeiroId  || "",
-        barbeiro:    first.barbeiro    || "",
-        duracao:     first.duracao     || 0,
-        valor:       first.valor       || 0,
-        observacoes: first.observacoes || "",
-        status:      "Pendente",
-        userId:      first.userId,
-        fromWaitlist: true,
-        createdAt:   serverTimestamp(),
-        updatedAt:   serverTimestamp()
-      });
-
-      transaction.set(slotRef, {
-        appointmentId: newRef.id,
-        userId:     first.userId,
-        data:       first.data,
-        hora:       first.hora,
-        horarioId:  first.horarioId,
-        barbeiroId: first.barbeiroId || "",
-        servico:    first.servico,
-        duracao:    first.duracao || 0,
-        createdAt:  serverTimestamp(),
-        updatedAt:  serverTimestamp()
-      });
-
-      transaction.delete(doc(db, "waitlist", first.id));
-    });
-
-    showToast(`Horário liberado! ${first.nome} da fila foi reagendado automaticamente.`);
-  } catch (error) {
-    console.error("Erro ao processar fila de espera:", error);
-  }
-}
-
 async function joinWaitlist() {
   if (!currentUser) return showToast("Faça login para entrar na fila de espera.");
   if (!lastFailedPayload) return;
@@ -1156,30 +894,19 @@ async function joinWaitlist() {
   const payload = lastFailedPayload;
 
   try {
-    const existing = await getDocs(
-      query(waitlistCollection,
-        where("horarioId", "==", payload.horarioId),
-        where("userId",    "==", currentUser.uid))
-    );
-
-    if (!existing.empty) {
-      showToast("Você já está na fila para este horário.");
-      $("waitlist-offer")?.classList.add("hidden");
-      return;
-    }
-
-    await addDoc(waitlistCollection, {
-      ...payload,
-      userId:    currentUser.uid,
-      createdAt: serverTimestamp()
-    });
+    await api.waitlist.create(payload);
 
     lastFailedPayload = null;
     $("waitlist-offer")?.classList.add("hidden");
     showToast("Você entrou na fila! Será reagendado automaticamente se o horário abrir.");
   } catch (error) {
     console.error(error);
-    showToast("Erro ao entrar na fila de espera.");
+    if (error.code === "ALREADY_ON_WAITLIST") {
+      showToast("Você já está na fila para este horário.");
+      $("waitlist-offer")?.classList.add("hidden");
+      return;
+    }
+    showToast(apiErrorMessage(error, "Erro ao entrar na fila de espera."));
   }
 }
 
@@ -1206,9 +933,10 @@ function bindCardActions() {
       try {
         await cancelAppointment(button.dataset.id);
         showToast("Agendamento cancelado.");
+        await loadAppointments();
       } catch (error) {
         console.error(error);
-        showToast("Erro ao cancelar agendamento.");
+        showToast(apiErrorMessage(error, "Erro ao cancelar agendamento."));
       }
     });
   });
@@ -1270,115 +998,68 @@ function loadAppointmentsPage() {
   if (dateFilter) dateFilter.addEventListener("change", applyFilters);
 }
 
-function subscribeAppointments() {
-  if (!$('appointments-list') || !currentUser) return;
-  if (typeof unsubscribers.appointments === "function") unsubscribers.appointments();
+async function loadAppointments() {
+  if (!$("appointments-list") || !currentUser) return;
 
-  const sourceQuery = isAdmin
-    ? appointmentsCollection
-    : query(appointmentsCollection, where("userId", "==", currentUser.uid));
-
-  unsubscribers.appointments = onSnapshot(
-    sourceQuery,
-    snapshot => {
-      appointmentsCache = sortByDateTime(snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() })));
-      applyFilters();
-      renderCommentsEligibility();
-      updateAdminStats();
-    },
-    error => {
-      console.error("Erro ao carregar agendamentos:", error);
-      showToast("Erro ao carregar agendamentos.");
-    }
-  );
-}
-
-function subscribeServices() {
-  if (typeof unsubscribers.services === "function") return;
-
-  unsubscribers.services = onSnapshot(
-    servicesCollection,
-    snapshot => {
-      servicesCache = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
-      renderServiceOptions();
-      renderServiceFilter();
-      renderServicesList();
-      applyFilters();
-      updateAdminStats();
-      // Re-render barbeiro service checks when services list changes
-      if ($("barbeiro-services-checks")) {
-        const current = editingBarbeiroId ? barbeirosCache.find(b => b.id === editingBarbeiroId) : null;
-        const sel = current
-          ? (Array.isArray(current.services)
-              ? Object.fromEntries(current.services.map(n => [n, 0]))
-              : (current.services || {}))
-          : {};
-        renderBarbeiroServiceChecks(sel);
-      }
-    },
-    error => {
-      console.error("Erro ao carregar serviços:", error);
-      renderServiceOptions();
-      renderServiceFilter();
-      renderServicesList();
-    }
-  );
-}
-
-function subscribeHorarios() {
-  if (typeof unsubscribers.horarios !== "function") {
-    unsubscribers.horarios = onSnapshot(
-      horariosCollection,
-      snapshot => {
-        horariosCache = sortByDateTime(snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() })));
-        renderHorariosList();
-        updateAvailableTimes();
-        updateAdminStats();
-      },
-      error => {
-        console.error("Erro ao carregar horários:", error);
-        showToast("Erro ao carregar horários disponíveis.");
-      }
-    );
-  }
-
-  if (typeof unsubscribers.slots !== "function") {
-    unsubscribers.slots = onSnapshot(
-      slotsCollection,
-      snapshot => {
-        slotsCache = new Map(snapshot.docs.map(docSnap => [docSnap.id, { id: docSnap.id, ...docSnap.data() }]));
-        renderHorariosList();
-        updateAvailableTimes();
-        updateAdminStats();
-      },
-      error => {
-        console.error("Erro ao carregar reservas:", error);
-      }
-    );
+  try {
+    const data = await api.agendamentos.list();
+    appointmentsCache = sortByDateTime(data || []);
+    applyFilters();
+    renderCommentsEligibility();
+    updateAdminStats();
+  } catch (error) {
+    console.error("Erro ao carregar agendamentos:", error);
+    showToast(apiErrorMessage(error, "Erro ao carregar agendamentos."));
   }
 }
 
-function renderHorariosList() {
-  const container = $("horarios-list");
-  if (!container) return;
-
-  if (!horariosCache.length) {
-    container.innerHTML = `<div class="empty-row">Nenhum horário cadastrado.</div>`;
-    return;
+async function loadServices() {
+  try {
+    servicesCache = (await api.services.list()) || [];
+  } catch (error) {
+    console.error("Erro ao carregar serviços:", error);
+    servicesCache = [];
   }
 
-  container.innerHTML = horariosCache.map(horario => {
-    const slot = slotsCache.get(horario.id);
-    const reservado = Boolean(slot);
-    return `
-      <div class="service-row ${reservado ? "reserved-row" : ""}">
-        <div>
-          <strong>${escapeHTML(formatDateBR(horario.data))} às ${escapeHTML(horario.hora)}</strong>
-          <span>${escapeHTML(horario.barbeiro || "Barbeiro não informado")} — ${reservado ? "Reservado" : "Disponível"}</span>
-        </div>
-      </div>
-    `;
-  }).join("");
+  renderServiceOptions();
+  renderServiceFilter();
+  renderServicesList();
+  applyFilters();
+  updateAdminStats();
+
+  // Re-render barbeiro service checks when services list changes
+  if ($("barbeiro-services-checks")) {
+    const current = editingBarbeiroId ? barbeirosCache.find(b => b.id === editingBarbeiroId) : null;
+    const sel = current
+      ? (Array.isArray(current.services)
+          ? Object.fromEntries(current.services.map(n => [n, 0]))
+          : (current.services || {}))
+      : {};
+    renderBarbeiroServiceChecks(sel);
+  }
+}
+
+async function loadHorarios() {
+  try {
+    horariosCache = sortByDateTime((await api.horarios.list()) || []);
+  } catch (error) {
+    console.error("Erro ao carregar horários:", error);
+    horariosCache = [];
+  }
+  updateAvailableTimes();
+  updateAdminStats();
+}
+
+async function loadSlots() {
+  try {
+    const data = (await api.slots.list()) || [];
+    slotsCache = new Map(data.map(slot => [slot.horarioId || slot.id, slot]));
+  } catch (error) {
+    console.error("Erro ao carregar reservas:", error);
+    slotsCache = new Map();
+  }
+  updateAvailableTimes();
+  updateAdminStats();
 }
 
 async function saveService() {
@@ -1393,56 +1074,20 @@ async function saveService() {
 
   try {
     if (editId) {
-      await updateDoc(doc(db, "services", editId), { name, price, updatedAt: serverTimestamp() });
+      await api.services.update(editId, { name, price });
       delete $("service-save").dataset.editId;
       $("service-save").textContent = "Salvar serviço";
       showToast("Serviço atualizado.");
     } else {
-      await addDoc(servicesCollection, { name, price, icon: "content_cut", createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+      await api.services.create({ name, price, icon: "content_cut" });
       showToast("Serviço criado.");
     }
 
     $("service-form")?.reset();
+    await loadServices();
   } catch (error) {
     console.error(error);
-    showToast("Erro ao salvar serviço.");
-  }
-}
-
-async function saveHorario() {
-  if (!isAdmin) return showToast("Acesso negado.");
-
-  const data = ($("horario-data")?.value || "").trim();
-  const hora = ($("horario-hora")?.value || "").trim();
-  const barbeiro = ($("horario-barber")?.value || "").trim();
-  const editId = $("horario-save")?.dataset.editId;
-
-  if (!data || !hora) return showToast("Informe data e hora.");
-  if (data < getTodayISO()) return showToast("A data não pode ser anterior ao dia atual.");
-
-  const newId = buildHorarioId(data, hora, barbeiro);
-
-  try {
-    if (editId) {
-      if (editId !== newId) {
-        if (slotsCache.has(editId)) return showToast("Não é possível alterar um horário reservado.");
-        await setDoc(doc(db, "horarios", newId), { data, hora, barbeiro, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-        await deleteDoc(doc(db, "horarios", editId));
-      } else {
-        await updateDoc(doc(db, "horarios", editId), { data, hora, barbeiro, updatedAt: serverTimestamp() });
-      }
-      delete $("horario-save").dataset.editId;
-      $("horario-save").textContent = "Salvar horário";
-      showToast("Horário atualizado.");
-    } else {
-      await setDoc(doc(db, "horarios", newId), { data, hora, barbeiro, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-      showToast("Horário criado.");
-    }
-
-    $("horario-form")?.reset();
-  } catch (error) {
-    console.error(error);
-    showToast("Erro ao salvar horário.");
+    showToast(apiErrorMessage(error, "Erro ao salvar serviço."));
   }
 }
 
@@ -1507,11 +1152,12 @@ function renderCommentsList(items = []) {
       if (!confirm("Remover comentário?")) return;
 
       try {
-        await deleteDoc(doc(db, "comments", button.dataset.id));
+        await api.comments.remove(button.dataset.id);
         showToast("Comentário removido.");
+        await loadComments();
       } catch (error) {
         console.error(error);
-        showToast("Erro ao remover comentário.");
+        showToast(apiErrorMessage(error, "Erro ao remover comentário."));
       }
     });
   });
@@ -1571,11 +1217,12 @@ function renderAdminCommentReview() {
   list.querySelectorAll(".approve-comment").forEach(button => {
     button.addEventListener("click", async () => {
       try {
-        await updateDoc(doc(db, "comments", button.dataset.id), { approved: true });
+        await api.comments.approve(button.dataset.id);
         showToast("Avaliação aprovada.");
+        await loadComments();
       } catch (error) {
         console.error(error);
-        showToast("Erro ao aprovar avaliação.");
+        showToast(apiErrorMessage(error, "Erro ao aprovar avaliação."));
       }
     });
   });
@@ -1584,60 +1231,56 @@ function renderAdminCommentReview() {
     button.addEventListener("click", async () => {
       if (!confirm("Reprovar e remover esta avaliação?")) return;
       try {
-        await deleteDoc(doc(db, "comments", button.dataset.id));
+        await api.comments.remove(button.dataset.id);
         showToast("Avaliação reprovada.");
+        await loadComments();
       } catch (error) {
         console.error(error);
-        showToast("Erro ao reprovar avaliação.");
+        showToast(apiErrorMessage(error, "Erro ao reprovar avaliação."));
       }
     });
   });
 }
 
-function subscribeBarbeiros() {
-  if (typeof unsubscribers.barbeiros === "function") return;
+async function loadBarbeiros() {
+  try {
+    barbeirosCache = (await api.barbeiros.list()) || [];
+  } catch (error) {
+    console.error("Erro ao carregar barbeiros:", error);
+    barbeirosCache = [];
+  }
 
-  unsubscribers.barbeiros = onSnapshot(
-    barbeirosCollection,
-    snapshot => {
-      barbeirosCache = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
-      populateBarbeiroSelect();
-      renderServiceOptions();
-      renderBarberAdminList();
-      updateAdminStats();
+  populateBarbeiroSelect();
+  renderServiceOptions();
+  renderBarberAdminList();
+  updateAdminStats();
 
-      // Re-render service checks when a barber being edited gets an update
-      if (editingBarbeiroId && $("barbeiro-services-checks")) {
-        const current = barbeirosCache.find(b => b.id === editingBarbeiroId);
-        if (current) {
-          const sel = Array.isArray(current.services)
-            ? Object.fromEntries(current.services.map(n => [n, 0]))
-            : (current.services || {});
-          renderBarbeiroServiceChecks(sel);
-        }
-      }
-    },
-    error => console.error("Erro ao carregar barbeiros:", error)
-  );
+  // Re-render service checks when a barber being edited gets an update
+  if (editingBarbeiroId && $("barbeiro-services-checks")) {
+    const current = barbeirosCache.find(b => b.id === editingBarbeiroId);
+    if (current) {
+      const sel = Array.isArray(current.services)
+        ? Object.fromEntries(current.services.map(n => [n, 0]))
+        : (current.services || {});
+      renderBarbeiroServiceChecks(sel);
+    }
+  }
 }
 
-function subscribeComments() {
-  if (!$("comments-list") || typeof unsubscribers.comments === "function") return;
+async function loadComments() {
+  if (!$("comments-list") && !$("admin-comment-review-section")) return;
 
-  unsubscribers.comments = onSnapshot(
-    commentsCollection,
-    snapshot => {
-      commentsCache = snapshot.docs
-        .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
-        .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-      renderCommentsList(commentsCache);
-      renderAdminCommentReview();
-    },
-    error => {
-      console.error("Erro ao carregar comentários:", error);
-      showToast("Erro ao carregar comentários.");
-    }
-  );
+  try {
+    commentsCache = ((await api.comments.list()) || [])
+      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  } catch (error) {
+    console.error("Erro ao carregar comentários:", error);
+    showToast(apiErrorMessage(error, "Erro ao carregar comentários."));
+    commentsCache = [];
+  }
+
+  renderCommentsList(commentsCache);
+  renderAdminCommentReview();
 }
 
 async function saveComment() {
@@ -1652,53 +1295,39 @@ async function saveComment() {
   if (rating < 1 || rating > 5) return showToast("Selecione uma nota válida.");
 
   try {
-    await addDoc(commentsCollection, {
-      userId: currentUser.uid,
-      authorName: currentUserData?.name || currentUser.displayName || "Cliente",
-      rating,
-      text,
-      approved: false,
-      createdAt: serverTimestamp()
-    });
+    await api.comments.create({ rating, text });
 
     $("comment-form")?.reset();
     const picker = $("star-picker");
     if (picker) picker.dataset.selected = "5";
     showToast("Obrigado pelo feedback!");
+    await loadComments();
   } catch (error) {
     console.error(error);
-    showToast("Erro ao enviar comentário.");
+    showToast(apiErrorMessage(error, "Erro ao enviar comentário."));
   }
 }
 
-function subscribeUsers() {
+async function loadUsers() {
   const container = $("clients-list");
   if (!container) return;
 
   if (!isAdmin) {
     usersCache = [];
     container.innerHTML = "";
-    if (typeof unsubscribers.users === "function") {
-      unsubscribers.users();
-      unsubscribers.users = null;
-    }
     return;
   }
 
-  if (typeof unsubscribers.users === "function") return;
+  try {
+    usersCache = (await api.users.list()) || [];
+  } catch (error) {
+    console.error("Erro ao carregar clientes:", error);
+    showToast(apiErrorMessage(error, "Erro ao carregar clientes."));
+    usersCache = [];
+  }
 
-  unsubscribers.users = onSnapshot(
-    usersCollection,
-    snapshot => {
-      usersCache = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
-      renderUsersList();
-      updateAdminStats();
-    },
-    error => {
-      console.error("Erro ao carregar clientes:", error);
-      showToast("Erro ao carregar clientes.");
-    }
-  );
+  renderUsersList();
+  updateAdminStats();
 }
 
 async function deleteClient(userId) {
@@ -1706,11 +1335,12 @@ async function deleteClient(userId) {
   if (!confirm("Remover este cliente? O perfil será excluído permanentemente.")) return;
 
   try {
-    await deleteDoc(doc(db, "users", userId));
+    await api.users.remove(userId);
     showToast("Cliente removido.");
+    await loadUsers();
   } catch (error) {
     console.error(error);
-    showToast("Erro ao remover cliente.");
+    showToast(apiErrorMessage(error, "Erro ao remover cliente."));
   }
 }
 
@@ -1743,52 +1373,47 @@ function renderUsersList() {
 }
 
 async function initAuth() {
-  onAuthStateChanged(auth, async user => {
-    currentUser = user;
-    currentUserData = null;
-    isAdmin = false;
+  currentUser = null;
+  isAdmin = false;
 
-    if (user) {
-      try {
-        const userSnap = await getDoc(doc(db, "users", user.uid));
-        if (userSnap.exists()) {
-          currentUserData = userSnap.data();
-          isAdmin = currentUserData.role === "admin";
-        }
-      } catch (error) {
-        console.error("Erro ao obter dados do usuário:", error);
-      }
+  if (getToken()) {
+    try {
+      const { user } = await api.auth.me();
+      currentUser = user;
+      isAdmin = user?.role === "admin";
+    } catch (error) {
+      console.warn("Sessão inválida ou expirada.", error);
     }
+  }
 
-    updateAuthLink();
-    updateAdminVisibility();
-    prefillUserData();
-    renderCommentsList(commentsCache);
-    renderAdminCommentReview();
+  updateAuthLink();
+  updateAdminVisibility();
+  prefillUserData();
+  renderCommentsList(commentsCache);
+  renderAdminCommentReview();
 
-    const currentPage = window.location.pathname.split("/").pop() || "index.html";
-    if (currentPage === "agendamentos.html" && !currentUser) {
-      window.location.href = "auth.html";
-      return;
-    }
+  const currentPage = window.location.pathname.split("/").pop() || "index.html";
+  if (currentPage === "agendamentos.html" && !currentUser) {
+    window.location.href = "auth.html";
+    return;
+  }
 
-    if (currentPage === "admin.html" && (!currentUser || !isAdmin)) {
-      window.location.href = currentUser ? "index.html" : "auth.html";
-      return;
-    }
+  if (currentPage === "admin.html" && (!currentUser || !isAdmin)) {
+    window.location.href = currentUser ? "index.html" : "auth.html";
+    return;
+  }
 
-    if (currentUser) {
-      subscribeAppointments();
-      subscribeUsers();
-    }
+  if (currentUser) {
+    await loadAppointments();
+    await loadUsers();
+  }
 
-    renderCommentsEligibility();
+  renderCommentsEligibility();
 
-    const editId = localStorage.getItem(EDIT_KEY);
-    if (editId && $("booking-form")) {
-      await fillFormForEdit(editId);
-    }
-  });
+  const editId = localStorage.getItem(EDIT_KEY);
+  if (editId && $("booking-form")) {
+    await fillFormForEdit(editId);
+  }
 }
 
 // ============================================================
@@ -2036,19 +1661,18 @@ async function saveBarbeiroAdmin() {
 
   try {
     if (editingBarbeiroId) {
-      data.updatedAt = serverTimestamp();
-      await updateDoc(doc(db, "barbeiros", editingBarbeiroId), data);
+      await api.barbeiros.update(editingBarbeiroId, data);
       showToast("Barbeiro atualizado.");
     } else {
-      data.photo     = pendingPhoto || "";
-      data.createdAt = serverTimestamp();
-      await addDoc(barbeirosCollection, data);
+      data.photo = pendingPhoto || "";
+      await api.barbeiros.create(data);
       showToast("Barbeiro adicionado.");
     }
     openAddBarbeiroForm();
+    await loadBarbeiros();
   } catch (err) {
     console.error(err);
-    showToast("Erro ao salvar barbeiro.");
+    showToast(apiErrorMessage(err, "Erro ao salvar barbeiro."));
   }
 }
 
@@ -2056,11 +1680,12 @@ async function deleteBarbeiroAdmin(id) {
   if (!isAdmin) return showToast("Acesso negado.");
   if (!confirm("Remover este barbeiro?")) return;
   try {
-    await deleteDoc(doc(db, "barbeiros", id));
+    await api.barbeiros.remove(id);
     showToast("Barbeiro removido.");
+    await loadBarbeiros();
   } catch (err) {
     console.error(err);
-    showToast("Erro ao remover barbeiro.");
+    showToast(apiErrorMessage(err, "Erro ao remover barbeiro."));
   }
 }
 
@@ -2076,21 +1701,13 @@ function loadBarberAdminSection() {
   openAddBarbeiroForm();
 }
 
-window.addEventListener("beforeunload", () => {
-  Object.values(unsubscribers).forEach(unsubscribe => {
-    if (typeof unsubscribe === "function") unsubscribe();
-  });
-});
-
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   renderServiceOptions();
   loadFormPage();
   loadAppointmentsPage();
-  subscribeServices();
-  subscribeHorarios();
-  subscribeBarbeiros();
-  subscribeComments();
-  initAuth();
+
+  await Promise.all([loadServices(), loadHorarios(), loadSlots(), loadBarbeiros(), loadComments()]);
+  await initAuth();
 
   loadBarberAdminSection();
 

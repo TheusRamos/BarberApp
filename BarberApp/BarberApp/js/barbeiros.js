@@ -1,35 +1,4 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  serverTimestamp,
-  onSnapshot,
-  getDoc
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import {
-  getAuth,
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyBmWNHnYemnft_N542e9wa_1jRZeqCc5zE",
-  authDomain: "barbearia-7387c.firebaseapp.com",
-  projectId: "barbearia-7387c",
-  storageBucket: "barbearia-7387c.firebasestorage.app",
-  messagingSenderId: "16693210556",
-  appId: "1:16693210556:web:3510e53c285b3dc257cfb9"
-};
-
-const app  = initializeApp(firebaseConfig);
-const db   = getFirestore(app);
-const auth = getAuth(app);
-
-const barbeirosCol = collection(db, "barbeiros");
-const servicesCol  = collection(db, "services");
+import { api, getToken } from "./api.js";
 
 const DIAS_SEMANA = [
   { value: 0, label: "Dom" },
@@ -59,6 +28,10 @@ function showToast(msg) {
   t.classList.add("show");
   clearTimeout(showToast._t);
   showToast._t = setTimeout(() => t.classList.remove("show"), 2800);
+}
+
+function apiErrorMessage(error, fallback) {
+  return error?.message || fallback;
 }
 
 // ============================================================
@@ -359,82 +332,102 @@ async function saveBarbeiro() {
 
   try {
     if (editingId) {
-      data.updatedAt = serverTimestamp();
-      await updateDoc(doc(db, "barbeiros", editingId), data);
+      await api.barbeiros.update(editingId, data);
       showToast("Barbeiro atualizado.");
     } else {
-      data.photo      = pendingPhoto || "";
-      data.createdAt  = serverTimestamp();
-      await addDoc(barbeirosCol, data);
+      data.photo = pendingPhoto || "";
+      await api.barbeiros.create(data);
       showToast("Barbeiro adicionado.");
     }
     openAddForm();
+    await loadBarbeiros();
   } catch (err) {
     console.error(err);
-    showToast("Erro ao salvar barbeiro.");
+    showToast(apiErrorMessage(err, "Erro ao salvar barbeiro."));
   }
 }
 
 async function deleteBarbeiro(id) {
   if (!confirm("Remover este barbeiro?")) return;
   try {
-    await deleteDoc(doc(db, "barbeiros", id));
+    await api.barbeiros.remove(id);
     showToast("Barbeiro removido.");
+    await loadBarbeiros();
   } catch (err) {
     console.error(err);
-    showToast("Erro ao remover barbeiro.");
+    showToast(apiErrorMessage(err, "Erro ao remover barbeiro."));
   }
 }
 
 // ============================================================
-// REAL-TIME SUBSCRIPTIONS
+// DATA LOADING
 // ============================================================
 
-function subscribeAll() {
-  onSnapshot(barbeirosCol, snap => {
-    barbeirosCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderBarbeirosList();
+async function loadBarbeiros() {
+  try {
+    barbeirosCache = (await api.barbeiros.list()) || [];
+  } catch (err) {
+    console.error(err);
+    barbeirosCache = [];
+  }
 
-    if (editingId) {
-      const current = barbeirosCache.find(b => b.id === editingId);
-      if (current) {
-        const svcSelected = Array.isArray(current.services)
-          ? Object.fromEntries(current.services.map(n => [n, 0]))
-          : (current.services || {});
-        renderServicesChecks(svcSelected);
-        renderDiasChecks(Array.isArray(current.diasDisponiveis)
-          ? current.diasDisponiveis : [1, 2, 3, 4, 5, 6]);
-      }
+  renderBarbeirosList();
+
+  if (editingId) {
+    const current = barbeirosCache.find(b => b.id === editingId);
+    if (current) {
+      const svcSelected = Array.isArray(current.services)
+        ? Object.fromEntries(current.services.map(n => [n, 0]))
+        : (current.services || {});
+      renderServicesChecks(svcSelected);
+      renderDiasChecks(Array.isArray(current.diasDisponiveis)
+        ? current.diasDisponiveis : [1, 2, 3, 4, 5, 6]);
     }
-  });
+  }
+}
 
-  onSnapshot(servicesCol, snap => {
-    servicesCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    const current  = editingId ? barbeirosCache.find(b => b.id === editingId) : null;
-    const svcSel   = current
-      ? (Array.isArray(current.services)
-          ? Object.fromEntries(current.services.map(n => [n, 0]))
-          : (current.services || {}))
-      : {};
-    renderServicesChecks(svcSel);
-  });
+async function loadServices() {
+  try {
+    servicesCache = (await api.services.list()) || [];
+  } catch (err) {
+    console.error(err);
+    servicesCache = [];
+  }
+
+  const current = editingId ? barbeirosCache.find(b => b.id === editingId) : null;
+  const svcSel  = current
+    ? (Array.isArray(current.services)
+        ? Object.fromEntries(current.services.map(n => [n, 0]))
+        : (current.services || {}))
+    : {};
+  renderServicesChecks(svcSel);
 }
 
 // ============================================================
 // AUTH GUARD (admin only)
 // ============================================================
 
-function initAuth() {
-  onAuthStateChanged(auth, async user => {
-    if (!user) { window.location.href = "auth.html"; return; }
+async function initAuth() {
+  if (!getToken()) {
+    window.location.href = "auth.html";
+    return;
+  }
 
-    const snap    = await getDoc(doc(db, "users", user.uid));
-    const isAdmin = snap.exists() && snap.data().role === "admin";
-    if (!isAdmin) { window.location.href = "index.html"; return; }
+  try {
+    const { user } = await api.auth.me();
+    if (!user || user.role !== "admin") {
+      window.location.href = "index.html";
+      return;
+    }
+  } catch (err) {
+    console.warn("Sessão inválida ou expirada.", err);
+    window.location.href = "auth.html";
+    return;
+  }
 
-    subscribeAll();
-    openAddForm();
-  });
+  await loadServices();
+  await loadBarbeiros();
+  openAddForm();
 }
 
 // ============================================================

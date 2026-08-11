@@ -1,6 +1,6 @@
 # 💈 BarberApp — Sistema de Agendamentos
 
-Sistema web completo para gerenciamento de uma barbearia, com funcionalidades distintas para clientes e administradores, sincronização em tempo real via Firebase e interface responsiva.
+Sistema web completo para gerenciamento de uma barbearia, com funcionalidades distintas para clientes e administradores e interface responsiva. O frontend consome uma API REST própria (backend em PostgreSQL, a ser implementado).
 
 ---
 
@@ -18,7 +18,7 @@ Sistema web completo para gerenciamento de uma barbearia, com funcionalidades di
 
 ## Sobre o Projeto
 
-O BarberApp permite o gerenciamento completo de agendamentos em uma barbearia. Clientes podem reservar horários, entrar em filas de espera e avaliar os serviços. Administradores gerenciam barbeiros, serviços, horários, agendamentos e moderam avaliações — tudo com sincronização em tempo real via Firestore.
+O BarberApp permite o gerenciamento completo de agendamentos em uma barbearia. Clientes podem reservar horários, entrar em filas de espera e avaliar os serviços. Administradores gerenciam barbeiros, serviços, horários, agendamentos e moderam avaliações — tudo via uma API REST própria (backend em PostgreSQL).
 
 ---
 
@@ -31,12 +31,12 @@ BarberApp/
 │   ├── agendamentos.css    # Estilos das páginas de agendamentos, admin e status picker
 │   └── barbeiros.css       # Estilos do painel de barbeiros
 ├── js/
+│   ├── api.js              # Cliente REST — única camada que fala com o backend
 │   ├── app.js              # Lógica principal (agendamentos, fila de espera, admin, comentários)
 │   ├── auth.js             # Autenticação e perfil do usuário
 │   ├── animations.js       # Animações de entrada via IntersectionObserver
 │   ├── barbeiros.js        # Página pública de barbeiros
-│   ├── sidebar.js          # Navegação lateral
-│   └── theme.js            # Alternância de tema claro/escuro
+│   └── sidebar.js          # Navegação lateral
 ├── resources/              # Imagens e recursos visuais
 ├── index.html              # Página inicial — formulário de agendamento + fila de espera
 ├── agendamentos.html       # Lista de agendamentos com estatísticas
@@ -44,8 +44,7 @@ BarberApp/
 ├── auth.html               # Login, cadastro e perfil
 ├── barbeiros.html          # Página pública dos barbeiros
 ├── comentarios.html        # Avaliações dos clientes + moderação
-├── sobre.html              # Sobre a barbearia
-└── firestore.rules         # Regras de segurança do Firestore
+└── sobre.html              # Sobre a barbearia
 ```
 
 ---
@@ -64,7 +63,7 @@ BarberApp/
 ### Agendamento e Fila de Espera
 
 - Realização de agendamentos com seleção de barbeiro, serviço, data e horário
-- Controle de concorrência via transação atômica no Firestore (sem dupla reserva)
+- Controle de concorrência via transação atômica no backend (sem dupla reserva)
 - **Fila de espera**: se um horário estiver ocupado, o cliente pode entrar na fila; ao cancelar o agendamento original, o primeiro da fila é reagendado automaticamente
 - Cancelamento de agendamento pelo próprio cliente
 - Edição de agendamento existente
@@ -99,8 +98,7 @@ BarberApp/
 
 ### Autenticação
 
-- Cadastro e login via Firebase Authentication (e-mail + senha)
-- Login com Google (Google Sign-In via popup)
+- Cadastro e login via API própria (e-mail + senha)
 - Identificação automática de perfil (cliente / admin)
 - Perfil editável com foto
 
@@ -161,7 +159,7 @@ BarberApp/
 3. Ao confirmar, o cliente entra na fila e é reagendado automaticamente quando o horário abrir
 
 **Regras:**
-- Controle de concorrência via transação atômica (Firestore)
+- Controle de concorrência via transação atômica (no backend)
 - Verificação de login antes do envio
 - Sem sobreposição de horários por barbeiro
 
@@ -242,16 +240,19 @@ BarberApp/
 | Camada | Tecnologia |
 |---|---|
 | Frontend | HTML5, CSS3, JavaScript ES Modules |
-| Autenticação | Firebase Authentication (e-mail/senha + Google Sign-In) |
-| Banco de dados | Cloud Firestore (tempo real) |
+| Comunicação com o backend | `js/api.js` — cliente REST (fetch) com autenticação via token |
+| Autenticação | A definir na API (ex: JWT) |
+| Banco de dados | PostgreSQL (backend a ser implementado) |
 | Fontes e ícones | Google Fonts (Manrope, Inter), Material Symbols |
 | Hospedagem | GitHub Pages (deploy automático via GitHub Actions) |
 
 > O projeto **não utiliza frameworks visuais**, sendo estilizado com CSS próprio.
+>
+> O backend ainda não existe. O frontend já está preparado para consumir uma API REST (contrato documentado em `js/api.js`) — até lá, nenhuma ação que dependa de dados (login, agendar, avaliar etc.) funciona.
 
-### Coleções Firestore
+### Entidades previstas (tabelas PostgreSQL)
 
-| Coleção | Descrição |
+| Entidade | Descrição |
 |---|---|
 | `agendamentos` | Agendamentos dos clientes |
 | `slots` | Controle de horários ocupados (chave de conflito) |

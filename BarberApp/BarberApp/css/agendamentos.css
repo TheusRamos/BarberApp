@@ -1,24 +1,24 @@
 :root {
-  --background: #0A0D16;
-  --surface: #0F1523;
-  --surface-low: #141A2C;
-  --surface-lowest: #0C1020;
-  --surface-high: #1C2338;
+  --background: #F5F1E8;
+  --surface: #ffffff;
+  --surface-low: #FFFCF5;
+  --surface-lowest: #F8F4EC;
+  --surface-high: #EDE7D8;
 
-  --text: #E4DFD0;
-  --text-muted: #A8956E;
-  --text-soft: #6A6050;
+  --text: #16120A;
+  --text-muted: #5A5040;
+  --text-soft: #7A6E58;
 
-  --primary: #C4963A;
-  --primary-strong: #8A6420;
-  --tertiary: #5B8DB8;
+  --primary: #8A6420;
+  --primary-strong: #5C4010;
+  --tertiary: #7A6E60;
 
-  --danger: #E06060;
-  --warning: #E8A020;
-  --success: #55C48A;
-  --info: #5B8DB8;
+  --danger: #C94040;
+  --warning: #B87818;
+  --success: #3A9E68;
+  --info: #7A6E60;
 
-  --card-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  --card-shadow: 0 16px 36px rgba(12, 10, 5, 0.06);
   --radius-md: 16px;
   --radius-lg: 22px;
   --radius-xl: 28px;
@@ -60,7 +60,7 @@ button, input, select {
 
 button { cursor: pointer; }
 
-input[type="date"] { color-scheme: dark; }
+input[type="date"] { color-scheme: light; }
 
 .hidden { display: none !important; }
 
@@ -74,8 +74,8 @@ input[type="date"] { color-scheme: dark; }
   min-height: 100vh;
   padding: 64px 0 50px;
   background:
-    radial-gradient(ellipse at top right, rgba(196, 150, 58, 0.06), transparent 40%),
-    linear-gradient(180deg, #0D1220 0%, #090C16 100%);
+    radial-gradient(ellipse at top right, rgba(138, 100, 32, 0.05), transparent 40%),
+    linear-gradient(180deg, #F5F1E8 0%, #EDE7D8 100%);
 }
 
 .container {
@@ -109,8 +109,8 @@ input[type="date"] { color-scheme: dark; }
   top: 0;
   bottom: 0;
   width: var(--sidebar-w);
-  background: rgba(7, 10, 22, 0.97);
-  border-right: 1px solid rgba(148, 141, 162, 0.09);
+  background: rgba(250, 246, 236, 0.98);
+  border-right: 1px solid rgba(14, 10, 0, 0.08);
   backdrop-filter: blur(24px);
   z-index: 60;
   display: flex;
@@ -203,37 +203,6 @@ input[type="date"] { color-scheme: dark; }
   color: var(--primary);
 }
 
-.sidebar-footer {
-  padding-top: 12px;
-  border-top: 1px solid rgba(148, 141, 162, 0.08);
-}
-
-.sidebar-theme-btn {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  width: 100%;
-  padding: 11px 14px;
-  border-radius: 11px;
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  text-align: left;
-  transition: background var(--transition), color var(--transition);
-}
-
-.sidebar-theme-btn .material-symbols-outlined {
-  font-size: 19px;
-}
-
-.sidebar-theme-btn:hover {
-  background: rgba(148, 141, 162, 0.07);
-  color: var(--text);
-}
-
 .sidebar-toggle {
   position: fixed;
   top: 14px;
@@ -241,8 +210,8 @@ input[type="date"] { color-scheme: dark; }
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  background: rgba(7, 10, 22, 0.9);
-  border: 1px solid rgba(148, 141, 162, 0.12);
+  background: rgba(248, 243, 232, 0.94);
+  border: 1px solid rgba(14, 10, 0, 0.10);
   backdrop-filter: blur(12px);
   color: var(--text);
   cursor: pointer;
@@ -285,8 +254,8 @@ input[type="date"] { color-scheme: dark; }
   width: fit-content;
   padding: 9px 14px;
   border-radius: 999px;
-  background: rgba(16, 22, 38, 0.80);
-  border: 1px solid rgba(148, 141, 162, 0.13);
+  background: transparent;
+  border: 1px solid rgba(138, 100, 32, 0.4);
   backdrop-filter: blur(12px);
 }
 
@@ -364,11 +333,11 @@ input[type="date"] { color-scheme: dark; }
   display: flex;
   align-items: center;
   gap: 9px;
-  background: rgba(12, 17, 32, 0.96);
-  border: 1px solid rgba(148, 141, 162, 0.1);
+  background: transparent;
+  border: 1px solid rgba(138, 100, 32, 0.4);
   border-radius: 16px;
   padding: 13px 15px;
-  box-shadow: var(--card-shadow);
+  box-shadow: none;
 }
 
 .filter-group span {
@@ -403,11 +372,11 @@ input[type="date"] { color-scheme: dark; }
 }
 
 .stat-item {
-  background: rgba(12, 17, 32, 0.96);
-  border: 1px solid rgba(148, 141, 162, 0.1);
+  background: transparent;
+  border: 1px solid rgba(138, 100, 32, 0.4);
   border-radius: 22px;
   padding: 20px 16px;
-  box-shadow: var(--card-shadow);
+  box-shadow: none;
 }
 
 .stat-item strong {
@@ -461,17 +430,17 @@ input[type="date"] { color-scheme: dark; }
    ============================================================ */
 
 .appointment-card {
-  background: rgba(12, 17, 32, 0.96);
-  border: 1px solid rgba(148, 141, 162, 0.1);
+  background: transparent;
+  border: 1px solid rgba(138, 100, 32, 0.35);
   border-radius: 26px;
   padding: 20px;
-  box-shadow: var(--card-shadow);
+  box-shadow: none;
   transition: transform var(--transition), border-color var(--transition);
 }
 
 .appointment-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(196, 150, 58, 0.22);
+  border-color: var(--primary);
 }
 
 .card-top {
@@ -529,22 +498,22 @@ input[type="date"] { color-scheme: dark; }
 }
 
 .status-badge.confirmed {
-  background: rgba(85, 222, 162, 0.1);
+  background: rgba(58, 158, 104, 0.1);
   color: var(--success);
 }
 
 .status-badge.pending {
-  background: rgba(255, 200, 77, 0.1);
+  background: rgba(184, 120, 24, 0.1);
   color: var(--warning);
 }
 
 .status-badge.completed {
-  background: rgba(109, 179, 255, 0.1);
+  background: rgba(122, 110, 96, 0.1);
   color: var(--info);
 }
 
 .status-badge.cancelled {
-  background: rgba(255, 96, 112, 0.1);
+  background: rgba(201, 64, 64, 0.1);
   color: var(--danger);
 }
 
@@ -613,9 +582,9 @@ input[type="date"] { color-scheme: dark; }
   grid-column: 1 / -1;
   min-height: 240px;
   border-radius: 26px;
-  background: rgba(12, 17, 32, 0.96);
-  border: 1px solid rgba(148, 141, 162, 0.1);
-  box-shadow: var(--card-shadow);
+  background: transparent;
+  border: 1px solid rgba(138, 100, 32, 0.35);
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -652,7 +621,7 @@ input[type="date"] { color-scheme: dark; }
   bottom: 28px;
   transform: translateX(-50%) translateY(16px);
   background: rgba(10, 14, 28, 0.95);
-  color: var(--text);
+  color: #F5F1E8;
   border: 1px solid rgba(196, 150, 58, 0.14);
   padding: 13px 18px;
   border-radius: 14px;
@@ -784,11 +753,11 @@ a.new-booking-btn {
 
 .admin-card,
 .comment-form {
-  background: rgba(12, 17, 32, 0.96);
-  border: 1px solid rgba(148, 141, 162, 0.1);
+  background: transparent;
+  border: 1px solid rgba(138, 100, 32, 0.4);
   border-radius: 26px;
   padding: 20px;
-  box-shadow: var(--card-shadow);
+  box-shadow: none;
 }
 
 .admin-card h3 {
@@ -866,8 +835,8 @@ a.new-booking-btn {
 .service-row,
 .comment-row,
 .empty-row {
-  background: var(--surface-lowest);
-  border: 1px solid rgba(148, 141, 162, 0.1);
+  background: transparent;
+  border: 1px solid rgba(138, 100, 32, 0.35);
   border-radius: 16px;
   padding: 13px;
 }
@@ -1057,8 +1026,8 @@ a.new-booking-btn {
 .status-picker-dropdown {
   position: fixed;
   z-index: 200;
-  background: rgba(10, 14, 28, 0.97);
-  border: 1px solid rgba(196, 150, 58, 0.18);
+  background: rgba(255, 252, 245, 0.98);
+  border: 1px solid rgba(138, 97, 32, 0.16);
   border-radius: 18px;
   padding: 8px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
@@ -1106,114 +1075,6 @@ a.new-booking-btn {
 .status-picker-item:disabled {
   opacity: 0.35;
   cursor: default;
-}
-
-[data-theme="light"] .status-picker-dropdown {
-  background: rgba(255, 252, 245, 0.98);
-  border-color: rgba(138, 97, 32, 0.16);
-}
-
-[data-theme="light"] .status-badge.confirmed {
-  background: rgba(58, 158, 104, 0.1);
-}
-
-[data-theme="light"] .status-badge.pending {
-  background: rgba(184, 120, 24, 0.1);
-}
-
-[data-theme="light"] .status-badge.completed {
-  background: rgba(122, 110, 96, 0.1);
-}
-
-[data-theme="light"] .status-badge.cancelled {
-  background: rgba(201, 64, 64, 0.1);
-}
-
-[data-theme="light"] .welcome-badge {
-  background: transparent;
-  border-color: rgba(138, 100, 32, 0.4);
-}
-
-[data-theme="light"] .filter-group {
-  background: transparent;
-  border-color: rgba(138, 100, 32, 0.4);
-  box-shadow: none;
-}
-
-[data-theme="light"] .stat-item {
-  background: transparent;
-  border-color: rgba(138, 100, 32, 0.4);
-  box-shadow: none;
-}
-
-[data-theme="light"] .appointment-card {
-  background: transparent;
-  border-color: rgba(138, 100, 32, 0.35);
-  box-shadow: none;
-}
-
-[data-theme="light"] .appointment-card:hover {
-  border-color: var(--primary);
-}
-
-[data-theme="light"] .admin-card,
-[data-theme="light"] .comment-form {
-  background: transparent;
-  border-color: rgba(138, 100, 32, 0.4);
-  box-shadow: none;
-}
-
-[data-theme="light"] .service-row,
-[data-theme="light"] .comment-row,
-[data-theme="light"] .empty-row {
-  background: transparent;
-  border-color: rgba(138, 100, 32, 0.35);
-}
-
-/* ============================================================
-   LIGHT THEME
-   ============================================================ */
-
-[data-theme="light"] {
-  --background: #F5F1E8;
-  --surface: #ffffff;
-  --surface-low: #FFFCF5;
-  --surface-lowest: #F8F4EC;
-  --surface-high: #EDE7D8;
-  --text: #16120A;
-  --text-muted: #5A5040;
-  --text-soft: #7A6E58;
-  --primary: #8A6420;
-  --primary-strong: #5C4010;
-  --tertiary: #7A6E60;
-  --info: #7A6E60;
-  --success: #3A9E68;
-  --danger: #C94040;
-  --warning: #B87818;
-  --card-shadow: 0 16px 36px rgba(12, 10, 5, 0.06);
-}
-
-[data-theme="light"] input[type="date"],
-[data-theme="light"] input[type="time"],
-[data-theme="light"] select {
-  color-scheme: light;
-}
-
-[data-theme="light"] .app {
-  background:
-    radial-gradient(ellipse at top right, rgba(138, 100, 32, 0.05), transparent 40%),
-    linear-gradient(180deg, #F5F1E8 0%, #EDE7D8 100%);
-}
-
-[data-theme="light"] .sidebar {
-  background: rgba(250, 246, 236, 0.98);
-  border-right-color: rgba(14, 10, 0, 0.08);
-}
-
-[data-theme="light"] .sidebar-toggle {
-  background: rgba(248, 243, 232, 0.94);
-  border-color: rgba(14, 10, 0, 0.10);
-  color: var(--text);
 }
 
 /* ============================================================

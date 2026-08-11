@@ -17,7 +17,7 @@
 
 /* ---- Form card ---- */
 .barbeiro-form-card {
-  background: rgba(22, 22, 28, 0.96);
+  background: rgba(255, 255, 255, 0.96);
   border: 1px solid rgba(148, 141, 162, 0.1);
   border-radius: 26px;
   padding: 26px 24px;
@@ -31,10 +31,6 @@
   font-size: 1.1rem;
   font-weight: 700;
   margin-bottom: 20px;
-}
-
-[data-theme="light"] .barbeiro-form-card {
-  background: rgba(255, 255, 255, 0.96);
 }
 
 /* ---- Avatar upload ---- */
@@ -167,7 +163,7 @@
   padding: 5px 8px;
   border-radius: 8px;
   border: 1px solid rgba(196, 150, 58, 0.4);
-  background: rgba(196, 150, 58, 0.06);
+  background: rgba(196, 150, 58, 0.08);
   color: var(--text);
   font-size: 0.88rem;
   font-family: inherit;
@@ -186,10 +182,6 @@
   font-weight: 600;
 }
 
-[data-theme="light"] .svc-duration-input {
-  background: rgba(196, 150, 58, 0.08);
-}
-
 /* ---- Barbers list ---- */
 .barbeiros-list {
   display: flex;
@@ -198,7 +190,7 @@
 }
 
 .barbeiro-card {
-  background: rgba(22, 22, 28, 0.96);
+  background: rgba(255, 255, 255, 0.96);
   border: 1px solid rgba(148, 141, 162, 0.1);
   border-radius: 22px;
   padding: 18px 20px;
@@ -216,14 +208,6 @@
 
 .barbeiro-card.selected {
   border-color: var(--primary);
-  background: rgba(196, 150, 58, 0.06);
-}
-
-[data-theme="light"] .barbeiro-card {
-  background: rgba(255, 255, 255, 0.96);
-}
-
-[data-theme="light"] .barbeiro-card.selected {
   background: rgba(196, 150, 58, 0.05);
 }
 
@@ -319,7 +303,7 @@
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid rgba(148, 141, 162, 0.2);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.04);
   color: var(--text);
   font-size: 0.95rem;
   font-family: inherit;
@@ -329,10 +313,6 @@
 .horario-config-field input[type="time"]:focus {
   outline: none;
   border-color: var(--primary);
-}
-
-[data-theme="light"] .horario-config-field input[type="time"] {
-  background: rgba(0, 0, 0, 0.04);
 }
 
 .horario-config-sep {
@@ -347,7 +327,7 @@
   padding: 10px 14px;
   border-radius: 14px;
   border: 1px solid rgba(148, 141, 162, 0.2);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.04);
   color: var(--text);
   font-size: 0.93rem;
   font-family: inherit;
@@ -360,10 +340,6 @@
 .barbeiro-bio-textarea:focus {
   outline: none;
   border-color: var(--primary);
-}
-
-[data-theme="light"] .barbeiro-bio-textarea {
-  background: rgba(0, 0, 0, 0.04);
 }
 
 /* ---- Days-of-week pills ---- */
@@ -428,7 +404,7 @@
 }
 
 .horario-form-mini {
-  background: rgba(22, 22, 28, 0.96);
+  background: rgba(255, 255, 255, 0.96);
   border: 1px solid rgba(148, 141, 162, 0.1);
   border-radius: 22px;
   padding: 22px 20px;
@@ -442,10 +418,6 @@
   margin-bottom: 16px;
 }
 
-[data-theme="light"] .horario-form-mini {
-  background: rgba(255, 255, 255, 0.96);
-}
-
 .bh-horarios-list {
   display: flex;
   flex-direction: column;
@@ -457,7 +429,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: rgba(22, 22, 28, 0.96);
+  background: rgba(255, 255, 255, 0.96);
   border: 1px solid rgba(148, 141, 162, 0.1);
   border-radius: 14px;
   gap: 12px;
@@ -466,10 +438,6 @@
 
 .bh-horario-row:hover {
   border-color: rgba(196, 150, 58, 0.18);
-}
-
-[data-theme="light"] .bh-horario-row {
-  background: rgba(255, 255, 255, 0.96);
 }
 
 .bh-horario-row.reserved {
@@ -490,7 +458,7 @@
 .empty-barbeiros {
   text-align: center;
   padding: 48px 20px;
-  background: rgba(22, 22, 28, 0.96);
+  background: rgba(255, 255, 255, 0.96);
   border: 1px solid rgba(148, 141, 162, 0.1);
   border-radius: 20px;
 }
@@ -511,9 +479,6 @@
   font-size: 0.9rem;
 }
 
-[data-theme="light"] .empty-barbeiros {
-  background: rgba(255, 255, 255, 0.96);
-}
 
 /* ============================================================
    MOBILE — barbeiros responsive (< 480px)
