@@ -240,6 +240,7 @@ BarberApp/
 | Camada | Tecnologia |
 |---|---|
 | Frontend | HTML5, CSS3, JavaScript ES Modules |
+| Tema visual | Único (claro) — sem alternância de tema |
 | Comunicação com o backend | `js/api.js` — cliente REST (fetch) com autenticação via token |
 | Autenticação | A definir na API (ex: JWT) |
 | Banco de dados | PostgreSQL (backend a ser implementado) |
