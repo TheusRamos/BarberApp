@@ -181,7 +181,8 @@ function generateBarberSlots(barbeiro, selectedDate, selectedService, editId) {
   const slots = [];
   while (cur + svcDur <= fimMin) {
     const end = cur + svcDur;
-    const blocked = booked.some(b => cur < b.e && end > b.s);
+    const blocked = booked.some(b => cur < b.e && end > b.s) ||
+      (selectedDate === getTodayISO() && cur <= new Date().getHours() * 60 + new Date().getMinutes());
     if (!blocked) {
       const hh = Math.floor(cur / 60);
       const mm = cur % 60;
@@ -342,6 +343,7 @@ function renderServicesList() {
       if (!service) return;
       $("service-name").value = service.name || "";
       $("service-price").value = Number(service.price) || 0;
+      $("service-duration").value = service.duration || 60;
       $("service-save").dataset.editId = service.id;
       $("service-save").textContent = "Atualizar serviço";
     });
@@ -535,6 +537,9 @@ function prefillUserData() {
   if (emailInput && !emailInput.value) {
     emailInput.value = currentUser.email || "";
   }
+  // Identidade pertence ao cliente autenticado (ou ao dono da reserva em edição).
+  if (nameInput) nameInput.readOnly = true;
+  if (emailInput) emailInput.readOnly = true;
 }
 
 async function fillFormForEdit(docId) {
@@ -730,11 +735,11 @@ function updateStats(appointments) {
 
   const forecast = appointments
     .filter(item => ["Pendente", "Confirmado"].includes(item.status))
-    .reduce((sum, item) => sum + (Number(item.valor) || getServicePrice(item.servico)), 0);
+    .reduce((sum, item) => sum + Number(item.valor ?? getServicePrice(item.servico)), 0);
 
   const billed = appointments
     .filter(item => item.status === "Concluído")
-    .reduce((sum, item) => sum + (Number(item.valor) || getServicePrice(item.servico)), 0);
+    .reduce((sum, item) => sum + Number(item.valor ?? getServicePrice(item.servico)), 0);
 
   totalElement.textContent     = String(appointments.length);
   confirmedElement.textContent = String(confirmed);
@@ -766,7 +771,7 @@ function createAppointmentCard(appointment) {
       <div class="detail-item"><span class="material-symbols-outlined">content_cut</span><span>${escapeHTML(appointment.barbeiro || "Barbeiro não informado")}</span></div>
       <div class="detail-item"><span class="material-symbols-outlined">mail</span><span>${escapeHTML(appointment.email || "")}</span></div>
       <div class="detail-item"><span class="material-symbols-outlined">notes</span><span>${escapeHTML(observationsText)}</span></div>
-      <div class="detail-item"><span class="material-symbols-outlined">payments</span><span>${formatMoney(appointment.valor || getServicePrice(appointment.servico))}</span></div>
+      <div class="detail-item"><span class="material-symbols-outlined">payments</span><span>${formatMoney(appointment.valor ?? getServicePrice(appointment.servico))}</span></div>
     </div>
 
     <div class="card-actions">
@@ -999,7 +1004,7 @@ function loadAppointmentsPage() {
 }
 
 async function loadAppointments() {
-  if (!$("appointments-list") || !currentUser) return;
+  if ((!$("appointments-list") && !$("admin-stat-pending")) || !currentUser) return;
 
   try {
     const data = await api.agendamentos.list();
@@ -1068,23 +1073,26 @@ async function saveService() {
   const name = ($("service-name")?.value || "").trim();
   const price = Number(String($("service-price")?.value || "0").replace(",", "."));
   const editId = $("service-save")?.dataset.editId;
+  const duration = Number($("service-duration")?.value || 60);
 
   if (name.length < 3) return showToast("Informe o nome do serviço.");
   if (Number.isNaN(price) || price < 0) return showToast("Informe um valor válido.");
+  if (!Number.isInteger(duration) || duration < 5 || duration > 480) return showToast("Informe uma duração de 5 a 480 minutos.");
 
   try {
     if (editId) {
-      await api.services.update(editId, { name, price });
+      await api.services.update(editId, { name, price, duration });
       delete $("service-save").dataset.editId;
       $("service-save").textContent = "Salvar serviço";
       showToast("Serviço atualizado.");
     } else {
-      await api.services.create({ name, price, icon: "content_cut" });
+      await api.services.create({ name, price, duration, icon: "content_cut" });
       showToast("Serviço criado.");
     }
 
     $("service-form")?.reset();
     await loadServices();
+    await loadBarbeiros();
   } catch (error) {
     console.error(error);
     showToast(apiErrorMessage(error, "Erro ao salvar serviço."));
@@ -1300,7 +1308,7 @@ async function saveComment() {
     $("comment-form")?.reset();
     const picker = $("star-picker");
     if (picker) picker.dataset.selected = "5";
-    showToast("Obrigado pelo feedback!");
+    showToast("Avaliação enviada para aprovação. Obrigado pelo feedback!");
     await loadComments();
   } catch (error) {
     console.error(error);

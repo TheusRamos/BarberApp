@@ -1,12 +1,10 @@
 // ============================================================
 // API CLIENT — camada de acesso ao backend (REST + PostgreSQL)
 // ============================================================
-// Este módulo concentra toda a comunicação com o backend. Enquanto a API
-// não existir, as chamadas abaixo vão falhar com erro de rede — isso é
-// esperado. Quando o backend estiver no ar, basta ajustar API_BASE_URL
-// (ou definir window.API_BASE_URL antes de carregar os scripts).
+// O servidor Node.js serve este frontend e a API na mesma origem.
+// Para hospedagem separada, configure apiBaseUrl em js/config.js.
 //
-// Contrato esperado da API (a ser implementado no backend):
+// Contrato da API implementada em backend/:
 //
 //   POST   /auth/register        { name, email, phone, password }        -> { token, user }
 //   POST   /auth/login           { email, password }                     -> { token, user }
@@ -28,9 +26,7 @@
 //   DELETE /barbeiros/:id                                                -> {}                (admin)
 //
 //   GET    /horarios                                                     -> Horario[]         (legado)
-//   POST   /horarios             Horario                                 -> Horario           (admin)
-//   PATCH  /horarios/:id         Partial<Horario>                        -> Horario           (admin)
-//   DELETE /horarios/:id                                                 -> {}                (admin)
+//   Horários são gerados pelo backend ao reservar, usando a configuração do profissional.
 //
 //   GET    /slots                                                        -> Slot[]
 //
@@ -51,7 +47,8 @@
 // Todas as respostas de erro devem retornar JSON no formato:
 //   { "message": "Texto legível para o usuário", "code": "SLOT_TAKEN" }
 
-const API_BASE_URL = (typeof window !== "undefined" && window.API_BASE_URL) || "/api";
+import { apiBaseUrl } from './config.js';
+const API_BASE_URL = ((typeof window !== "undefined" && window.API_BASE_URL) || apiBaseUrl).replace(/\/$/, '');
 const TOKEN_KEY = "barber_auth_token";
 
 export function getToken() {
@@ -135,9 +132,6 @@ export const api = {
 
   horarios: {
     list: () => request("/horarios", { auth: false }),
-    create: payload => request("/horarios", { method: "POST", body: payload }),
-    update: (id, payload) => request(`/horarios/${id}`, { method: "PATCH", body: payload }),
-    remove: id => request(`/horarios/${id}`, { method: "DELETE" })
   },
 
   slots: {
@@ -159,7 +153,7 @@ export const api = {
   },
 
   comments: {
-    list: () => request("/comments", { auth: false }),
+    list: () => request("/comments"),
     create: payload => request("/comments", { method: "POST", body: payload }),
     approve: id => request(`/comments/${id}`, { method: "PATCH", body: { approved: true } }),
     remove: id => request(`/comments/${id}`, { method: "DELETE" })

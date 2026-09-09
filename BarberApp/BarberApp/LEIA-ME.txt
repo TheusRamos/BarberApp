@@ -1,46 +1,17 @@
-BARBERAPP - FRONTEND PREPARADO PARA API PRÓPRIA
+﻿BARBERAPP - NODE.JS + POSTGRESQL
 
-Arquivos principais:
-- index.html: tela de novo agendamento.
-- agendamentos.html: painel de agendamentos, área administrativa e avaliações.
-- admin.html: painel do administrador (serviços, barbeiros, clientes).
-- auth.html: login, cadastro, perfil e saída da conta.
-- js/api.js: cliente REST — única camada que fala com o backend (contrato de endpoints documentado no topo do arquivo).
-- js/app.js: lógica principal do sistema.
-- js/auth.js: lógica de autenticação.
-- style.css / agendamentos.css / barbeiros.css: visual (tema único claro).
+O backend está em backend/, na raiz do repositório.
+Consulte backend/README.md para instruções completas.
 
-Status atual do backend:
-O frontend não tem mais nenhuma integração com serviços de terceiros — ele
-chama endpoints REST através de js/api.js, mas esses endpoints AINDA NÃO EXISTEM.
-Até que o backend (planejado em PostgreSQL) seja implementado, nenhuma ação
-que dependa de dados (login, cadastro, agendar, avaliar, gerenciar
-barbeiros/serviços etc.) vai funcionar — as chamadas vão falhar com erro de
-conexão, o que é esperado.
+1. Crie o banco barberapp no PostgreSQL.
+2. Na raiz do repositório, execute npm install.
+3. Copie .env.example para .env e preencha DATABASE_URL.
+4. Execute npm run db:migrate.
+5. Preencha ADMIN_* no .env e execute npm run admin:create.
+6. Execute npm start e abra http://127.0.0.1:3000.
 
-O que o backend precisa implementar:
-Veja o contrato completo de rotas, payloads e códigos de erro esperados
-nos comentários no topo de js/api.js. Resumo das entidades:
-- users (perfis, com campo role = "client" | "admin")
-- agendamentos
-- slots (controle de conflito de horário)
-- waitlist (fila de espera)
-- services
-- barbeiros
-- horarios (legado, fallback quando não há barbeiro selecionado)
-- comments (avaliações, com campo approved)
-
-Regras de negócio que o backend deve preservar (herdadas da versão anterior):
-1. Cliente precisa estar autenticado para agendar, entrar na fila ou avaliar.
-2. Cliente visualiza apenas os próprios agendamentos; administrador visualiza todos.
-3. Perfil de administrador identificado pelo campo role = "admin" no registro do usuário.
-4. Horário reservado não pode ser reservado por outro cliente (checagem atômica no create/update de agendamento).
-5. Ao cancelar ou excluir um agendamento, o horário deve ser liberado e a fila de espera processada automaticamente.
-6. Comentários ficam pendentes (approved = false) até aprovação do admin.
-7. Validação de formulário e sanitização de dados permanecem responsabilidade também do backend (nunca confiar apenas na validação do cliente).
-
-Como criar o primeiro administrador:
-Depende de como o backend for implementado. Duas opções comuns:
-1. Permitir promoção manual: cadastre um usuário normalmente pelo app e,
-   depois, atualize o campo role para "admin" diretamente no banco PostgreSQL.
-2. Criar um script/seed de setup que insere o primeiro admin direto no banco.
+No PowerShell com scripts bloqueados, use npm.cmd em vez de npm.
+Cadastre serviços e profissionais no painel antes de agendar.
+O site deve ser aberto pelo servidor Node.js. GitHub Pages hospeda apenas
+arquivos estáticos; para hospedagem separada, ajuste js/config.js e CORS_ORIGIN.
+Nunca coloque credenciais do PostgreSQL no frontend.

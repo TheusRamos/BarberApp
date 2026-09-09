@@ -1,0 +1,14 @@
+{
+  "name": "barberapp",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env backend/server.js",
+    "dev": "node --env-file-if-exists=.env --watch backend/server.js",
+    "db:migrate": "node --env-file-if-exists=.env backend/migrate.js",
+    "admin:create": "node --env-file-if-exists=.env backend/admin.js",
+    "test": "node --test backend/test/*.test.js"
+  },
+  "dependencies": { "express": "^5.1.0", "pg": "^8.16.3" }
+}

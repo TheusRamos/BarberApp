@@ -1,6 +1,6 @@
-# 💈 BarberApp — Sistema de Agendamentos
+﻿# 💈 BarberApp — Sistema de Agendamentos
 
-Sistema web completo para gerenciamento de uma barbearia, com funcionalidades distintas para clientes e administradores e interface responsiva. O frontend consome uma API REST própria (backend em PostgreSQL, a ser implementado).
+Sistema web completo para gerenciamento de uma barbearia, com funcionalidades distintas para clientes e administradores e interface responsiva. O frontend consome uma API REST Node.js com PostgreSQL. Consulte [backend/README.md](backend/README.md) para configurar a conexão, migrar as tabelas e iniciar o sistema.
 
 ---
 
@@ -35,14 +35,14 @@ BarberApp/
 │   ├── app.js              # Lógica principal (agendamentos, fila de espera, admin, comentários)
 │   ├── auth.js             # Autenticação e perfil do usuário
 │   ├── animations.js       # Animações de entrada via IntersectionObserver
-│   ├── barbeiros.js        # Página pública de barbeiros
+│   ├── barbeiros.js        # Gestão legada de barbeiros (redireciona ao admin)
 │   └── sidebar.js          # Navegação lateral
 ├── resources/              # Imagens e recursos visuais
 ├── index.html              # Página inicial — formulário de agendamento + fila de espera
 ├── agendamentos.html       # Lista de agendamentos com estatísticas
 ├── admin.html              # Painel do administrador
 ├── auth.html               # Login, cadastro e perfil
-├── barbeiros.html          # Página pública dos barbeiros
+├── barbeiros.html          # Redirecionamento para administração
 ├── comentarios.html        # Avaliações dos clientes + moderação
 └── sobre.html              # Sobre a barbearia
 ```
@@ -89,12 +89,12 @@ BarberApp/
 
 - Cadastro de barbeiros com foto, bio, serviços e duração, horário de atendimento e dias disponíveis
 - Geração automática de slots por barbeiro com base nas configurações
-- Página pública de barbeiros (`barbeiros.html`)
+- Equipe pública em `sobre.html`; gestão no painel `admin.html`
 
 ### Gestão de Serviços e Horários
 
 - Cadastro e remoção de serviços com ícone e preço
-- Gerenciamento de horários manuais (legado) e automáticos (por barbeiro)
+- Geração de horários por profissional, considerando serviço, duração e dias de atendimento
 
 ### Autenticação
 
@@ -242,16 +242,16 @@ BarberApp/
 | Frontend | HTML5, CSS3, JavaScript ES Modules |
 | Tema visual | Único (claro) — sem alternância de tema |
 | Comunicação com o backend | `js/api.js` — cliente REST (fetch) com autenticação via token |
-| Autenticação | A definir na API (ex: JWT) |
-| Banco de dados | PostgreSQL (backend a ser implementado) |
+| Autenticação | Sessões com token e senhas scrypt |
+| Banco de dados | PostgreSQL |
 | Fontes e ícones | Google Fonts (Manrope, Inter), Material Symbols |
-| Hospedagem | GitHub Pages (deploy automático via GitHub Actions) |
+| Hospedagem | Servidor Node.js; GitHub Pages opcional apenas para o frontend |
 
 > O projeto **não utiliza frameworks visuais**, sendo estilizado com CSS próprio.
 >
-> O backend ainda não existe. O frontend já está preparado para consumir uma API REST (contrato documentado em `js/api.js`) — até lá, nenhuma ação que dependa de dados (login, agendar, avaliar etc.) funciona.
+> O backend está implementado em `backend/`. Execute `npm install`, configure `.env`, execute `npm run db:migrate` e `npm start`. Acesse http://127.0.0.1:3000.
 
-### Entidades previstas (tabelas PostgreSQL)
+### Entidades da API (mapeadas às tabelas em português no backend)
 
 | Entidade | Descrição |
 |---|---|
@@ -260,10 +260,11 @@ BarberApp/
 | `waitlist` | Fila de espera por horário |
 | `services` | Serviços oferecidos |
 | `barbeiros` | Dados e configurações dos barbeiros |
-| `horarios` | Horários manuais (legado) |
+| `horarios` | Horários gerados ao reservar |
 | `users` | Perfis dos usuários |
 | `comments` | Avaliações dos clientes (com campo `approved`) |
 
 ---
 
 <p align="center">Desenvolvido com ☕ e tesoura ✂️</p>
+

@@ -1,1 +1,9 @@
 .claude/
+node_modules/
+.env
+.env.*
+!.env.example
+Microsoft/
+coverage/
+backend/.test-pg/
+backend/.test-pg.log
