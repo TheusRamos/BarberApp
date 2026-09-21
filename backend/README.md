@@ -2,10 +2,12 @@
 
 Node.js 22+ e PostgreSQL. O servidor entrega o site e `/api` na mesma origem.
 
+Consulte o [README principal](../README.md) para a referência de variáveis, permissões, rotas REST, publicação, operação, limitações e gestão de riscos.
+
 ## Executar localmente
 
 1. Crie um banco vazio chamado `barberapp` no PostgreSQL (pelo pgAdmin ou `CREATE DATABASE barberapp;`).
-2. Na raiz do projeto, execute `npm install` e copie `.env.example` para `.env`.
+2. Na raiz do projeto, execute `npm ci` e copie `.env.example` para `.env` se ainda não possuir uma configuração própria.
 3. Preencha `DATABASE_URL` com usuário, senha, host, porta e banco reais. Caracteres especiais na URL devem ser codificados. Nunca coloque essa URL no frontend.
 4. Execute `npm run db:migrate` para criar/adaptar as tabelas.
 5. Para criar o administrador, preencha os campos `ADMIN_*` no `.env`, execute `npm run admin:create` e remova a senha desse arquivo.
@@ -43,6 +45,8 @@ Para manter o frontend separado, configure `BarberApp/BarberApp/js/config.js` co
 ## Validação
 
 `npm test` executa os testes de segurança. Para executar também o teste de integração, defina `TEST_DATABASE_URL` apontando para um banco **vazio e descartável** e execute `npm test`. O teste cria tabelas e dados e recusa um banco já preenchido. Ele cobre autenticação, permissões, concorrência, fila, moderação, logout e preservação de preço histórico. Não usa `DATABASE_URL` para criar os dados de teste.
+
+O comando de testes não carrega `.env` automaticamente: defina `TEST_DATABASE_URL` no ambiente do terminal. As tabelas criadas permanecem depois do teste; uma nova execução exige um banco vazio novamente. Exemplos de comandos estão em [Testes e validação](../README.md#testes-e-validação).
 
 `GET /api/health` verifica a conexão. Rotas públicas: serviços, profissionais, horários, reservas sem dados pessoais e comentários aprovados. As demais exigem token; a administração exige perfil administrador. O servidor aceita apenas campos permitidos e usa parâmetros SQL.
 
