@@ -260,7 +260,7 @@ Ao sair de um status ativo, a reserva libera o intervalo e o backend processa a 
 - Cancelamento, conclusão, exclusão ou edição de uma reserva disparam o processamento da fila do profissional/data envolvidos.
 - O processamento segue a ordem dos IDs, promovendo pedidos futuros que caibam sem conflito. Pedidos que ainda conflitam são pulados; mais de um pedido pode ser promovido na mesma execução.
 - A promoção cria reserva `Pendente`, usando preço e duração guardados na entrada da fila.
-- Não há consulta, desistência ou notificação da fila pela aplicação. Mudanças posteriores no expediente/serviços não são integralmente revalidadas na promoção; veja as limitações e os riscos R05–R06.
+- Não há consulta, desistência ou notificação da fila pela aplicação. Mudanças posteriores no expediente/serviços não são integralmente revalidadas na promoção; veja as limitações conhecidas.
 
 ### Avaliações e exclusões
 
@@ -490,9 +490,9 @@ Em incidente, registre impacto, horário, versão e evidências sem senhas/token
 
 ## Gestão de riscos
 
-Consulte [Gestão de Riscos.docx](<Gestão de Riscos.docx>) para a análise completa dos **18 riscos**, com evidências, controles existentes, resposta recomendada, contingência, monitoramento, responsáveis e prazos sugeridos.
+Consulte [Gestão de Riscos.docx](<Gestão de Riscos.docx>) para a análise completa dos **18 riscos**, com cenários potenciais, controles preventivos a considerar, respostas, contingência, monitoramento, responsáveis e prazos sugeridos. A análise é prospectiva e independente do código atual: considera eventos que poderão ocorrer na futura implantação e operação.
 
-A avaliação combina probabilidade e impacto de 1 a 5. O escore `P × I` é convertido no nível final:
+A avaliação usa estimativas preliminares de probabilidade e impacto de 1 a 5, condicionadas aos cenários hipotéticos descritos. O escore `P × I` é convertido no nível final:
 
 | Escore | Nível | Classificação |
 | --- | --- | --- |
@@ -502,11 +502,11 @@ A avaliação combina probabilidade e impacto de 1 a 5. O escore `P × I` é con
 | 13–19 | 4 | Alto |
 | 20–25 | 5 | Crítico |
 
-Prioridades da avaliação inicial: publicação sem backend funcional (R01, nível 5), recuperação de dados (R02, nível 4), proteção de sessões (R03, nível 4), promoção incompatível da fila (R05, nível 4) e regressões sem validação automática (R07, nível 4).
+Referências preliminares de prioridade, a validar no planejamento da implantação: publicação sem backend funcional (R01, nível 5), recuperação de dados (R02, nível 4), proteção de sessões (R03, nível 4), promoção incompatível da fila (R05, nível 4) e regressões sem validação automática (R07, nível 4).
 
-O DOCX registra a situação na data da análise e deve ser reavaliado após mudanças. Nesta atualização foi adicionado `.env.example`, tratando a ausência do modelo citada no R08; os demais aspectos de instalação/migração desse risco continuam sujeitos à validação. A documentação, por si só, não implementa os controles recomendados nem reduz automaticamente os níveis.
+Os níveis são referências de planejamento, não um diagnóstico da implementação existente nem uma previsão de que os eventos ocorrerão. A arquitetura, a infraestrutura e os controles da versão final deverão fundamentar uma nova avaliação antes da publicação. Os riscos iniciam como “Potencial — a validar”; as medidas propostas deverão ser verificadas conforme sua aplicabilidade.
 
-Para acompanhar ações, registre: ID, responsável nominal, estado, prazo, indicador, evidência de correção, data de revisão e nível residual. Os papéis e prazos do documento são propostas, não atribuições já aprovadas.
+Para acompanhar ações, registre: ID, responsável nominal, estado, prazo, indicador, evidência de eficácia do controle, data de revisão e nível residual. Os papéis e prazos do documento são propostas, não atribuições já aprovadas.
 
 ## Limitações conhecidas
 
