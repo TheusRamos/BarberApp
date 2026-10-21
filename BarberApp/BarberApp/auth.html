@@ -123,6 +123,42 @@
             </div>
           </form>
 
+          <div class="profile-divider"></div>
+
+          <form id="password-form" class="booking-form" novalidate>
+            <p class="section-label">Alterar senha</p>
+            <!-- Permite que gerenciadores de senha associem a nova senha à conta. -->
+            <input type="email" id="password-username" class="hidden" autocomplete="username" />
+
+            <div class="form-group">
+              <label for="password-current">Senha atual</label>
+              <input type="password" id="password-current" autocomplete="current-password" required />
+              <small class="field-error" id="error-password-current"></small>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="password-new">Nova senha</label>
+                <input type="password" id="password-new" autocomplete="new-password" required />
+                <small class="field-error" id="error-password-new"></small>
+              </div>
+              <div class="form-group">
+                <label for="password-new-confirm">Confirmar nova senha</label>
+                <input type="password" id="password-new-confirm" autocomplete="new-password" required />
+                <small class="field-error" id="error-password-new-confirm"></small>
+              </div>
+            </div>
+
+            <p class="field-hint">Ao alterar a senha, os outros dispositivos conectados à sua conta serão desconectados.</p>
+
+            <div class="form-actions">
+              <button type="submit" class="secondary-btn">
+                <span class="material-symbols-outlined">lock_reset</span>
+                Alterar senha
+              </button>
+            </div>
+          </form>
+
           <div class="profile-actions">
             <a href="agendamentos.html" class="secondary-btn">
               <span class="material-symbols-outlined">calendar_month</span>
@@ -131,6 +167,10 @@
             <button type="button" class="ghost-btn" id="logout-btn">
               <span class="material-symbols-outlined">logout</span>
               Sair da conta
+            </button>
+            <button type="button" class="ghost-btn" id="logout-all-btn">
+              <span class="material-symbols-outlined">devices</span>
+              Sair de todos os dispositivos
             </button>
           </div>
         </section>

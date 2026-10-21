@@ -103,7 +103,20 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
     assert.equal((await call('/auth/register','POST',{name:'Curta',email:'c@test.com',phone:'11955555555',password:'1234567'})).body.code,'WEAK_PASSWORD');
     for(let i=0;i<10;i++) assert.equal((await call('/auth/login','POST',{email:'ninguem@test.com',password:'errada123'})).status,401);
     assert.equal((await call('/auth/login','POST',{email:'ninguem@test.com',password:'errada123'})).status,429);
-    assert.equal((await call('/auth/login','POST',{email:'b@test.com',password:'senha123'})).status,200);
+    const bOther=(await call('/auth/login','POST',{email:'b@test.com',password:'senha123'})).body.token;
+    assert.ok(bOther);
+    // Troca de senha mantém só a sessão atual; "sair de todos" encerra também a atual.
+    assert.equal((await call('/auth/password','POST',{currentPassword:'errada123',newPassword:'nova12345'},b.token)).body.code,'WRONG_PASSWORD');
+    assert.equal((await call('/auth/password','POST',{currentPassword:'senha123',newPassword:'senha123'},b.token)).status,400);
+    assert.equal((await call('/auth/password','POST',{currentPassword:'senha123',newPassword:'1234567'},b.token)).body.code,'WEAK_PASSWORD');
+    assert.equal((await call('/auth/password','POST',{currentPassword:'senha123',newPassword:'nova12345'},b.token)).status,200);
+    assert.equal((await call('/auth/me','GET',undefined,bOther)).status,401);
+    assert.equal((await call('/auth/me','GET',undefined,b.token)).status,200);
+    assert.equal((await call('/auth/login','POST',{email:'b@test.com',password:'senha123'})).status,401);
+    const bNew=(await call('/auth/login','POST',{email:'b@test.com',password:'nova12345'})).body.token;
+    assert.equal((await call('/auth/logout-all','POST',{},bNew)).status,200);
+    assert.equal((await call('/auth/me','GET',undefined,bNew)).status,401);
+    assert.equal((await call('/auth/me','GET',undefined,b.token)).status,401);
     const malformed=await fetch(base+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:'{'});
     assert.equal(malformed.status,400);assert.equal((await malformed.json()).message,'Requisição inválida.');
     const page=await fetch(base.replace(/\/api$/,'/'));

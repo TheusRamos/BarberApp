@@ -130,6 +130,7 @@ function populateProfileForm(user) {
   if (nameInput) nameInput.value = name;
   if (phoneInput) phoneInput.value = phone;
   if (emailField) emailField.value = email;
+  if ($("password-username")) $("password-username").value = email;
   if (nameDisplay) nameDisplay.textContent = name || "Usuário";
   if (emailDisplay) emailDisplay.textContent = email;
   if (avatarInitial) avatarInitial.textContent = (name.charAt(0) || "?").toUpperCase();
@@ -238,6 +239,41 @@ async function handleProfileSave(event) {
 }
 
 // ============================================================
+// PROFILE – PASSWORD
+// ============================================================
+
+async function handlePasswordChange(event) {
+  event.preventDefault();
+  clearAllErrors();
+
+  const currentPassword = $("password-current")?.value || "";
+  const newPassword     = $("password-new")?.value || "";
+  const confirm         = $("password-new-confirm")?.value || "";
+
+  let valid = true;
+  if (!currentPassword)                { setError("password-current", "Informe sua senha atual."); valid = false; }
+  if (newPassword.length < 8)          { setError("password-new", "A senha precisa ter pelo menos 8 caracteres."); valid = false; }
+  else if (newPassword === currentPassword) { setError("password-new", "A nova senha deve ser diferente da atual."); valid = false; }
+  if (newPassword !== confirm)         { setError("password-new-confirm", "As senhas não coincidem."); valid = false; }
+  if (!valid) return;
+
+  const submitBtn = submitButton(event);
+  if (submitBtn) submitBtn.disabled = true;
+
+  try {
+    await api.auth.changePassword({ currentPassword, newPassword });
+    ["password-current", "password-new", "password-new-confirm"].forEach(id => ($(id).value = ""));
+    showToast("Senha alterada. Os outros dispositivos foram desconectados.");
+  } catch (error) {
+    console.error("Erro ao alterar senha:", error);
+    if (error.code === "WRONG_PASSWORD") setError("password-current", "Senha atual incorreta.");
+    else showToast(translateApiError(error));
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
+}
+
+// ============================================================
 // AUTH HANDLERS
 // ============================================================
 
@@ -321,6 +357,27 @@ async function handleLogout() {
   }
 }
 
+// Diferente do logout comum, só limpa o token local se o servidor confirmar:
+// do contrário, os outros dispositivos continuariam conectados sem o usuário saber.
+async function handleLogoutAll() {
+  if (!confirm("Encerrar a sessão em todos os dispositivos, inclusive neste?")) return;
+
+  const btn = $("logout-all-btn");
+  if (btn) btn.disabled = true;
+
+  try {
+    await api.auth.logoutAll();
+    setToken(null);
+    currentUser = null;
+    showToast("Você saiu de todos os dispositivos.");
+    setTimeout(() => (window.location.href = "auth.html"), 600);
+  } catch (error) {
+    console.error("Erro ao encerrar as sessões:", error);
+    showToast(translateApiError(error));
+    if (btn) btn.disabled = false;
+  }
+}
+
 // ============================================================
 // INIT
 // ============================================================
@@ -343,7 +400,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("login-form")?.addEventListener("submit", handleLogin);
   $("register-form")?.addEventListener("submit", handleRegister);
   $("logout-btn")?.addEventListener("click", handleLogout);
+  $("logout-all-btn")?.addEventListener("click", handleLogoutAll);
   $("profile-form")?.addEventListener("submit", handleProfileSave);
+  $("password-form")?.addEventListener("submit", handlePasswordChange);
   $("photo-upload")?.addEventListener("change", handlePhotoUpload);
 
   document.querySelectorAll("input").forEach(input => {

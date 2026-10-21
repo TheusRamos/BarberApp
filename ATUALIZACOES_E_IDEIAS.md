@@ -115,9 +115,21 @@ Os problemas abaixo foram relatados e ainda precisam ser investigados. As causas
 
 ## Outras ideias pendentes
 
-Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **014**.
+Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **015**.
 
 ## Atualizações concluídas
+
+### 014 — Troca de senha e "Sair de todos os dispositivos"
+
+- **Estado:** Concluído — testado na API; aguardando validação no navegador
+- **Registrado em:** 21/10/2026
+- **Objetivo:** Permitir que o usuário troque a senha e encerre todas as sessões abertas, pendências da revisão de segurança (item 013).
+- **Concluído em:** 21/10/2026
+- **Resumo da entrega:**
+  - `POST /api/auth/password`: exige a senha atual (`WRONG_PASSWORD` se incorreta), recusa repetir a mesma senha, valida 8 a 128 caracteres e encerra as outras sessões, mantendo a do dispositivo que fez a troca. Limite de 5 tentativas por usuário a cada 15 minutos.
+  - `POST /api/auth/logout-all`: encerra todas as sessões do usuário, inclusive a atual.
+  - Página **Perfil**: formulário "Alterar senha" e botão "Sair de todos os dispositivos", com confirmação. O token local só é apagado se o servidor confirmar o encerramento.
+  - O teste de integração cobre senha atual errada, senha repetida, senha curta, troca bem-sucedida, revogação das outras sessões, login com a senha antiga e nova, e saída de todos os dispositivos.
 
 ### 013 — Endurecimento de segurança (primeira etapa)
 
@@ -132,12 +144,12 @@ Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo ident
   - Login sem diferença de tempo para e-mail inexistente; senha mínima de 8 caracteres; limpeza periódica de sessões expiradas.
   - Lista pública de avaliações sem identificador do autor; erros de JSON malformado sem mensagem interna.
   - Bloqueio de cliques repetidos em login, cadastro, reserva, fila, serviços, profissionais e moderação.
-- **Pendências da revisão:** troca/recuperação de senha, verificação de e-mail, "sair de todos os dispositivos", deploy funcional do backend com testes no CI e revisão do histórico do git para o item 008. A revalidação da fila foi entregue com o item 001.
+- **Pendências da revisão:** recuperação de senha por e-mail, verificação de e-mail, deploy funcional do backend com testes no CI e revisão do histórico do git para o item 008. A revalidação da fila foi entregue com o item 001; troca de senha e "sair de todos os dispositivos" foram entregues no item 014.
 
 ## Modelo para novos registros
 
 ```markdown
-### 014 — Título da melhoria, correção ou ideia
+### 015 — Título da melhoria, correção ou ideia
 
 - **Estado:** Pendente
 - **Registrado em:** DD/MM/AAAA

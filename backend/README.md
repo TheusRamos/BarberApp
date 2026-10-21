@@ -45,7 +45,7 @@ Para manter o frontend separado, configure `BarberApp/BarberApp/js/config.js` co
 
 ## Validação
 
-`npm test` executa os testes de segurança. Para executar também o teste de integração, defina `TEST_DATABASE_URL` apontando para um banco **vazio e descartável** e execute `npm test`. O teste cria tabelas e dados e recusa um banco já preenchido. Ele cobre autenticação, permissões, concorrência, fila, cotas, moderação, logout, limites de login, cabeçalhos de segurança e preservação de preço histórico. Não usa `DATABASE_URL` para criar os dados de teste.
+`npm test` executa os testes de segurança. Para executar também o teste de integração, defina `TEST_DATABASE_URL` apontando para um banco **vazio e descartável** e execute `npm test`. O teste cria tabelas e dados e recusa um banco já preenchido. Ele cobre autenticação, permissões, concorrência, fila, cotas, moderação, logout, troca de senha, saída de todos os dispositivos, limites de login, cabeçalhos de segurança e preservação de preço histórico. Não usa `DATABASE_URL` para criar os dados de teste.
 
 O comando de testes não carrega `.env` automaticamente: defina `TEST_DATABASE_URL` no ambiente do terminal. As tabelas criadas permanecem depois do teste; uma nova execução exige um banco vazio novamente. Exemplos de comandos estão em [Testes e validação](../README.md#testes-e-validação).
 

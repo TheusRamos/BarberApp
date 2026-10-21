@@ -7,6 +7,11 @@ export const pool = new pg.Pool({
   options: `-c timezone=${process.env.APP_TIMEZONE || 'America/Sao_Paulo'}`,
   connectionTimeoutMillis: 5000
 });
+// Banco de destino sem credenciais, para os scripts mostrarem onde vão gravar.
+export function target() {
+  try { const url=new URL(process.env.DATABASE_URL);return `${url.pathname.slice(1)} em ${url.hostname}`; }
+  catch { return 'DATABASE_URL ausente ou inválida'; }
+}
 export async function transaction(work) {
   const client = await pool.connect();
   try {

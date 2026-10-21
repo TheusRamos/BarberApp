@@ -53,6 +53,8 @@ function admin(req,res,next) {if(req.user?.tipo!=='administrador') fail(403,'Ace
 // Login: limite por IP contra varredura e por conta contra força bruta distribuída.
 // O limite por conta vale para qualquer email informado, existente ou não.
 const loginByIp=limiter(30,900000),loginByAccount=limiter(10,900000),registerByIp=limiter(10,3600000);
+// Troca de senha: limite por usuário para que um token roubado não sirva para testar a senha atual.
+const passwordByAccount=limiter(5,900000);
 app.get('/api/health',async(req,res)=>{await pool.query('SELECT 1');res.json({status:'ok'});});
 app.post('/api/auth/register',async(req,res)=>{
   if(!registerByIp.hit(req.ip)) fail(429,'Muitos cadastros a partir desta conexão. Aguarde uma hora.','RATE_LIMIT');
@@ -75,6 +77,21 @@ app.post('/api/auth/login',async(req,res)=>{
 });
 app.get('/api/auth/me',auth,(req,res)=>res.json({user:userDTO(req.user)}));
 app.post('/api/auth/logout',auth,async(req,res)=>{await pool.query('DELETE FROM sessoes WHERE token_hash=$1',[req.tokenHash]);res.json({});});
+app.post('/api/auth/logout-all',auth,async(req,res)=>{await pool.query('DELETE FROM sessoes WHERE usuario_id=$1',[req.user.id]);res.json({});});
+app.post('/api/auth/password',auth,async(req,res)=>{
+  if(!passwordByAccount.hit(req.user.id)) fail(429,'Muitas tentativas. Aguarde 15 minutos.','RATE_LIMIT');
+  const p=req.body;
+  if(!await verifyPassword(p.currentPassword,req.user.senha)) fail(400,'Senha atual incorreta.','WRONG_PASSWORD');
+  if(p.newPassword===p.currentPassword) fail(400,'A nova senha deve ser diferente da atual.');
+  const hash=await hashPassword(p.newPassword);
+  // Mantém só a sessão atual: quem entrou com a senha antiga em outro dispositivo perde o acesso.
+  await transaction(async db=>{
+    await db.query('UPDATE usuarios SET senha=$1 WHERE id=$2',[hash,req.user.id]);
+    await db.query('DELETE FROM sessoes WHERE usuario_id=$1 AND token_hash<>$2',[req.user.id,req.tokenHash]);
+  });
+  passwordByAccount.reset(req.user.id);
+  res.json({});
+});
 app.get('/api/users',auth,admin,async(req,res)=>res.json((await pool.query('SELECT * FROM usuarios ORDER BY nome')).rows.map(userDTO)));
 app.patch('/api/users/:id',auth,async(req,res)=>{
   const key=id(req.params.id);

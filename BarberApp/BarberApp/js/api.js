@@ -9,6 +9,8 @@
 //   POST   /auth/register        { name, email, phone, password }        -> { token, user }
 //   POST   /auth/login           { email, password }                     -> { token, user }
 //   POST   /auth/logout          -                                       -> {}
+//   POST   /auth/logout-all      -                                       -> {}                (encerra todas as sessões)
+//   POST   /auth/password        { currentPassword, newPassword }        -> {}                (encerra as outras sessões)
 //   GET    /auth/me              -                                       -> { user }
 //
 //   GET    /users                                                        -> User[]           (admin)
@@ -107,6 +109,8 @@ export const api = {
     register: payload => request("/auth/register", { method: "POST", body: payload, auth: false }),
     login: payload => request("/auth/login", { method: "POST", body: payload, auth: false }),
     logout: () => request("/auth/logout", { method: "POST" }),
+    logoutAll: () => request("/auth/logout-all", { method: "POST" }),
+    changePassword: payload => request("/auth/password", { method: "POST", body: payload }),
     me: () => request("/auth/me")
   },
 

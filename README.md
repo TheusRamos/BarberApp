@@ -234,7 +234,7 @@ A interface não expõe todas as operações permitidas pela API, como a exclus�
 - **Cliente:** cadastrar/entrar → escolher profissional, serviço, data e horário → confirmar → acompanhar a reserva. Nome e e-mail pertencem ao usuário autenticado.
 - **Conflito de reserva:** se o servidor retornar `SLOT_TAKEN`, a interface oferece entrada na fila. Horários já ocupados são normalmente ocultados, portanto essa oferta ocorre principalmente quando outra reserva foi feita após carregar a tela.
 - **Administrador:** cadastrar serviços e profissionais → acompanhar reservas → editar reservas ativas ou alterar status → moderar avaliações na página **Avaliações**.
-- **Perfil:** atualizar nome, telefone e foto. A interface converte a imagem para JPEG redimensionado. Não há troca de e-mail ou senha pelo perfil.
+- **Perfil:** atualizar nome, telefone e foto. A interface converte a imagem para JPEG redimensionado. Também é possível trocar a senha (exige a senha atual e desconecta os outros dispositivos) e sair de todos os dispositivos. Não há troca de e-mail pelo perfil.
 
 ## Regras de negócio
 
@@ -334,6 +334,8 @@ Todas as rotas abaixo são relativas a `/api`.
 | POST | `/auth/login` | Público; cria sessão |
 | GET | `/auth/me` | Autenticado; perfil atual |
 | POST | `/auth/logout` | Autenticado; revoga a sessão enviada |
+| POST | `/auth/logout-all` | Autenticado; revoga todas as sessões do usuário, inclusive a enviada |
+| POST | `/auth/password` | Autenticado; troca a senha e revoga as outras sessões do usuário |
 | GET | `/users` | Admin; usuários, incluindo administradores |
 | PATCH | `/users/:id` | Titular ou admin; nome, telefone e foto |
 | DELETE | `/users/:id` | Admin; exclui cliente sem vínculos impeditivos |
@@ -364,6 +366,7 @@ Todas as rotas abaixo são relativas a `/api`.
 | --- | --- |
 | Cadastro | `name`, `email`, `phone`, `password` |
 | Login | `email`, `password` |
+| Troca de senha | `currentPassword`, `newPassword` (8 a 128 caracteres, diferente da atual) |
 | Atualização de perfil | `name`, `phone`, `photoURL` (campos opcionais) |
 | Serviço | `name`, `price`, `duration` (padrão 60), `icon` (padrão `content_cut`) |
 | Profissional | `name`, `bio`, `photo`, `horarioInicio`, `horarioFim`, `diasDisponiveis`, `services` |
@@ -400,13 +403,13 @@ Invoke-RestMethod http://127.0.0.1:3000/api/health
 
 | HTTP | Exemplos de código / motivo |
 | --- | --- |
-| 400 | `VALIDATION_ERROR`, `WEAK_PASSWORD`, `BAD_REQUEST` (JSON malformado); campos ou regras inválidos |
+| 400 | `VALIDATION_ERROR`, `WEAK_PASSWORD`, `WRONG_PASSWORD` (senha atual incorreta na troca), `BAD_REQUEST` (JSON malformado); campos ou regras inválidos |
 | 401 | `UNAUTHORIZED`, `INVALID_CREDENTIALS`; sessão ausente/expirada ou login inválido |
 | 403 | `FORBIDDEN`; perfil ou titularidade sem permissão |
 | 404 | `NOT_FOUND`; recurso ou rota inexistente |
 | 409 | `SLOT_TAKEN`, `SLOT_AVAILABLE`, `ALREADY_ON_WAITLIST`, `BOOKING_LIMIT`, `COMMENT_PENDING`, `EMAIL_IN_USE`, `DUPLICATE`, `IN_USE` |
 | 413 | `PAYLOAD_TOO_LARGE`; corpo JSON excede o limite |
-| 429 | `RATE_LIMIT`; limite de login (por IP ou por conta) ou de cadastro atingido |
+| 429 | `RATE_LIMIT`; limite de login (por IP ou por conta), de cadastro ou de troca de senha atingido |
 | 500 | Falha interna; mensagem genérica ao cliente |
 
 `NETWORK_ERROR` é produzido pelo cliente JavaScript quando `fetch` falha; não é um status HTTP. Consulte `message` e `code`, pois nem toda falha interna tem o mesmo código.
@@ -433,9 +436,9 @@ Remove-Item Env:TEST_DATABASE_URL
 
 O teste utiliza essa conexão no lugar de `DATABASE_URL`, recusa um banco com tabelas no esquema `public` e cria seus próprios dados. **Não apaga as tabelas ao terminar**; prepare um novo banco vazio para outra execução. Não aponte para o banco da aplicação.
 
-Cobertura existente: hashing/validação, limitador de tentativas, cadastro, autorização, concorrência, sobreposição, fila, cotas de reserva e de avaliação pendente, moderação, logout, limite de login por conta, JSON malformado, cabeçalhos de segurança e preservação de preço histórico. Não há suíte de navegador, teste de carga ou restauração automatizada.
+Cobertura existente: hashing/validação, limitador de tentativas, cadastro, autorização, concorrência, sobreposição, fila, cotas de reserva e de avaliação pendente, moderação, logout, troca de senha com revogação das outras sessões, saída de todos os dispositivos, limite de login por conta, JSON malformado, cabeçalhos de segurança e preservação de preço histórico. Não há suíte de navegador, teste de carga ou restauração automatizada.
 
-Última verificação nesta revisão documental, em **21/09/2026**: 2 testes aprovados, 0 falhas e 1 integração ignorada por ausência de `TEST_DATABASE_URL`.
+Última verificação, em **21/10/2026**: 4 testes aprovados e 0 falhas, com a integração executada em um banco PostgreSQL descartável.
 
 ### Conferência funcional antes de publicar
 
@@ -477,7 +480,8 @@ O [workflow atual](.github/workflows/deploy.yml) publica `BarberApp/BarberApp` a
 
 - Senhas com scrypt e salt aleatório; comparação com `timingSafeEqual`.
 - Token aleatório de 32 bytes; somente hash SHA-256 armazenado no banco; validade de sete dias.
-- Logout revoga a sessão apresentada. O navegador armazena o token no `localStorage`.
+- Logout revoga a sessão apresentada; "Sair de todos os dispositivos" revoga todas as sessões do usuário. O navegador armazena o token no `localStorage`.
+- Troca de senha exige a senha atual, rejeita repetir a mesma senha e revoga as demais sessões, mantendo apenas a do dispositivo que fez a troca. Limite de 5 tentativas por usuário a cada 15 minutos, para que um token roubado não sirva para descobrir a senha.
 - Autorização no backend por perfil e titularidade; cadastro não aceita escolher perfil administrativo.
 - Consultas SQL parametrizadas, transações, chaves estrangeiras e verificação de conflitos na API.
 - Validação de campos/fotos; escape de conteúdo dinâmico na interface.
@@ -487,7 +491,7 @@ O [workflow atual](.github/workflows/deploy.yml) publica `BarberApp/BarberApp` a
 - Cotas de uso: reservas ativas + fila por cliente (`MAX_ACTIVE_BOOKINGS`) e uma avaliação pendente por usuário.
 - Sessões expiradas são removidas do banco na inicialização e a cada hora.
 
-O IP usado pelos limites é o da conexão, a menos que `TRUST_PROXY` esteja configurado; atrás de proxy sem essa variável, todos os clientes compartilham o mesmo contador. O limite por conta permite que alguém bloqueie temporariamente o login de um e-mail específico após 10 tentativas. Em múltiplas instâncias, os contadores são separados. Não existe autenticação multifator, troca ou recuperação de senha, verificação de e-mail ou revogação de todas as sessões pela interface. O token fica no `localStorage`; a CSP reduz, mas não elimina, o risco de roubo em caso de XSS.
+O IP usado pelos limites é o da conexão, a menos que `TRUST_PROXY` esteja configurado; atrás de proxy sem essa variável, todos os clientes compartilham o mesmo contador. O limite por conta permite que alguém bloqueie temporariamente o login de um e-mail específico após 10 tentativas. Em múltiplas instâncias, os contadores são separados. Não existe autenticação multifator, recuperação de senha por e-mail ou verificação de e-mail. O token fica no `localStorage`; a CSP reduz, mas não elimina, o risco de roubo em caso de XSS.
 
 ### Rotina operacional recomendada
 
