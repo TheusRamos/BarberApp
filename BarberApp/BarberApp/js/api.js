@@ -31,7 +31,7 @@
 //   GET    /slots                                                        -> Slot[]
 //
 //   GET    /agendamentos                                                 -> Agendamento[]     (próprios ou todos se admin)
-//   POST   /agendamentos         Agendamento                             -> Agendamento        (erro SLOT_TAKEN se conflito)
+//   POST   /agendamentos         Agendamento { servicos: [nomes], ... }  -> Agendamento        (erro SLOT_TAKEN se conflito)
 //   PATCH  /agendamentos/:id     Partial<Agendamento>                    -> Agendamento
 //   PATCH  /agendamentos/:id/status  { status }                          -> Agendamento
 //   POST   /agendamentos/:id/cancel  -                                   -> Agendamento
@@ -41,7 +41,7 @@
 //
 //   GET    /comments                                                     -> Comment[]
 //   POST   /comments             { rating, text }                        -> Comment
-//   PATCH  /comments/:id         { approved }                            -> Comment           (admin)
+//   PATCH  /comments/:id         { approved }                            -> Comment           (admin; aprova ou oculta)
 //   DELETE /comments/:id                                                 -> {}                (admin ou dono)
 //
 // Todas as respostas de erro devem retornar JSON no formato:
@@ -155,7 +155,7 @@ export const api = {
   comments: {
     list: () => request("/comments"),
     create: payload => request("/comments", { method: "POST", body: payload }),
-    approve: id => request(`/comments/${id}`, { method: "PATCH", body: { approved: true } }),
+    setApproved: (id, approved) => request(`/comments/${id}`, { method: "PATCH", body: { approved } }),
     remove: id => request(`/comments/${id}`, { method: "DELETE" })
   }
 };

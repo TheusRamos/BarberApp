@@ -58,10 +58,13 @@ Navegador: páginas HTML + CSS + JavaScript
 │   ├── server.js                # Inicialização e encerramento
 │   ├── app.js                   # Rotas REST, autorização e erros
 │   ├── db.js                    # Pool PostgreSQL e transações
-│   ├── security.js              # Validações, senhas e sessões
+│   ├── security.js              # Validações, senhas, sessões e limitador de tentativas
 │   ├── bookings.js              # Conflitos, reservas e promoção da fila
-│   ├── schema.sql               # Estrutura e adaptação inicial do banco
-│   ├── migrate.js               # Migração versionada
+│   ├── schema.sql               # Estrutura e adaptação inicial do banco (migração 1)
+│   ├── migrate.js               # Aplica as migrações pendentes
+│   ├── migrations/
+│   │   ├── index.js             # Lista ordenada das migrações
+│   │   └── 002_varios_servicos.sql
 │   ├── admin.js                 # Criação de administrador via terminal
 │   └── test/
 │       ├── security.test.js
@@ -85,6 +88,8 @@ Navegador: páginas HTML + CSS + JavaScript
     │   ├── app.js               # Agenda, administração, fila e avaliações
     │   ├── auth.js              # Cadastro, login, logout e perfil
     │   ├── barbeiros.js         # Gestão legada de profissionais
+    │   ├── sobre.js             # Serviços e equipe da página Sobre
+    │   ├── star-picker.js       # Seletor de estrelas das avaliações
     │   ├── sidebar.js
     │   └── animations.js
     └── resources/barbearia.jpg
@@ -181,10 +186,12 @@ Os scripts de inicialização, desenvolvimento, migração e criação de admini
 | `APP_TIMEZONE` | Fuso da sessão PostgreSQL | `America/Sao_Paulo` |
 | `PGSSL` | Ativa TLS PostgreSQL com validação de certificado | Ativado apenas pelo valor `true`; não força TLS quando omitido ou `false` |
 | `CORS_ORIGIN` | Origem autorizada do frontend separado | Sem padrão; exemplo: `https://organizacao.github.io`, sem caminho ou barra final |
+| `TRUST_PROXY` | Proxies reversos confiáveis, para obter o IP real do cliente nos limites de tentativas | Sem padrão (desativado). Atrás de um proxy, use o número de saltos (ex.: `1`); não use `true` sem proxy, pois o cliente poderia forjar o IP |
+| `MAX_ACTIVE_BOOKINGS` | Máximo de reservas ativas futuras + pedidos na fila por cliente | `3`; administradores não têm limite |
 | `ADMIN_NAME` | Nome da nova conta administrativa | Apenas em `admin:create`; mínimo de 3 caracteres |
 | `ADMIN_EMAIL` | E-mail da nova conta administrativa | Apenas em `admin:create`; único |
 | `ADMIN_PHONE` | Telefone da nova conta administrativa | Apenas em `admin:create`; único, 10 a 15 dígitos após normalização |
-| `ADMIN_PASSWORD` | Senha da nova conta administrativa | Apenas em `admin:create`; validação atual de 6 a 128 caracteres |
+| `ADMIN_PASSWORD` | Senha da nova conta administrativa | Apenas em `admin:create`; validação atual de 8 a 128 caracteres |
 | `TEST_DATABASE_URL` | Banco de integração | Opcional para testes; deve apontar para banco vazio e descartável |
 
 No navegador, a URL da API é definida em [config.js](BarberApp/BarberApp/js/config.js), com padrão `/api`. `window.API_BASE_URL`, se definido antes do carregamento do módulo, tem precedência. Esses valores são públicos e não devem conter credenciais de banco.
@@ -234,11 +241,13 @@ A interface não expõe todas as operações permitidas pela API, como a exclus�
 ### Reservas e disponibilidade
 
 - O backend exige profissional ativo, serviço associado ao profissional, data/hora futuras e atendimento dentro dos dias e do expediente configurados.
-- A duração usada na reserva é a duração do serviço **para aquele profissional**. O passo dos horários é a menor duração entre seus serviços.
+- Uma reserva pode ter de 1 a 5 serviços diferentes, todos realizados pelo profissional escolhido. A duração da reserva é a **soma das durações desses serviços para aquele profissional**, e o valor é a soma dos preços. O passo dos horários é a menor duração entre os serviços do profissional.
+- A interface oferece apenas horários em que a duração total cabe no expediente sem sobrepor outras reservas; o backend revalida tudo ao confirmar.
 - Sobreposições de intervalos ativos para o mesmo profissional são rejeitadas pela API. A duração inteira deve caber no expediente.
 - Identidade do cliente, preço e duração são obtidos no servidor; valores enviados pelo navegador não substituem essas informações.
 - Somente administradores editam reservas, e apenas enquanto ativas. A edição recebe novamente profissional, serviço, data e hora; recalcula preço e duração com os valores atuais.
 - Mudanças posteriores no preço de um serviço não alteram o valor de reservas existentes que não forem editadas.
+- Cada cliente pode ter no máximo `MAX_ACTIVE_BOOKINGS` (padrão 3) reservas ativas futuras e pedidos na fila, somados. Acima disso, reserva e fila retornam `BOOKING_LIMIT`. A promoção da fila converte um pedido em reserva sem alterar o total. Administradores não têm limite.
 
 ### Status e indicadores
 
@@ -256,17 +265,18 @@ Ao sair de um status ativo, a reserva libera o intervalo e o backend processa a 
 ### Fila de espera
 
 - Apenas clientes autenticados podem entrar; deve existir conflito no intervalo solicitado.
-- Há no máximo uma entrada por cliente e horário.
+- Há no máximo uma entrada por cliente e horário. Cada pedido guarda o horário de início e **todos os serviços desejados**.
 - Cancelamento, conclusão, exclusão ou edição de uma reserva disparam o processamento da fila do profissional/data envolvidos.
-- O processamento segue a ordem dos IDs, promovendo pedidos futuros que caibam sem conflito. Pedidos que ainda conflitam são pulados; mais de um pedido pode ser promovido na mesma execução.
-- A promoção cria reserva `Pendente`, usando preço e duração guardados na entrada da fila.
-- Não há consulta, desistência ou notificação da fila pela aplicação. Mudanças posteriores no expediente/serviços não são integralmente revalidadas na promoção; veja as limitações conhecidas.
+- O processamento segue a ordem dos IDs. Um pedido só é promovido quando o **intervalo inteiro** (soma das durações dos serviços desejados) fica livre a partir do horário pedido. Por exemplo, um pedido de Corte + Barba (45 min) não é promovido se apenas 30 minutos forem liberados. Pedidos que não cabem são pulados; mais de um pedido pode ser promovido na mesma execução.
+- Antes de promover, o pedido é revalidado com as regras atuais do profissional: dias, expediente e serviços oferecidos. Pedidos que deixaram de atender às regras permanecem na fila. A reserva criada fica `Pendente`, com duração e preço vigentes no momento da promoção.
+- Não há consulta, desistência ou notificação da fila pela aplicação.
 
 ### Avaliações e exclusões
 
 - Envio exige autenticação, nota inteira de 1 a 5 e texto de até 50 palavras. A API limita a 500 caracteres; a interface atual limita a 350.
-- Não é exigido atendimento anterior para avaliar. Novas avaliações ficam pendentes; aprovação publica e reprovação pela interface exclui o registro.
-- A API retorna apenas avaliações aprovadas ao público e aos clientes; administradores recebem todas. A migração acrescenta aprovação com padrão `false` aos registros existentes quando a coluna ainda não existe.
+- Não é exigido atendimento anterior para avaliar. Novas avaliações ficam pendentes; aprovação publica e reprovação pela interface exclui o registro. O administrador pode **ocultar** uma avaliação publicada, que volta para a moderação.
+- Cada usuário pode ter apenas uma avaliação aguardando aprovação; um novo envio retorna `COMMENT_PENDING`. Isso também impede registros duplicados por clique duplo.
+- A API retorna apenas avaliações aprovadas ao público e aos clientes, sem o identificador do autor; administradores recebem todas. A migração acrescenta aprovação com padrão `false` aos registros existentes quando a coluna ainda não existe.
 - Clientes/serviços com vínculos podem ter exclusão impedida pelo banco, retornando conflito. A remoção de profissional exige ausência de reservas ativas, desativa o cadastro e remove suas entradas de fila.
 - A exclusão administrativa de agendamento é física. Cancelar mantém o registro; excluir remove o histórico correspondente.
 
@@ -280,14 +290,18 @@ Ao sair de um status ativo, a reserva libera o intervalo e o backend processa a 
 | `cabeleireiros` | Profissionais, expediente, dias, foto e situação |
 | `cabeleireiro_servicos` | Serviços e duração por profissional |
 | `horarios` | Data/hora por profissional e disponibilidade manual |
-| `agendamentos` | Cliente, serviço, profissional, horário, status, valor e duração históricos |
+| `agendamentos` | Cliente, primeiro serviço, profissional, horário, status, valor e duração totais históricos |
+| `agendamento_servicos` | Todos os serviços de cada agendamento, em ordem, com duração e preço de cada um |
 | `fila_espera` | Pedidos aguardando disponibilidade |
+| `fila_espera_servicos` | Serviços desejados em cada pedido da fila |
 | `comentarios` | Nota, texto, autor e aprovação |
 | `schema_migrations` | Versões de migração aplicadas |
 
 `slots` é uma **consulta de ocupações**, não uma tabela separada. `horarios.disponivel` representa bloqueio manual; a ocupação resulta dos agendamentos ativos. Não existe rota administrativa de bloqueio manual atualmente.
 
-`migrate.js` aplica `schema.sql` dentro de transação, sob trava, e registra a versão `1`. Reexecutar `npm run db:migrate` não reaplica essa versão. **Editar `schema.sql` depois de migrar não atualiza automaticamente um banco existente.** Novas alterações exigem implementar migrações incrementais. Executar o SQL diretamente repetidas vezes não substitui o comando de migração.
+`npm run db:migrate` aplica, em uma transação e sob trava, as versões listadas em [backend/migrations/index.js](backend/migrations/index.js) que ainda não constam em `schema_migrations`: a versão `1` é `schema.sql` e a versão `2` é [002_varios_servicos.sql](backend/migrations/002_varios_servicos.sql). Reexecutar o comando não reaplica versões já registradas, e o servidor só inicia quando a versão mais recente estiver aplicada. **Nunca edite uma migração já aplicada**: crie um novo arquivo, acrescente-o à lista e registre a mudança aqui. Executar o SQL diretamente repetidas vezes não substitui o comando de migração.
+
+A versão `2` copia o serviço de cada agendamento e pedido de fila existentes para as novas tabelas, sem alterar valores ou durações registrados.
 
 Antes de migrar um banco legado:
 
@@ -353,7 +367,7 @@ Todas as rotas abaixo são relativas a `/api`.
 | Atualização de perfil | `name`, `phone`, `photoURL` (campos opcionais) |
 | Serviço | `name`, `price`, `duration` (padrão 60), `icon` (padrão `content_cut`) |
 | Profissional | `name`, `bio`, `photo`, `horarioInicio`, `horarioFim`, `diasDisponiveis`, `services` |
-| Reserva, edição e fila | `barbeiroId`, `servico`, `data`, `hora`, `observacoes` (opcional) |
+| Reserva, edição e fila | `barbeiroId`, `servicos` (lista de 1 a 5 nomes; `servico` com um nome também é aceito), `data`, `hora`, `observacoes` (opcional) |
 | Status | `status`: `Pendente`, `Confirmado`, `Concluído` ou `Cancelado` |
 | Avaliação | `rating` (inteiro 1–5), `text` |
 | Aprovação | `approved` (booleano) |
@@ -365,7 +379,7 @@ Exemplo de criação de reserva (substitua o ID/nome por cadastros existentes e 
 ```json
 {
   "barbeiroId": "1",
-  "servico": "Corte",
+  "servicos": ["Corte", "Barba"],
   "data": "2030-10-07",
   "hora": "10:00",
   "observacoes": "Preferência por tesoura."
@@ -386,13 +400,13 @@ Invoke-RestMethod http://127.0.0.1:3000/api/health
 
 | HTTP | Exemplos de código / motivo |
 | --- | --- |
-| 400 | `VALIDATION_ERROR`, `WEAK_PASSWORD`; campos ou regras inválidos |
+| 400 | `VALIDATION_ERROR`, `WEAK_PASSWORD`, `BAD_REQUEST` (JSON malformado); campos ou regras inválidos |
 | 401 | `UNAUTHORIZED`, `INVALID_CREDENTIALS`; sessão ausente/expirada ou login inválido |
 | 403 | `FORBIDDEN`; perfil ou titularidade sem permissão |
 | 404 | `NOT_FOUND`; recurso ou rota inexistente |
-| 409 | `SLOT_TAKEN`, `SLOT_AVAILABLE`, `ALREADY_ON_WAITLIST`, `EMAIL_IN_USE`, `DUPLICATE`, `IN_USE` |
-| 413 | Corpo JSON excede o limite |
-| 429 | `RATE_LIMIT`; limite de login/cadastro atingido |
+| 409 | `SLOT_TAKEN`, `SLOT_AVAILABLE`, `ALREADY_ON_WAITLIST`, `BOOKING_LIMIT`, `COMMENT_PENDING`, `EMAIL_IN_USE`, `DUPLICATE`, `IN_USE` |
+| 413 | `PAYLOAD_TOO_LARGE`; corpo JSON excede o limite |
+| 429 | `RATE_LIMIT`; limite de login (por IP ou por conta) ou de cadastro atingido |
 | 500 | Falha interna; mensagem genérica ao cliente |
 
 `NETWORK_ERROR` é produzido pelo cliente JavaScript quando `fetch` falha; não é um status HTTP. Consulte `message` e `code`, pois nem toda falha interna tem o mesmo código.
@@ -419,7 +433,7 @@ Remove-Item Env:TEST_DATABASE_URL
 
 O teste utiliza essa conexão no lugar de `DATABASE_URL`, recusa um banco com tabelas no esquema `public` e cria seus próprios dados. **Não apaga as tabelas ao terminar**; prepare um novo banco vazio para outra execução. Não aponte para o banco da aplicação.
 
-Cobertura existente: hashing/validação, cadastro, autorização, concorrência, sobreposição, fila, moderação, logout e preservação de preço histórico. Não há suíte de navegador, teste de carga ou restauração automatizada.
+Cobertura existente: hashing/validação, limitador de tentativas, cadastro, autorização, concorrência, sobreposição, fila, cotas de reserva e de avaliação pendente, moderação, logout, limite de login por conta, JSON malformado, cabeçalhos de segurança e preservação de preço histórico. Não há suíte de navegador, teste de carga ou restauração automatizada.
 
 Última verificação nesta revisão documental, em **21/09/2026**: 2 testes aprovados, 0 falhas e 1 integração ignorada por ausência de `TEST_DATABASE_URL`.
 
@@ -467,10 +481,13 @@ O [workflow atual](.github/workflows/deploy.yml) publica `BarberApp/BarberApp` a
 - Autorização no backend por perfil e titularidade; cadastro não aceita escolher perfil administrativo.
 - Consultas SQL parametrizadas, transações, chaves estrangeiras e verificação de conflitos na API.
 - Validação de campos/fotos; escape de conteúdo dinâmico na interface.
-- `X-Content-Type-Options: nosniff` e `Cache-Control: no-store` para a API.
-- Limite compartilhado entre login/cadastro de 30 chamadas em 15 minutos por endereço de conexão, mantido em memória no processo.
+- Senha com no mínimo 8 caracteres. O login calcula o scrypt mesmo para e-mails inexistentes, para que o tempo de resposta não revele contas cadastradas.
+- Cabeçalhos em todas as respostas: `Content-Security-Policy` (scripts apenas da própria origem, sem scripts inline; estilos e fontes do Google Fonts), `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Cross-Origin-Opener-Policy`, `Permissions-Policy` e `X-Content-Type-Options: nosniff`; `Strict-Transport-Security` quando a requisição chega por HTTPS; `Cache-Control: no-store` para a API.
+- Limites em memória no processo: login com 30 tentativas por IP e 10 por conta (e-mail informado) a cada 15 minutos, zerado após login bem-sucedido; cadastro com 10 contas por IP por hora.
+- Cotas de uso: reservas ativas + fila por cliente (`MAX_ACTIVE_BOOKINGS`) e uma avaliação pendente por usuário.
+- Sessões expiradas são removidas do banco na inicialização e a cada hora.
 
-O limitador usa `req.socket.remoteAddress`: atrás de proxy, vários clientes podem compartilhar o mesmo endereço; em múltiplas instâncias, os contadores são separados. Não existe autenticação multifator, recuperação de senha, CSP configurada pela aplicação ou revogação de todas as sessões pela interface.
+O IP usado pelos limites é o da conexão, a menos que `TRUST_PROXY` esteja configurado; atrás de proxy sem essa variável, todos os clientes compartilham o mesmo contador. O limite por conta permite que alguém bloqueie temporariamente o login de um e-mail específico após 10 tentativas. Em múltiplas instâncias, os contadores são separados. Não existe autenticação multifator, troca ou recuperação de senha, verificação de e-mail ou revogação de todas as sessões pela interface. O token fica no `localStorage`; a CSP reduz, mas não elimina, o risco de roubo em caso de XSS.
 
 ### Rotina operacional recomendada
 
@@ -511,14 +528,14 @@ Para acompanhar ações, registre: ID, responsável nominal, estado, prazo, indi
 ## Limitações conhecidas
 
 - A fila só é oferecida na interface após conflito; não há listagem, desistência ou aviso de promoção ao cliente.
-- Mudanças de dias, expediente e serviços não reconciliam automaticamente reservas/fila. A promoção não revalida todas essas condições.
+- Mudanças de dias, expediente e serviços não reconciliam automaticamente reservas já existentes. A promoção da fila revalida essas regras, mas pedidos que deixaram de atendê-las permanecem na fila até a data passar.
 - Não há calendário de feriados, férias, pausas ou rota de bloqueio manual. Horários e contatos da página **Sobre** são textos fixos a revisar antes de publicar.
 - O navegador usa seu próprio fuso/relógio para filtrar horários, enquanto o banco usa `APP_TIMEZONE`.
 - Listagens não têm paginação e a trava global serializa escritas de agenda de todos os profissionais.
 - Falhas de carregamento podem virar listas/caches vazias; `fetch` não possui timeout explícito no cliente REST.
 - Seletores visuais e animações têm barreiras de acessibilidade; os fluxos precisam de validação por teclado e leitor de tela.
 - Exclusões e alterações de status não possuem trilha de auditoria. O painel “Clientes” recebe também contas administrativas da API.
-- Não há controle de pagamento, integração de notificações, quotas de reservas/comentários ou exigência de atendimento anterior para avaliar.
+- Não há controle de pagamento, integração de notificações ou exigência de atendimento anterior para avaliar.
 - Não há política de retenção/privacidade, fluxo de anonimização ou backup implementados no projeto.
 
 ## Solução de problemas
@@ -536,7 +553,9 @@ Para acompanhar ações, registre: ID, responsável nominal, estado, prazo, indi
 | Nenhum horário disponível | Confira serviços associados, durações, dias, expediente, data futura e reservas ativas |
 | Não é possível entrar na fila pelo horário desejado | Horários ocupados são ocultados; a oferta atual aparece após `SLOT_TAKEN` |
 | Exclusão retorna `IN_USE` | Há vínculos que precisam ser preservados; cancelar/desativar pode ser adequado ao caso |
-| Login retorna 429 para vários usuários | Confira limite por endereço de conexão e configuração do proxy |
+| Login retorna 429 para vários usuários | Atrás de proxy, configure `TRUST_PROXY` com o número de proxies; sem isso, todos compartilham o limite por IP |
+| Login de uma conta retorna 429 | Houve 10 tentativas para esse e-mail em 15 minutos; aguarde ou reinicie o servidor |
+| Reserva ou fila retorna `BOOKING_LIMIT` | O cliente atingiu `MAX_ACTIVE_BOOKINGS`; cancele uma reserva ou ajuste a variável |
 | Integração aparece como ignorada | Defina `TEST_DATABASE_URL` no ambiente do terminal |
 | Integração recusa o banco | Use outro banco vazio e descartável; a execução anterior mantém os dados |
 | Falha CORS | Compare esquema, domínio e porta de `CORS_ORIGIN` com a origem real do frontend |

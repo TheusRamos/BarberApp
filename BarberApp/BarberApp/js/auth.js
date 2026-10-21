@@ -52,7 +52,7 @@ function translateApiError(error) {
     "INVALID_CREDENTIALS": "Email ou senha incorretos.",
     "USER_NOT_FOUND": "Usuário não encontrado.",
     "EMAIL_IN_USE": "Este email já está cadastrado.",
-    "WEAK_PASSWORD": "A senha precisa ter pelo menos 6 caracteres.",
+    "WEAK_PASSWORD": "A senha precisa ter pelo menos 8 caracteres.",
     "UNAUTHORIZED": "Sessão expirada. Faça login novamente.",
     "NETWORK_ERROR": "Falha de conexão. Verifique sua internet e tente novamente."
   };
@@ -253,6 +253,9 @@ async function handleLogin(event) {
   if (!password)            { setError("login-password", "Informe sua senha."); valid = false; }
   if (!valid) return;
 
+  const submitBtn = submitButton(event);
+  if (submitBtn) submitBtn.disabled = true;
+
   try {
     const { token, user } = await api.auth.login({ email, password });
     setToken(token);
@@ -262,7 +265,13 @@ async function handleLogin(event) {
   } catch (error) {
     console.error(error);
     showToast(translateApiError(error));
+    if (submitBtn) submitBtn.disabled = false;
   }
+}
+
+// O botão fica desabilitado durante o envio e, após sucesso, até o redirecionamento.
+function submitButton(event) {
+  return event.submitter || event.target.querySelector('button[type="submit"]');
 }
 
 async function handleRegister(event) {
@@ -279,9 +288,12 @@ async function handleRegister(event) {
   if (name.length < 3)                                { setError("register-name", "Informe um nome válido."); valid = false; }
   if (!isValidEmail(email))                           { setError("register-email", "Informe um email válido."); valid = false; }
   if (!phone || phone.replace(/\D/g, "").length < 10) { setError("register-phone", "Informe um telefone válido com DDD."); valid = false; }
-  if (password.length < 6)                            { setError("register-password", "A senha precisa ter pelo menos 6 caracteres."); valid = false; }
+  if (password.length < 8)                            { setError("register-password", "A senha precisa ter pelo menos 8 caracteres."); valid = false; }
   if (password !== confirm)                           { setError("register-password-confirm", "As senhas não coincidem."); valid = false; }
   if (!valid) return;
+
+  const submitBtn = submitButton(event);
+  if (submitBtn) submitBtn.disabled = true;
 
   try {
     const { token, user } = await api.auth.register({ name, email, phone, password });
@@ -292,6 +304,7 @@ async function handleRegister(event) {
   } catch (error) {
     console.error("Erro no cadastro:", error);
     showToast(translateApiError(error));
+    if (submitBtn) submitBtn.disabled = false;
   }
 }
 

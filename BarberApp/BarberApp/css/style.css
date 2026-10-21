@@ -589,8 +589,18 @@ button:disabled,
   gap: 12px;
 }
 
-.services-grid input[type="radio"] {
-  display: none;
+/* Oculto visualmente, mas ainda acessível por teclado e leitor de tela */
+.services-grid input[name="servico"] {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.services-grid input[name="servico"]:focus-visible + .service-card {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .service-card {
@@ -637,14 +647,14 @@ button:disabled,
   color: var(--text-soft);
 }
 
-.services-grid input[type="radio"]:checked + .service-card {
+.services-grid input[name="servico"]:checked + .service-card {
   background: linear-gradient(180deg, rgba(196, 150, 58, 0.11), rgba(196, 150, 58, 0.05));
   border-color: rgba(196, 150, 58, 0.38);
   box-shadow: 0 12px 28px rgba(138, 97, 32, 0.14);
 }
 
-.services-grid input[type="radio"]:checked + .service-card .service-title,
-.services-grid input[type="radio"]:checked + .service-card .service-price {
+.services-grid input[name="servico"]:checked + .service-card .service-title,
+.services-grid input[name="servico"]:checked + .service-card .service-price {
   color: var(--primary);
 }
 

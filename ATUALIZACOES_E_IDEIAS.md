@@ -8,7 +8,7 @@ Estados sugeridos: **Pendente**, **Em andamento**, **Concluído** e **Adiado**. 
 
 ### 001 — Selecionar vários serviços no mesmo agendamento
 
-- **Estado:** Pendente
+- **Estado:** Em andamento — implementado e testado na API; aguardando validação no navegador
 - **Registrado em:** 22/09/2026
 - **Objetivo:** Permitir que o cliente selecione mais de um serviço disponível em um único agendamento.
 - **Origem:** Sugestão de Wagner.
@@ -20,7 +20,8 @@ Estados sugeridos: **Pendente**, **Em andamento**, **Concluído** e **Adiado**. 
   - Oferecer apenas horários que comportem a duração total, sem sobreposição com outras reservas nem ultrapassar o expediente.
   - Revalidar a disponibilidade no backend ao confirmar a reserva.
   - Registrar e apresentar todos os serviços selecionados no agendamento.
-- **Pontos a definir:** Comportamento da fila de espera para agendamentos com vários serviços.
+- **Decisão (20/10/2026):** O pedido na fila guarda todos os serviços desejados e só é promovido quando houver tempo livre para todos eles a partir do horário pedido (soma das durações do profissional). Assim, quem pediu os mesmos serviços de uma reserva cancelada sempre cabe no espaço liberado.
+- **Andamento (20/10/2026):** Migração 2 com `agendamento_servicos` e `fila_espera_servicos`. A API aceita `servicos` (1 a 5) e soma duração e preço. A interface usa múltipla escolha e mostra o total. A promoção da fila revalida dias, expediente e serviços do profissional. O teste de integração cobre reserva combinada, edição e promoção somente com intervalo suficiente.
 
 ### 002 — Mostrar a média de avaliação de cada barbeiro
 
@@ -49,10 +50,11 @@ Os problemas abaixo foram relatados e ainda precisam ser investigados. As causas
 
 ### 004 — Comentários duplicados dos clientes
 
-- **Estado:** Pendente
+- **Estado:** Em andamento — aguardando validação no navegador
 - **Relato:** Comentários dos clientes aparecem duplicados.
 - **Objetivo:** Investigar se a duplicação ocorre no envio, armazenamento ou exibição e corrigir a causa.
 - **Comportamento esperado:** Um comentário enviado uma única vez deve ser registrado e exibido uma única vez.
+- **Andamento (20/10/2026):** Causa provável identificada no envio: o botão não era desabilitado durante a requisição e a API aceitava envios repetidos. O botão agora fica bloqueado durante o envio, e a API aceita apenas uma avaliação pendente por usuário, de forma atômica (`COMMENT_PENDING`). O teste de integração cobre dois envios simultâneos. A exibição não duplica registros.
 
 ### 005 — Bug na avaliação de comentários pelo administrador
 
@@ -60,12 +62,14 @@ Os problemas abaixo foram relatados e ainda precisam ser investigados. As causas
 - **Relato:** Falha na avaliação dos comentários por parte do administrador.
 - **Objetivo:** Reproduzir e corrigir o problema no fluxo administrativo de análise dos comentários.
 - **Pontos a definir:** Ação afetada, resultado esperado, resultado observado e passos para reproduzir.
+- **Andamento (20/10/2026):** O defeito relatado não foi reproduzido pela leitura do código. Foram corrigidos: resposta da aprovação sem o nome do autor, cliques repetidos em Aprovar/Reprovar/Remover e ausência de forma de despublicar. O administrador agora pode **ocultar** uma avaliação aprovada, que volta para a moderação. "Reprovar" continua excluindo o registro. Falta confirmar com os passos do relato original.
 
 ### 006 — Alteração do banco de dados
 
-- **Estado:** Pendente
+- **Estado:** Em andamento
 - **Objetivo:** Planejar as alterações necessárias no banco de dados.
 - **Pontos a definir:** Tabelas e campos afetados, novas regras, necessidade de migração e preservação dos dados existentes.
+- **Andamento (20/10/2026):** Criado o mecanismo de migrações incrementais (`backend/migrations/`). Cada versão é aplicada uma única vez por `npm run db:migrate`. A migração 2 (vários serviços) preserva os dados existentes; a atualização v1 → v2 foi ensaiada em um banco com dados. Outras alterações planejadas devem virar novas migrações.
 
 ### 007 — Alterar o layout e o visual do sistema
 
@@ -79,6 +83,7 @@ Os problemas abaixo foram relatados e ainda precisam ser investigados. As causas
 - **Objetivo:** Identificar e remover todo tipo de dado pessoal dos alunos presente no sistema.
 - **Pontos a verificar:** Textos, imagens, contatos, créditos, dados de exemplo e registros armazenados, conforme aplicável.
 - **Comportamento esperado:** O sistema não deve conter dados pessoais dos alunos após a conclusão da revisão e remoção.
+- **Decisão (20/10/2026):** Os créditos com os nomes dos autores, no rodapé de `index.html` e no README, permanecem. Ainda falta revisar o histórico do git e os dados do banco.
 
 ### 009 — Verificar possíveis bugs no cadastro de clientes
 
@@ -110,16 +115,29 @@ Os problemas abaixo foram relatados e ainda precisam ser investigados. As causas
 
 ## Outras ideias pendentes
 
-Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **013**.
+Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **014**.
 
 ## Atualizações concluídas
 
-Nenhuma implementação registrada neste arquivo até o momento.
+### 013 — Endurecimento de segurança (primeira etapa)
+
+- **Estado:** Concluído
+- **Registrado em:** 20/10/2026
+- **Objetivo:** Corrigir as vulnerabilidades prioritárias da revisão geral do sistema.
+- **Concluído em:** 20/10/2026
+- **Resumo da entrega:**
+  - Cota por cliente de reservas ativas futuras + pedidos na fila (`MAX_ACTIVE_BOOKINGS`, padrão 3) e uma avaliação pendente por usuário.
+  - Cabeçalhos de segurança e CSP sem scripts inline (scripts de `comentarios.html` e `sobre.html` movidos para `js/star-picker.js` e `js/sobre.js`).
+  - Limites de login por IP e por conta, limite de cadastro por IP e suporte a proxy (`TRUST_PROXY`).
+  - Login sem diferença de tempo para e-mail inexistente; senha mínima de 8 caracteres; limpeza periódica de sessões expiradas.
+  - Lista pública de avaliações sem identificador do autor; erros de JSON malformado sem mensagem interna.
+  - Bloqueio de cliques repetidos em login, cadastro, reserva, fila, serviços, profissionais e moderação.
+- **Pendências da revisão:** troca/recuperação de senha, verificação de e-mail, "sair de todos os dispositivos", deploy funcional do backend com testes no CI e revisão do histórico do git para o item 008. A revalidação da fila foi entregue com o item 001.
 
 ## Modelo para novos registros
 
 ```markdown
-### 013 — Título da melhoria, correção ou ideia
+### 014 — Título da melhoria, correção ou ideia
 
 - **Estado:** Pendente
 - **Registrado em:** DD/MM/AAAA

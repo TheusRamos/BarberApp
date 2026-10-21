@@ -31,16 +31,32 @@ export function photo(value='') {
   return value;
 }
 export async function hashPassword(password) {
-  if (typeof password!=='string' || password.length<6 || password.length>128)
-    fail(400,'A senha deve ter entre 6 e 128 caracteres.','WEAK_PASSWORD');
+  if (typeof password!=='string' || password.length<8 || password.length>128)
+    fail(400,'A senha deve ter entre 8 e 128 caracteres.','WEAK_PASSWORD');
   const salt=randomBytes(16).toString('hex');
   return `scrypt:${salt}:${(await derive(password,salt,64)).toString('hex')}`;
 }
+// Sempre calcula o scrypt, mesmo sem hash válido, para que o tempo de resposta
+// não revele se o email existe.
 export async function verifyPassword(password, stored) {
   if (typeof password!=='string' || password.length>128) return false;
   const [scheme,salt,hash]=String(stored).split(':');
-  if (scheme!=='scrypt' || !salt || !/^[a-f0-9]{128}$/.test(hash || '')) return false;
-  return timingSafeEqual(await derive(password,salt,64),Buffer.from(hash,'hex'));
+  const valid=scheme==='scrypt' && Boolean(salt) && /^[a-f0-9]{128}$/.test(hash || '');
+  const derived=await derive(password,valid?salt:'0'.repeat(32),64);
+  return valid && timingSafeEqual(derived,Buffer.from(hash,'hex'));
+}
+// Janela fixa em memória: hit() conta a tentativa e informa se ainda está no limite.
+export function limiter(max, windowMs) {
+  const hits=new Map();
+  setInterval(()=>{const now=Date.now();for(const [key,v] of hits) if(v.until<=now) hits.delete(key);},60000).unref();
+  return {
+    hit(key) {
+      const now=Date.now();let entry=hits.get(key);
+      if(!entry || entry.until<=now) hits.set(key,entry={count:0,until:now+windowMs});
+      return ++entry.count<=max;
+    },
+    reset(key) {hits.delete(key);}
+  };
 }
 export const tokenHash = token => createHash('sha256').update(token).digest('hex');
 export const userDTO = u => ({id:String(u.id),name:u.nome,email:u.email,phone:u.telefone,

@@ -46,6 +46,17 @@ function apiErrorMessage(error, fallback) {
   return error?.message || fallback;
 }
 
+// Desabilita o botão enquanto a ação roda, evitando envios duplicados por clique duplo.
+async function withButton(button, task) {
+  if (button?.disabled) return;
+  if (button) button.disabled = true;
+  try {
+    return await task();
+  } finally {
+    if (button?.isConnected) button.disabled = false;
+  }
+}
+
 function escapeHTML(value = "") {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -133,8 +144,34 @@ function getTodayISO() {
   return new Date(now.getTime() - offset).toISOString().split("T")[0];
 }
 
-function getSelectedServiceName() {
-  return document.querySelector('input[name="servico"]:checked')?.value || "";
+function getSelectedServiceNames() {
+  return [...document.querySelectorAll('input[name="servico"]:checked')].map(input => input.value);
+}
+
+// Duração do serviço para o barbeiro selecionado (cada profissional tem seu tempo).
+function getBarberServiceDuration(barbeiro, serviceName) {
+  const svcMap = (typeof barbeiro?.services === "object" && !Array.isArray(barbeiro.services))
+    ? barbeiro.services : {};
+  return Number(svcMap[serviceName]) || 0;
+}
+
+function updateServiceTotal() {
+  const totalEl = $("service-total");
+  if (!totalEl) return;
+
+  const names = getSelectedServiceNames();
+  if (!names.length) {
+    totalEl.textContent = "";
+    return;
+  }
+
+  const barbeiro = barbeirosCache.find(b => b.id === selectedBarbeiroId);
+  const price = names.reduce((sum, name) => sum + getServicePrice(name), 0);
+  const minutes = barbeiro
+    ? names.reduce((sum, name) => sum + getBarberServiceDuration(barbeiro, name), 0)
+    : 0;
+  const label = names.length > 1 ? `${names.length} serviços` : "1 serviço";
+  totalEl.textContent = `${label} • Total: ${formatMoney(price)}${minutes ? ` • ${minutes} min` : ""}`;
 }
 
 function getSelectedHorario() {
@@ -143,14 +180,14 @@ function getSelectedHorario() {
   return horariosCache.find(item => item.id === select.value) || null;
 }
 
-function generateBarberSlots(barbeiro, selectedDate, selectedService, editId) {
+function generateBarberSlots(barbeiro, selectedDate, selectedServices, editId) {
   const inicio = barbeiro.horarioInicio || "09:00";
   const fim    = barbeiro.horarioFim    || "20:00";
 
-  // Duration of the service being booked
+  // Duração total: soma das durações dos serviços selecionados para este barbeiro
   const svcMap    = (typeof barbeiro.services === "object" && !Array.isArray(barbeiro.services))
     ? barbeiro.services : {};
-  const svcDur    = selectedService ? (Number(svcMap[selectedService]) || 60) : 60;
+  const svcDur    = selectedServices.reduce((sum, name) => sum + getBarberServiceDuration(barbeiro, name), 0) || 60;
 
   // Step = minimum duration among all barber services (slot granularity)
   const durations = Object.values(svcMap).map(Number).filter(v => v > 0);
@@ -275,16 +312,15 @@ function renderServiceOptions() {
     }
   }
 
-  const currentValue = getSelectedServiceName();
+  // Mantém marcados os serviços já escolhidos que o barbeiro também realiza.
+  const currentValues = getSelectedServiceNames();
 
   grid.innerHTML = services.map((service, index) => {
     const id = `servico-${slugify(service.id || service.name || String(index))}`;
-    const checked = currentValue
-      ? currentValue === service.name
-      : index === Math.min(1, services.length - 1);
+    const checked = currentValues.includes(service.name);
 
     return `
-      <input type="radio" name="servico" id="${escapeHTML(id)}" value="${escapeHTML(service.name)}" ${checked ? "checked" : ""} />
+      <input type="checkbox" name="servico" id="${escapeHTML(id)}" value="${escapeHTML(service.name)}" ${checked ? "checked" : ""} />
       <label for="${escapeHTML(id)}" class="service-card">
         <span class="material-symbols-outlined service-icon">${escapeHTML(service.icon || "content_cut")}</span>
         <span class="service-title">${escapeHTML(service.name)}</span>
@@ -296,9 +332,11 @@ function renderServiceOptions() {
   grid.querySelectorAll('input[name="servico"]').forEach(input => {
     input.addEventListener("change", () => {
       clearError("servico");
+      updateServiceTotal();
       updateAvailableTimes();
     });
   });
+  updateServiceTotal();
 }
 
 function renderServiceFilter() {
@@ -399,8 +437,14 @@ function updateAvailableTimes() {
       return;
     }
 
-    const selectedSvc = getSelectedServiceName();
-    const slots = generateBarberSlots(barbeiro, selectedDate, selectedSvc, editId);
+    const selectedServices = getSelectedServiceNames();
+    if (!selectedServices.length) {
+      select.disabled = true;
+      select.innerHTML = `<option value="">Selecione ao menos um serviço</option>`;
+      return;
+    }
+
+    const slots = generateBarberSlots(barbeiro, selectedDate, selectedServices, editId);
 
     if (!slots.length) {
       select.disabled = true;
@@ -454,7 +498,7 @@ function validateForm() {
   const email = $("email")?.value.trim() || "";
   const data = $("data")?.value || "";
   const horarioId = $("hora")?.value || "";
-  const servico = getSelectedServiceName();
+  const servicos = getSelectedServiceNames();
 
   ["nome", "email", "data", "hora", "servico", "barbeiro"].forEach(clearError);
 
@@ -473,8 +517,8 @@ function validateForm() {
     isValid = false;
   }
 
-  if (!servico) {
-    setError("servico", "Selecione um serviço.");
+  if (!servicos.length) {
+    setError("servico", "Selecione ao menos um serviço.");
     isValid = false;
   }
 
@@ -564,9 +608,11 @@ async function fillFormForEdit(docId) {
     }
 
     renderServiceOptions();
-    const selectedService = Array.from(document.querySelectorAll('input[name="servico"]'))
-      .find(input => input.value === (appointment.servico || ""));
-    if (selectedService) selectedService.checked = true;
+    const appointmentServices = appointment.servicos || [appointment.servico];
+    document.querySelectorAll('input[name="servico"]').forEach(input => {
+      input.checked = appointmentServices.includes(input.value);
+    });
+    updateServiceTotal();
 
     updateAvailableTimes();
     // For auto-generated slots the select value is the hora string; for legacy it's the horarioId
@@ -591,8 +637,9 @@ async function fillFormForEdit(docId) {
   }
 }
 
+// Duração e valor são apenas informativos: o backend recalcula ambos.
 function buildAppointmentPayload() {
-  const servico      = getSelectedServiceName();
+  const servicos     = getSelectedServiceNames();
   const selectValue  = $("hora")?.value || "";
   const data         = $("data")?.value || "";
   const barbeiroData = barbeirosCache.find(b => b.id === selectedBarbeiroId);
@@ -603,10 +650,7 @@ function buildAppointmentPayload() {
     hora      = selectValue;
     horarioId = hora ? `${data}_${hora}_${selectedBarbeiroId}` : "";
     barbeiro  = barbeiroData.name;
-    const svcMap = barbeiroData.services || {};
-    duracao = typeof svcMap === "object" && !Array.isArray(svcMap)
-      ? (Number(svcMap[servico]) || 0)
-      : 0;
+    duracao   = servicos.reduce((sum, name) => sum + getBarberServiceDuration(barbeiroData, name), 0);
   } else {
     const horario = getSelectedHorario();
     hora      = horario?.hora || "";
@@ -618,7 +662,7 @@ function buildAppointmentPayload() {
   return {
     nome:        $("nome").value.trim(),
     email:       $("email").value.trim(),
-    servico,
+    servicos,
     data,
     hora,
     horarioId,
@@ -626,7 +670,7 @@ function buildAppointmentPayload() {
     barbeiro,
     duracao,
     observacoes: $("observacoes").value.trim(),
-    valor:       getServicePrice(servico)
+    valor:       servicos.reduce((sum, name) => sum + getServicePrice(name), 0)
   };
 }
 
@@ -692,6 +736,7 @@ function loadFormPage() {
 
     const payload = buildAppointmentPayload();
     const currentEditId = localStorage.getItem(EDIT_KEY);
+    let saved = false;
 
     try {
       if (currentEditId) {
@@ -703,6 +748,7 @@ function loadFormPage() {
         showToast("Agendamento solicitado com sucesso.");
       }
 
+      saved = true;
       setTimeout(() => {
         window.location.href = "agendamentos.html";
       }, 650);
@@ -716,7 +762,8 @@ function loadFormPage() {
         showToast(apiErrorMessage(error, "Erro ao salvar agendamento."));
       }
     } finally {
-      if (submitBtn) submitBtn.disabled = false;
+      // Após salvar, o botão fica desabilitado até o redirecionamento.
+      if (submitBtn && !saved) submitBtn.disabled = false;
     }
   });
 }
@@ -982,7 +1029,7 @@ function applyFilters() {
 
   const filtered = appointmentsCache.filter(item => {
     const matchName = (item.nome || "").toLowerCase().includes(searchValue);
-    const matchService = serviceValue === "Todos os serviços" || item.servico === serviceValue;
+    const matchService = serviceValue === "Todos os serviços" || (item.servicos || [item.servico]).includes(serviceValue);
     const matchDate = !dateValue || item.data === dateValue;
     return matchName && matchService && matchDate;
   });
@@ -1150,12 +1197,29 @@ function renderCommentsList(items = []) {
         </div>
       </div>
       <p class="comment-body">${escapeHTML(comment.text || "")}</p>
-      ${isAdmin ? `<div class="comment-actions"><button class="action-btn delete-btn delete-comment" type="button" data-id="${escapeHTML(comment.id)}"><span class="material-symbols-outlined" style="font-size:16px">delete</span> Remover</button></div>` : ""}
+      ${isAdmin ? `<div class="comment-actions">
+        <button class="action-btn hide-comment" type="button" data-id="${escapeHTML(comment.id)}"><span class="material-symbols-outlined" style="font-size:16px">visibility_off</span> Ocultar</button>
+        <button class="action-btn delete-btn delete-comment" type="button" data-id="${escapeHTML(comment.id)}"><span class="material-symbols-outlined" style="font-size:16px">delete</span> Remover</button>
+      </div>` : ""}
     </div>
   `).join("");
 
+  container.querySelectorAll(".hide-comment").forEach(button => {
+    button.addEventListener("click", () => withButton(button, async () => {
+      if (!isAdmin) return showToast("Acesso negado.");
+      try {
+        await api.comments.setApproved(button.dataset.id, false);
+        showToast("Avaliação ocultada e devolvida para revisão.");
+        await loadComments();
+      } catch (error) {
+        console.error(error);
+        showToast(apiErrorMessage(error, "Erro ao ocultar avaliação."));
+      }
+    }));
+  });
+
   container.querySelectorAll(".delete-comment").forEach(button => {
-    button.addEventListener("click", async () => {
+    button.addEventListener("click", () => withButton(button, async () => {
       if (!isAdmin) return showToast("Acesso negado.");
       if (!confirm("Remover comentário?")) return;
 
@@ -1167,7 +1231,7 @@ function renderCommentsList(items = []) {
         console.error(error);
         showToast(apiErrorMessage(error, "Erro ao remover comentário."));
       }
-    });
+    }));
   });
 }
 
@@ -1223,20 +1287,20 @@ function renderAdminCommentReview() {
   `).join("");
 
   list.querySelectorAll(".approve-comment").forEach(button => {
-    button.addEventListener("click", async () => {
+    button.addEventListener("click", () => withButton(button, async () => {
       try {
-        await api.comments.approve(button.dataset.id);
+        await api.comments.setApproved(button.dataset.id, true);
         showToast("Avaliação aprovada.");
         await loadComments();
       } catch (error) {
         console.error(error);
         showToast(apiErrorMessage(error, "Erro ao aprovar avaliação."));
       }
-    });
+    }));
   });
 
   list.querySelectorAll(".reject-comment").forEach(button => {
-    button.addEventListener("click", async () => {
+    button.addEventListener("click", () => withButton(button, async () => {
       if (!confirm("Reprovar e remover esta avaliação?")) return;
       try {
         await api.comments.remove(button.dataset.id);
@@ -1246,7 +1310,7 @@ function renderAdminCommentReview() {
         console.error(error);
         showToast(apiErrorMessage(error, "Erro ao reprovar avaliação."));
       }
-    });
+    }));
   });
 }
 
@@ -1701,7 +1765,8 @@ function loadBarberAdminSection() {
   if (!$("barbeiros-admin-list")) return;
 
   $("barbeiro-photo-upload")?.addEventListener("change", handleBarbeiroPhotoUpload);
-  $("barbeiro-save-btn")?.addEventListener("click", saveBarbeiroAdmin);
+  const barbeiroSave = $("barbeiro-save-btn");
+  barbeiroSave?.addEventListener("click", () => withButton(barbeiroSave, saveBarbeiroAdmin));
   $("barbeiro-cancel-btn")?.addEventListener("click", () => {
     openAddBarbeiroForm();
   });
@@ -1723,13 +1788,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (barbeiroSelect) barbeiroSelect.addEventListener("change", onBarbeiroChange);
 
   const serviceSave = $("service-save");
-  if (serviceSave) serviceSave.addEventListener("click", saveService);
+  if (serviceSave) serviceSave.addEventListener("click", () => withButton(serviceSave, saveService));
 
   const commentSave = $("comment-save");
-  if (commentSave) commentSave.addEventListener("click", saveComment);
+  if (commentSave) commentSave.addEventListener("click", () => withButton(commentSave, saveComment));
 
   const waitlistJoinBtn = $("waitlist-join-btn");
-  if (waitlistJoinBtn) waitlistJoinBtn.addEventListener("click", joinWaitlist);
+  if (waitlistJoinBtn) waitlistJoinBtn.addEventListener("click", () => withButton(waitlistJoinBtn, joinWaitlist));
 
   const waitlistDismissBtn = $("waitlist-dismiss-btn");
   if (waitlistDismissBtn) waitlistDismissBtn.addEventListener("click", () => {

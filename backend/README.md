@@ -16,7 +16,7 @@ Consulte o [README principal](../README.md) para a referência de variáveis, pe
 
 ## Modelo e migração
 
-`schema.sql` parte das tabelas `usuarios`, `cabeleireiros`, `servicos`, `horarios`, `agendamentos` e `comentarios` fornecidas. A migração é transacional e registrada em `schema_migrations`, portanto pode ser executada novamente sem repetir as alterações.
+`schema.sql` (migração 1) parte das tabelas `usuarios`, `cabeleireiros`, `servicos`, `horarios`, `agendamentos` e `comentarios` fornecidas. As migrações seguintes ficam em `migrations/` e são listadas em `migrations/index.js`. Cada versão é aplicada uma única vez, em transação, e registrada em `schema_migrations`; por isso `npm run db:migrate` pode ser executado novamente com segurança. Para alterar o banco, crie um novo arquivo de migração em vez de editar os existentes.
 
 Também pode ser aplicada sobre o modelo original já criado. Faça backup antes de migrar dados existentes. Emails duplicados ao ignorar maiúsculas, serviços com nomes duplicados ou agendamentos ligados a horários de outro profissional devem ser corrigidos antes: a migração falhará e reverterá as alterações nesses casos. Usuários existentes precisam ter senhas no formato scrypt gerado pelo backend; senhas em texto puro não são aceitas. Não há conversão automática de senhas.
 
@@ -28,7 +28,8 @@ Adaptações:
 - Preço e duração são copiados do banco para cada agendamento, sem confiar nos valores enviados pelo navegador.
 - `cabeleireiro_servicos` relaciona os profissionais aos serviços e guarda a duração por profissional. Configure os relacionamentos de profissionais existentes pelo painel após migrar.
 - Fotos, descrição, dias e expediente completam o cadastro dos profissionais.
-- `fila_espera` guarda os pedidos em ordem de entrada; cancelamento, conclusão, exclusão ou mudança de horário promovem pedidos que cabem no intervalo liberado.
+- `agendamento_servicos` (migração 2) guarda todos os serviços de cada reserva; `agendamentos.servico_id` mantém o primeiro serviço, e `duracao`/`valor` os totais.
+- `fila_espera` guarda os pedidos em ordem de entrada, com os serviços desejados em `fila_espera_servicos`. Cancelamento, conclusão, exclusão ou mudança de horário promovem pedidos cujo intervalo total cabe no espaço liberado e que ainda atendem às regras do profissional.
 - Comentários novos, inclusive os existentes na migração, precisam de aprovação. A regra de envio é login + 1 a 5 estrelas + até 50 palavras.
 - `sessoes` guarda apenas o hash dos tokens, com validade de sete dias. Senhas usam scrypt com salt aleatório.
 
@@ -44,7 +45,7 @@ Para manter o frontend separado, configure `BarberApp/BarberApp/js/config.js` co
 
 ## Validação
 
-`npm test` executa os testes de segurança. Para executar também o teste de integração, defina `TEST_DATABASE_URL` apontando para um banco **vazio e descartável** e execute `npm test`. O teste cria tabelas e dados e recusa um banco já preenchido. Ele cobre autenticação, permissões, concorrência, fila, moderação, logout e preservação de preço histórico. Não usa `DATABASE_URL` para criar os dados de teste.
+`npm test` executa os testes de segurança. Para executar também o teste de integração, defina `TEST_DATABASE_URL` apontando para um banco **vazio e descartável** e execute `npm test`. O teste cria tabelas e dados e recusa um banco já preenchido. Ele cobre autenticação, permissões, concorrência, fila, cotas, moderação, logout, limites de login, cabeçalhos de segurança e preservação de preço histórico. Não usa `DATABASE_URL` para criar os dados de teste.
 
 O comando de testes não carrega `.env` automaticamente: defina `TEST_DATABASE_URL` no ambiente do terminal. As tabelas criadas permanecem depois do teste; uma nova execução exige um banco vazio novamente. Exemplos de comandos estão em [Testes e validação](../README.md#testes-e-validação).
 
