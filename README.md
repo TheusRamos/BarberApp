@@ -4,6 +4,8 @@ Aplicação web para uma barbearia, com cadastro de clientes, reservas por profi
 
 O servidor Node.js entrega o site e a API na mesma origem. **Abrir o HTML diretamente ou publicar apenas no GitHub Pages não disponibiliza o sistema completo.**
 
+**Site publicado:** https://barberapp-at0n.onrender.com (Render e Neon, plano grátis). Cada push em `main` passa pelos testes do GitHub Actions antes de ser publicado. Veja [Publicação](#publicação).
+
 ## Índice
 
 - [Arquitetura e tecnologias](#arquitetura-e-tecnologias)
@@ -51,6 +53,7 @@ Navegador: páginas HTML + CSS + JavaScript
 ├── .github/workflows/ci.yml      # Testes no GitHub Actions
 ├── .gitignore
 ├── .node-version                # Versão do Node.js usada no CI e no Render
+├── ATUALIZACOES_E_IDEIAS.md     # Histórico de entregas e ideias pendentes
 ├── package.json
 ├── package-lock.json
 ├── render.yaml                  # Configuração do serviço no Render (Blueprint)
@@ -101,9 +104,9 @@ Navegador: páginas HTML + CSS + JavaScript
 
 ### Pré-requisitos
 
-- Node.js **22 ou superior**, conforme `package.json`, com suporte à opção `--env-file-if-exists` usada pelos scripts. Use uma versão atualizada da linha escolhida.
+- Node.js **22 ou superior**, conforme `package.json`, com suporte à opção `--env-file-if-exists` usada pelos scripts. O CI e o Render usam a versão **24**, fixada em [.node-version](.node-version).
 - npm disponível no terminal.
-- PostgreSQL acessível e uma conta autorizada a criar o esquema no banco da aplicação. O repositório não declara uma versão mínima específica do PostgreSQL.
+- PostgreSQL acessível e uma conta autorizada a criar o esquema no banco da aplicação. O repositório não declara uma versão mínima; o sistema é testado com o **PostgreSQL 18** (local, CI e Neon).
 - Navegador com suporte a ES Modules, `fetch` e `IntersectionObserver`.
 
 Execute os comandos na **raiz do repositório**, onde está `package.json`.
@@ -175,6 +178,8 @@ Acesse **http://127.0.0.1:3000**. Para desenvolvimento com reinício automático
 5. Confira a reserva em **Agendamentos** e teste o cancelamento.
 
 Não há dados iniciais de serviços ou profissionais. Os horários são calculados na interface; os registros de horário no banco são criados ao reservar ou entrar na fila.
+
+O login com Google é opcional também no ambiente local; para testá-lo, configure as variáveis descritas em [Login com Google](#login-com-google).
 
 ## Configuração
 
@@ -472,7 +477,7 @@ A publicação atual, em **https://barberapp-at0n.onrender.com**, usa um serviç
 2. Aplique as migrações a partir do computador, com a string guardada em um arquivo `.env.producao` (ignorado pelo git): `node --env-file=.env.producao backend/migrate.js`. Faça isso **antes** de publicar uma versão que traga uma migração nova; o servidor recusa iniciar com o banco desatualizado.
 3. No Render, crie o serviço por **New → Blueprint**, escolha o repositório e informe `DATABASE_URL` quando solicitado. As demais variáveis já estão no `render.yaml`.
 
-No plano grátis, o serviço é suspenso após 15 minutos sem acesso e a primeira requisição seguinte leva cerca de um minuto. O Neon também suspende o banco ocioso.
+No plano grátis, o serviço é suspenso após 15 minutos sem acesso e a primeira requisição seguinte leva cerca de um minuto. O Neon também suspende o banco ocioso. O Render fornece o certificado HTTPS e redireciona acessos `http://` para `https://`; o servidor envia `Strict-Transport-Security` nas respostas por HTTPS.
 
 ### Login com Google
 
@@ -481,6 +486,18 @@ No plano grátis, o serviço é suspenso após 15 minutos sem acesso e a primeir
 3. No Render, em **Environment**, defina `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`. `PUBLIC_URL` já está no `render.yaml`. Localmente, use as mesmas variáveis no `.env`, com `PUBLIC_URL=http://127.0.0.1:3000`.
 
 Sem essas três variáveis, o servidor funciona normalmente e o botão do Google não aparece. O login com Google exige frontend e API na mesma origem.
+
+#### Aviso "Site perigoso" do Chrome
+
+Em **23/10/2026**, depois da publicação do login com Google, o Google Safe Browsing passou a marcar `/api/auth/google` como engenharia social: ao clicar em **Continuar com o Google**, o Chrome mostra a tela vermelha "Site perigoso". O restante do site abre normalmente. É um falso positivo comum em sites novos em subdomínios de hospedagem grátis (`onrender.com`) que levam à tela de login do Google; a rota apenas redireciona para `accounts.google.com`, e o site não recebe a senha do Google.
+
+Para remover a marcação (pendente):
+
+1. No [Google Search Console](https://search.google.com/search-console), adicione a propriedade **Prefixo do URL** `https://barberapp-at0n.onrender.com/` e verifique a posse com o arquivo HTML ou a meta tag fornecidos, publicados na pasta `BarberApp/BarberApp/`.
+2. Em **Segurança e ações manuais → Problemas de segurança**, confira as URLs marcadas e use **Solicitar análise**, explicando que se trata do login oficial do Google por OAuth 2.0.
+3. Opcionalmente, envie o [formulário de falso positivo do Safe Browsing](https://safebrowsing.google.com/safebrowsing/report_error/?hl=pt-BR).
+
+Não mude o endereço da rota para fugir do aviso: o Google pode tratar isso como evasão e marcar o domínio inteiro. Enquanto a análise não sai, quem quiser testar pode usar **Saiba mais → acesse este site não seguro**; para esconder o botão, apague `GOOGLE_CLIENT_ID` no Render. Um domínio próprio reduz a chance de novas marcações.
 
 ### Outra hospedagem com frontend e backend juntos
 
@@ -572,6 +589,7 @@ Para acompanhar ações, registre: ID, responsável nominal, estado, prazo, indi
 - Exclusões e alterações de status não possuem trilha de auditoria. O painel “Clientes” recebe também contas administrativas da API.
 - Não há controle de pagamento, integração de notificações ou exigência de atendimento anterior para avaliar.
 - Uma conta com senha não pode ser ligada ao Google, e uma conta criada pelo Google não pode definir senha.
+- Até a análise do Google Safe Browsing, o botão **Continuar com o Google** leva ao aviso "Site perigoso" do Chrome.
 - Não há política de retenção/privacidade, fluxo de anonimização ou backup implementados no projeto.
 
 ## Solução de problemas
@@ -590,6 +608,7 @@ Para acompanhar ações, registre: ID, responsável nominal, estado, prazo, indi
 | Não é possível entrar na fila pelo horário desejado | Horários ocupados são ocultados; a oferta atual aparece após `SLOT_TAKEN` |
 | Exclusão retorna `IN_USE` | Há vínculos que precisam ser preservados; cancelar/desativar pode ser adequado ao caso |
 | Login retorna 429 para vários usuários | Atrás de proxy, configure `CLIENT_IP_HEADER` (no Render, `CF-Connecting-IP`) ou `TRUST_PROXY` com o número de proxies; sem isso, todos compartilham o limite por IP |
+| Chrome mostra "Site perigoso" ao clicar em **Continuar com o Google** | Marcação do Google Safe Browsing; peça a análise pelo Search Console, como em [Aviso "Site perigoso" do Chrome](#aviso-site-perigoso-do-chrome) |
 | Botão do Google não aparece | Confira `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e `PUBLIC_URL` no ambiente; `GET /api/auth/options` deve retornar `{ "google": true }` |
 | Google mostra `redirect_uri_mismatch` | O URI autorizado no Google Cloud deve ser exatamente `PUBLIC_URL` + `/api/auth/google/callback` |
 | "Não foi possível entrar com o Google" | O motivo fica no log do servidor, na linha `Falha no login com Google` (ex.: `invalid_client` indica segredo errado) |
@@ -606,6 +625,7 @@ Para acompanhar ações, registre: ID, responsável nominal, estado, prazo, indi
 
 Ao alterar o projeto, atualize os contratos de API, variáveis, regras e testes afetados. Alterações de banco devem ganhar uma nova etapa de migração; mudanças de frontend/API precisam ser publicadas de forma compatível.
 
+- [Atualizações e ideias](ATUALIZACOES_E_IDEIAS.md): histórico das entregas (itens 001 a 016) e ideias pendentes
 - [Backend: instalação e modelo](backend/README.md)
 - [Esquema SQL](backend/schema.sql)
 - [Manifesto e scripts](package.json)

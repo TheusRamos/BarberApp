@@ -121,7 +121,7 @@ Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo ident
 
 ### 016 — Entrar com uma conta do Google
 
-- **Estado:** Concluído — testado na API; aguardando as credenciais do Google Cloud e a validação no navegador
+- **Estado:** Concluído — no ar desde 23/10/2026; até a análise do Google Safe Browsing, o Chrome mostra "Site perigoso" ao clicar no botão do Google (ver README, "Aviso 'Site perigoso' do Chrome")
 - **Registrado em:** 23/10/2026
 - **Objetivo:** Permitir cadastro e login pelo Google, sem criar senha.
 - **Concluído em:** 23/10/2026
