@@ -775,6 +775,31 @@ button:disabled,
   width: 100%;
 }
 
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 14px;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(148, 141, 162, 0.2);
+}
+
+/* Cores do botão padrão do Google (tema claro). */
+.google-btn {
+  width: 100%;
+  background: #ffffff;
+  color: #1f1f1f;
+  border-color: #747775;
+}
+
 .auth-footer {
   margin-top: 14px;
   text-align: center;

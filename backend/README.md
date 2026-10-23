@@ -32,6 +32,7 @@ Adaptações:
 - `fila_espera` guarda os pedidos em ordem de entrada, com os serviços desejados em `fila_espera_servicos`. Cancelamento, conclusão, exclusão ou mudança de horário promovem pedidos cujo intervalo total cabe no espaço liberado e que ainda atendem às regras do profissional.
 - Comentários novos, inclusive os existentes na migração, precisam de aprovação. A regra de envio é login + 1 a 5 estrelas + até 50 palavras.
 - `sessoes` guarda apenas o hash dos tokens, com validade de sete dias. Senhas usam scrypt com salt aleatório.
+- `usuarios.google_id` (migração 3) liga a conta ao login com Google. Essas contas não têm senha e começam sem telefone; `senha` e `telefone` passaram a aceitar nulo, mas toda conta precisa de senha ou `google_id`, e a API exige o telefone para reservar ou entrar na fila.
 
 O campo `horarios.disponivel` representa bloqueio manual; a ocupação é calculada a partir dos agendamentos ativos. A API serializa alterações da agenda com trava transacional do PostgreSQL e verifica intervalos sobrepostos. Escritas diretas no banco devem respeitar as mesmas regras; não há trigger para automatizar a fila ou verificar todos os intervalos fora da API.
 

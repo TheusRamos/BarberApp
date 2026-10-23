@@ -1,5 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createServer } from 'node:http';
+import { createHash } from 'node:crypto';
 
 test('API com PostgreSQL: permissões, concorrência, fila, moderação e histórico',
   {skip:!process.env.TEST_DATABASE_URL},async()=>{
@@ -7,11 +9,15 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
   process.env.DATABASE_URL=process.env.TEST_DATABASE_URL;
   process.env.MAX_ACTIVE_BOOKINGS='2';
   process.env.CLIENT_IP_HEADER='X-Client-IP';
+  process.env.GOOGLE_CLIENT_ID='cliente-teste';
+  process.env.GOOGLE_CLIENT_SECRET='segredo-teste';
+  process.env.PUBLIC_URL='http://127.0.0.1:3000';
   const {pool,transaction}=await import('../db.js');
   const {app}=await import('../app.js');
   const {hashPassword}=await import('../security.js');
   const {runMigrations}=await import('../migrations/index.js');
-  let server;
+  const {google}=await import('../google.js');
+  let server,fakeGoogle;
   try {
     const tables=await pool.query("SELECT 1 FROM information_schema.tables WHERE table_schema='public' LIMIT 1");
     assert.equal(tables.rowCount,0,'TEST_DATABASE_URL precisa apontar para um banco vazio.');
@@ -123,6 +129,44 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
     assert.equal((await call('/auth/logout-all','POST',{},bNew)).status,200);
     assert.equal((await call('/auth/me','GET',undefined,bNew)).status,401);
     assert.equal((await call('/auth/me','GET',undefined,b.token)).status,401);
+    // Login com Google contra um Google falso, que confere o segredo e o PKCE e devolve as claims do teste.
+    let claims,challenge;
+    fakeGoogle=await new Promise(resolve=>{const s=createServer((req,res)=>{let body='';req.on('data',c=>body+=c);req.on('end',()=>{
+      const p=new URLSearchParams(body),ok=p.get('client_secret')==='segredo-teste' && p.get('code')==='codigo' &&
+        createHash('sha256').update(p.get('code_verifier')||'').digest('base64url')===challenge;
+      res.writeHead(ok?200:400,{'Content-Type':'application/json'});
+      res.end(JSON.stringify(ok?{id_token:`e30.${Buffer.from(JSON.stringify(claims)).toString('base64url')}.x`}:{error:'invalid_grant'}));
+    });}).listen(0,'127.0.0.1',()=>resolve(s));});
+    google.tokenUrl=`http://127.0.0.1:${fakeGoogle.address().port}/token`;
+    async function googleLogin(extra,state) {
+      const begin=await fetch(base+'/auth/google',{redirect:'manual'});
+      const url=new URL(begin.headers.get('location')),cookie=begin.headers.get('set-cookie');
+      assert.match(cookie,/HttpOnly/);assert.match(cookie,/SameSite=Lax/);
+      challenge=url.searchParams.get('code_challenge');
+      claims={iss:'https://accounts.google.com',aud:'cliente-teste',exp:Math.floor(Date.now()/1000)+300,
+        nonce:url.searchParams.get('nonce'),email_verified:true,...extra};
+      const back=await fetch(`${base}/auth/google/callback?code=codigo&state=${state??url.searchParams.get('state')}`,
+        {headers:{cookie:cookie.split(';')[0]},redirect:'manual'});
+      return Object.fromEntries(new URLSearchParams(new URL(back.headers.get('location'),base).hash.slice(1)));
+    }
+    assert.deepEqual((await call('/auth/options')).body,{google:true});
+    const googleFirst=await googleLogin({sub:'g-1',email:'G@test.com',name:'Cliente Google'});
+    const g=await call('/auth/google/session','POST',{code:googleFirst.google_code});
+    assert.equal(g.status,200);
+    assert.deepEqual([g.body.user.email,g.body.user.phone,g.body.user.hasPassword],['g@test.com',null,false]);
+    assert.equal((await call('/auth/google/session','POST',{code:googleFirst.google_code})).status,400);
+    assert.equal((await call('/agendamentos','POST',{},g.body.token)).body.code,'PHONE_REQUIRED');
+    assert.equal((await call('/waitlist','POST',{},g.body.token)).body.code,'PHONE_REQUIRED');
+    assert.equal((await call('/users/'+g.body.user.id,'PATCH',{phone:'11977777777'},g.body.token)).status,200);
+    assert.notEqual((await call('/agendamentos','POST',{},g.body.token)).body.code,'PHONE_REQUIRED');
+    const googleAgain=await googleLogin({sub:'g-1',email:'g@test.com',name:'Cliente Google'});
+    assert.equal((await call('/auth/google/session','POST',{code:googleAgain.google_code})).body.user.id,g.body.user.id);
+    assert.equal((await googleLogin({sub:'g-2',email:'a@test.com'})).google_error,'GOOGLE_EMAIL_IN_USE');
+    assert.equal((await googleLogin({sub:'g-3',email:'h@test.com',email_verified:false})).google_error,'GOOGLE_FAILED');
+    assert.equal((await googleLogin({sub:'g-3',email:'h@test.com',nonce:'outro'})).google_error,'GOOGLE_FAILED');
+    assert.equal((await googleLogin({sub:'g-3',email:'h@test.com'},'forjado')).google_error,'GOOGLE_FAILED');
+    assert.equal((await call('/auth/login','POST',{email:'g@test.com',password:'qualquer123'})).status,401);
+    assert.equal((await call('/auth/password','POST',{currentPassword:'qualquer123',newPassword:'nova12345'},g.body.token)).body.code,'WRONG_PASSWORD');
     const malformed=await fetch(base+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:'{'});
     assert.equal(malformed.status,400);assert.equal((await malformed.json()).message,'Requisição inválida.');
     const page=await fetch(base.replace(/\/api$/,'/'));
@@ -131,6 +175,7 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
     assert.equal(page.headers.get('x-frame-options'),'DENY');
   } finally {
     if(server) await new Promise(resolve=>server.close(resolve));
+    if(fakeGoogle) await new Promise(resolve=>fakeGoogle.close(resolve));
     await pool.end();
   }
 });

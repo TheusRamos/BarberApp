@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { pool,transaction } from './db.js';
 import { fail,text,id,email,phone,photo,hashPassword,verifyPassword,tokenHash,userDTO,session,limiter } from './security.js';
 import { bookingSelect,bookingDTO,getBooking,lockAgenda,prepare,conflict,insertBooking,insertWaitlist,saveBookingServices,promote,statusDB,active,checkQuota } from './bookings.js';
+import { googleEnabled,start,finish,googleUser,issueCode,redeemCode } from './google.js';
 
 export const app=express();
 app.disable('x-powered-by');
@@ -96,6 +97,37 @@ app.post('/api/auth/password',auth,async(req,res)=>{
   passwordByAccount.reset(req.user.id);
   res.json({});
 });
+// Login com Google: /api/auth/google leva ao Google, que volta para /callback; a página recebe
+// um código de uso único no fragmento da URL e o troca pela sessão em /session.
+app.get('/api/auth/options',(req,res)=>res.json({google:googleEnabled()}));
+app.get('/api/auth/google',(req,res)=>{
+  if(!googleEnabled()) return res.redirect('/auth.html#google_error=GOOGLE_DISABLED');
+  const {url,cookie}=start();
+  res.cookie('google_oauth',cookie,{httpOnly:true,secure:req.secure,sameSite:'lax',path:'/api/auth/google',maxAge:600000});
+  res.redirect(url);
+});
+app.get('/api/auth/google/callback',async(req,res)=>{
+  const saved=req.get('cookie')?.match(/(?:^|;\s*)google_oauth=([^;]+)/)?.[1];
+  res.clearCookie('google_oauth',{path:'/api/auth/google'});
+  const back=hash=>res.redirect(`/auth.html#${new URLSearchParams(hash)}`);
+  if(req.query.error==='access_denied') return back({google_error:'GOOGLE_CANCELLED'});
+  // Sem o cookie ou com state diferente: o login não começou neste navegador.
+  if(!googleEnabled() || !saved || typeof req.query.code!=='string' || req.query.state!==saved.split('.')[0])
+    return back({google_error:'GOOGLE_FAILED'});
+  try {
+    const user=await googleUser(pool,await finish(req.query.code,saved));
+    back({google_code:issueCode(user.id)});
+  } catch(error) {
+    if(error.code!=='GOOGLE_EMAIL_IN_USE') console.error('Falha no login com Google:',error.message);
+    back({google_error:error.code==='GOOGLE_EMAIL_IN_USE'?error.code:'GOOGLE_FAILED'});
+  }
+});
+app.post('/api/auth/google/session',async(req,res)=>{
+  const userId=redeemCode(req.body.code);
+  const u=userId && (await pool.query('SELECT * FROM usuarios WHERE id=$1',[userId])).rows[0];
+  if(!u) fail(400,'O login com Google expirou. Tente novamente.','GOOGLE_FAILED');
+  res.json(await session(pool,u));
+});
 app.get('/api/users',auth,admin,async(req,res)=>res.json((await pool.query('SELECT * FROM usuarios ORDER BY nome')).rows.map(userDTO)));
 app.patch('/api/users/:id',auth,async(req,res)=>{
   const key=id(req.params.id);
@@ -179,7 +211,9 @@ app.get('/api/slots',async(req,res)=>res.json((await pool.query(`SELECT a.id,a.h
   FROM agendamentos a JOIN horarios h ON h.id=a.horario_id WHERE a.status IN ('agendado','confirmado') AND h.data>=current_date`)).rows.map(a=>({id:String(a.horario_id),horarioId:String(a.horario_id),appointmentId:String(a.id),barbeiroId:String(a.cabeleireiro_id),data:a.data,hora:a.hora.slice(0,5),duracao:a.duracao}))));
 app.get('/api/agendamentos',auth,async(req,res)=>res.json((await pool.query(`${bookingSelect}${req.user.tipo==='administrador'?'':' WHERE a.cliente_id=$1'} ORDER BY h.data,h.hora`,req.user.tipo==='administrador'?[]:[req.user.id])).rows.map(bookingDTO)));
 app.get('/api/agendamentos/:id',auth,async(req,res)=>res.json(bookingDTO(await getBooking(pool,req.params.id,req.user))));
-app.post('/api/agendamentos',auth,async(req,res)=>{
+// Contas criadas pelo Google começam sem telefone; a barbearia precisa dele para contatar o cliente.
+function phoneRequired(req,res,next) {if(!req.user.telefone) fail(400,'Cadastre seu telefone no Perfil antes de agendar.','PHONE_REQUIRED');next();}
+app.post('/api/agendamentos',auth,phoneRequired,async(req,res)=>{
   const result=await transaction(async db=>{await lockAgenda(db);const plan=await prepare(db,req.body),{h}=plan;
     await checkQuota(db,req.user,h.id);
     if(await conflict(db,h,plan.duracao)) fail(409,'Horário já reservado.','SLOT_TAKEN');
@@ -216,7 +250,7 @@ app.delete('/api/agendamentos/:id',auth,admin,async(req,res)=>{
   await transaction(async db=>{await lockAgenda(db);const a=await getBooking(db,req.params.id,req.user,true);
     await db.query('DELETE FROM agendamentos WHERE id=$1',[a.id]);await promote(db,a.cabeleireiro_id,a.data);});res.json({});
 });
-app.post('/api/waitlist',auth,async(req,res)=>{
+app.post('/api/waitlist',auth,phoneRequired,async(req,res)=>{
   if(req.user.tipo==='administrador') fail(403,'A fila é destinada aos clientes.','FORBIDDEN');
   const result=await transaction(async db=>{await lockAgenda(db);const plan=await prepare(db,req.body);
     if(!await conflict(db,plan.h,plan.duracao)) fail(409,'Horário disponível. Faça um agendamento.','SLOT_AVAILABLE');

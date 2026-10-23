@@ -54,7 +54,11 @@ function translateApiError(error) {
     "EMAIL_IN_USE": "Este email já está cadastrado.",
     "WEAK_PASSWORD": "A senha precisa ter pelo menos 8 caracteres.",
     "UNAUTHORIZED": "Sessão expirada. Faça login novamente.",
-    "NETWORK_ERROR": "Falha de conexão. Verifique sua internet e tente novamente."
+    "NETWORK_ERROR": "Falha de conexão. Verifique sua internet e tente novamente.",
+    "GOOGLE_EMAIL_IN_USE": "Este email já tem cadastro com senha. Entre com email e senha.",
+    "GOOGLE_CANCELLED": "Login com Google cancelado.",
+    "GOOGLE_DISABLED": "Login com Google indisponível no momento.",
+    "GOOGLE_FAILED": "Não foi possível entrar com o Google. Tente novamente."
   };
   return map[code] || error?.message || "Erro inesperado. Tente novamente.";
 }
@@ -143,6 +147,11 @@ function populateProfileForm(user) {
     if (avatarImg) avatarImg.classList.remove("visible");
     if (avatarInitial) avatarInitial.style.display = "";
   }
+
+  // Contas do Google não têm senha para alterar e começam sem telefone.
+  $("password-form")?.classList.toggle("hidden", !user?.hasPassword);
+  $("password-divider")?.classList.toggle("hidden", !user?.hasPassword);
+  if (!phone) setError("profile-phone", "Informe seu telefone para poder agendar.");
 }
 
 // ============================================================
@@ -208,6 +217,11 @@ async function handleProfileSave(event) {
 
   if (name.length < 3) {
     setError("profile-name", "Informe um nome válido (mínimo 3 caracteres).");
+    return;
+  }
+
+  if (phone.replace(/\D/g, "").length < 10) {
+    setError("profile-phone", "Informe um telefone válido com DDD.");
     return;
   }
 
@@ -382,6 +396,38 @@ async function handleLogoutAll() {
 // INIT
 // ============================================================
 
+// Retorno do login com Google: o servidor devolve um código de uso único (ou um erro) no fragmento da URL.
+async function handleGoogleReturn() {
+  const hash = new URLSearchParams(location.hash.slice(1));
+  const code = hash.get("google_code");
+  const error = hash.get("google_error");
+  if (!code && !error) return false;
+  history.replaceState(null, "", location.pathname + location.search);
+
+  if (error) {
+    showToast(translateApiError({ code: error }));
+    return false;
+  }
+  try {
+    const { token } = await api.auth.googleSession(code);
+    setToken(token);
+    return true;
+  } catch (err) {
+    console.error("Erro no login com Google:", err);
+    showToast(translateApiError(err));
+    return false;
+  }
+}
+
+async function showGoogleButton() {
+  try {
+    const { google } = await api.auth.options();
+    $("google-login")?.classList.toggle("hidden", !google);
+  } catch (error) {
+    console.warn("Não foi possível consultar as opções de login.", error);
+  }
+}
+
 async function loadCurrentUser() {
   if (!getToken()) return null;
   try {
@@ -412,6 +458,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
+  const googleLogin = await handleGoogleReturn();
   currentUser = await loadCurrentUser();
 
   if (shouldLogout) {
@@ -420,6 +467,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  if (currentUser) showLoggedPanel(currentUser);
-  else showAuthPanel();
+  if (googleLogin && currentUser?.phone) {
+    showToast("Login realizado com sucesso.");
+    setTimeout(() => (window.location.href = "index.html"), 650);
+    return;
+  }
+
+  if (currentUser) {
+    showLoggedPanel(currentUser);
+    if (googleLogin) {
+      showToast("Conta conectada. Informe seu telefone para poder agendar.");
+      $("profile-phone")?.focus();
+    }
+  } else {
+    showAuthPanel();
+    showGoogleButton();
+  }
 });

@@ -12,6 +12,9 @@
 //   POST   /auth/logout-all      -                                       -> {}                (encerra todas as sessões)
 //   POST   /auth/password        { currentPassword, newPassword }        -> {}                (encerra as outras sessões)
 //   GET    /auth/me              -                                       -> { user }
+//   GET    /auth/options         -                                       -> { google }        (login com Google ativo)
+//   GET    /auth/google          (navegação) leva ao Google e volta para auth.html#google_code=... ou #google_error=...
+//   POST   /auth/google/session  { code }                                -> { token, user }   (código de uso único)
 //
 //   GET    /users                                                        -> User[]           (admin)
 //   PATCH  /users/:id            Partial<User>                           -> User
@@ -111,7 +114,9 @@ export const api = {
     logout: () => request("/auth/logout", { method: "POST" }),
     logoutAll: () => request("/auth/logout-all", { method: "POST" }),
     changePassword: payload => request("/auth/password", { method: "POST", body: payload }),
-    me: () => request("/auth/me")
+    me: () => request("/auth/me"),
+    options: () => request("/auth/options", { auth: false }),
+    googleSession: code => request("/auth/google/session", { method: "POST", body: { code }, auth: false })
   },
 
   users: {

@@ -62,12 +62,14 @@ Navegador: páginas HTML + CSS + JavaScript
 │   ├── app.js                   # Rotas REST, autorização e erros
 │   ├── db.js                    # Pool PostgreSQL e transações
 │   ├── security.js              # Validações, senhas, sessões e limitador de tentativas
+│   ├── google.js                # Login com Google (OpenID Connect)
 │   ├── bookings.js              # Conflitos, reservas e promoção da fila
 │   ├── schema.sql               # Estrutura e adaptação inicial do banco (migração 1)
 │   ├── migrate.js               # Aplica as migrações pendentes
 │   ├── migrations/
 │   │   ├── index.js             # Lista ordenada das migrações
-│   │   └── 002_varios_servicos.sql
+│   │   ├── 002_varios_servicos.sql
+│   │   └── 003_login_google.sql
 │   ├── admin.js                 # Criação de administrador via terminal
 │   └── test/
 │       ├── security.test.js
@@ -79,18 +81,15 @@ Navegador: páginas HTML + CSS + JavaScript
     ├── auth.html                # Login, cadastro e perfil
     ├── comentarios.html         # Avaliações e moderação
     ├── sobre.html               # Serviços, equipe e informações públicas
-    ├── barbeiros.html           # Página legada; redireciona para admin.html
-    ├── LEIA-ME.txt
     ├── css/
     │   ├── style.css
     │   ├── agendamentos.css
-    │   └── barbeiros.css
+    │   └── barbeiros.css        # Estilos do cadastro de profissionais (admin.html)
     ├── js/
     │   ├── api.js               # Cliente REST e armazenamento do token
     │   ├── config.js            # URL base da API
     │   ├── app.js               # Agenda, administração, fila e avaliações
     │   ├── auth.js              # Cadastro, login, logout e perfil
-    │   ├── barbeiros.js         # Gestão legada de profissionais
     │   ├── sobre.js             # Serviços e equipe da página Sobre
     │   ├── star-picker.js       # Seletor de estrelas das avaliações
     │   ├── sidebar.js
@@ -191,6 +190,9 @@ Os scripts de inicialização, desenvolvimento, migração e criação de admini
 | `CORS_ORIGIN` | Origem autorizada do frontend separado | Sem padrão; exemplo: `https://organizacao.github.io`, sem caminho ou barra final |
 | `TRUST_PROXY` | Proxies reversos confiáveis, para reconhecer HTTPS e obter o IP real do cliente nos limites de tentativas | Sem padrão (desativado). Atrás de um proxy, use o número de saltos (ex.: `1`); não use `true` sem proxy, pois o cliente poderia forjar o IP |
 | `CLIENT_IP_HEADER` | Cabeçalho com o IP real do cliente, gravado pelo proxy; tem precedência sobre `TRUST_PROXY` nos limites de tentativas | Sem padrão. No Render, `CF-Connecting-IP`. Só defina se todo acesso passar pelo proxy que grava o cabeçalho |
+| `PUBLIC_URL` | Endereço público do site, sem barra final; forma o retorno do login com Google | Sem padrão. Local: `http://127.0.0.1:3000`; Render: `https://barberapp-at0n.onrender.com` |
+| `GOOGLE_CLIENT_ID` | ID do cliente OAuth do Google | Sem padrão. Com `GOOGLE_CLIENT_SECRET` e `PUBLIC_URL`, ativa o botão **Continuar com o Google** |
+| `GOOGLE_CLIENT_SECRET` | Segredo do cliente OAuth do Google | Sem padrão; nunca coloque no frontend nem no repositório |
 | `MAX_ACTIVE_BOOKINGS` | Máximo de reservas ativas futuras + pedidos na fila por cliente | `3`; administradores não têm limite |
 | `ADMIN_NAME` | Nome da nova conta administrativa | Apenas em `admin:create`; mínimo de 3 caracteres |
 | `ADMIN_EMAIL` | E-mail da nova conta administrativa | Apenas em `admin:create`; único |
@@ -207,7 +209,7 @@ No navegador, a URL da API é definida em [config.js](BarberApp/BarberApp/js/con
 | `npm ci` | Instalar dependências do lockfile |
 | `npm start` | Iniciar servidor e frontend |
 | `npm run dev` | Iniciar com observação de alterações no servidor |
-| `npm run db:migrate` | Aplicar a migração inicial uma vez |
+| `npm run db:migrate` | Aplicar as migrações pendentes |
 | `npm run admin:create` | Inserir administrador usando `ADMIN_*` |
 | `npm test` | Executar testes unitários e integração, quando configurada |
 
@@ -218,8 +220,8 @@ Não há scripts de build, lint, rollback de migração ou backup automatizado.
 | Operação | Visitante | Cliente | Administrador |
 | --- | --- | --- | --- |
 | Consultar serviços, equipe e comentários aprovados | Sim | Sim | Sim |
-| Cadastrar conta de cliente | Sim | Sim | Sim, pelo cadastro público |
-| Agendar | Não | Para si | Para si |
+| Cadastrar conta de cliente (com senha ou pelo Google) | Sim | Sim | Sim, pelo cadastro público |
+| Agendar | Não | Para si, com telefone cadastrado | Para si |
 | Consultar agendamentos | Não | Próprios | Todos |
 | Editar reserva ativa | Não | Não | Sim |
 | Cancelar reserva | Não | Própria e ativa | Sim |
@@ -238,7 +240,8 @@ A interface não expõe todas as operações permitidas pela API, como a exclus�
 - **Cliente:** cadastrar/entrar → escolher profissional, serviço, data e horário → confirmar → acompanhar a reserva. Nome e e-mail pertencem ao usuário autenticado.
 - **Conflito de reserva:** se o servidor retornar `SLOT_TAKEN`, a interface oferece entrada na fila. Horários já ocupados são normalmente ocultados, portanto essa oferta ocorre principalmente quando outra reserva foi feita após carregar a tela.
 - **Administrador:** cadastrar serviços e profissionais → acompanhar reservas → editar reservas ativas ou alterar status → moderar avaliações na página **Avaliações**.
-- **Perfil:** atualizar nome, telefone e foto. A interface converte a imagem para JPEG redimensionado. Também é possível trocar a senha (exige a senha atual e desconecta os outros dispositivos) e sair de todos os dispositivos. Não há troca de e-mail pelo perfil.
+- **Login com Google:** **Continuar com o Google** leva à tela do Google e volta para o Perfil. O primeiro acesso cria uma conta de cliente sem senha e sem telefone; o Perfil pede o telefone, exigido para agendar ou entrar na fila (`PHONE_REQUIRED`). Os acessos seguintes entram na mesma conta. Um e-mail que já tem cadastro com senha não é vinculado ao Google: o usuário continua entrando com e-mail e senha.
+- **Perfil:** atualizar nome, telefone e foto. A interface converte a imagem para JPEG redimensionado. Também é possível trocar a senha (exige a senha atual e desconecta os outros dispositivos; não aparece para contas do Google) e sair de todos os dispositivos. Não há troca de e-mail pelo perfil.
 
 ## Regras de negócio
 
@@ -288,7 +291,7 @@ Ao sair de um status ativo, a reserva libera o intervalo e o backend processa a 
 
 | Tabela | Responsabilidade |
 | --- | --- |
-| `usuarios` | Identidade, contato, senha, perfil e foto |
+| `usuarios` | Identidade, contato, senha ou id do Google, perfil e foto |
 | `sessoes` | Hash do token, usuário e validade |
 | `servicos` | Nome, preço, duração padrão e ícone |
 | `cabeleireiros` | Profissionais, expediente, dias, foto e situação |
@@ -303,9 +306,9 @@ Ao sair de um status ativo, a reserva libera o intervalo e o backend processa a 
 
 `slots` é uma **consulta de ocupações**, não uma tabela separada. `horarios.disponivel` representa bloqueio manual; a ocupação resulta dos agendamentos ativos. Não existe rota administrativa de bloqueio manual atualmente.
 
-`npm run db:migrate` aplica, em uma transação e sob trava, as versões listadas em [backend/migrations/index.js](backend/migrations/index.js) que ainda não constam em `schema_migrations`: a versão `1` é `schema.sql` e a versão `2` é [002_varios_servicos.sql](backend/migrations/002_varios_servicos.sql). Reexecutar o comando não reaplica versões já registradas, e o servidor só inicia quando a versão mais recente estiver aplicada. **Nunca edite uma migração já aplicada**: crie um novo arquivo, acrescente-o à lista e registre a mudança aqui. Executar o SQL diretamente repetidas vezes não substitui o comando de migração.
+`npm run db:migrate` aplica, em uma transação e sob trava, as versões listadas em [backend/migrations/index.js](backend/migrations/index.js) que ainda não constam em `schema_migrations`: a versão `1` é `schema.sql`, a versão `2` é [002_varios_servicos.sql](backend/migrations/002_varios_servicos.sql) e a versão `3` é [003_login_google.sql](backend/migrations/003_login_google.sql). Reexecutar o comando não reaplica versões já registradas, e o servidor só inicia quando a versão mais recente estiver aplicada. **Nunca edite uma migração já aplicada**: crie um novo arquivo, acrescente-o à lista e registre a mudança aqui. Executar o SQL diretamente repetidas vezes não substitui o comando de migração.
 
-A versão `2` copia o serviço de cada agendamento e pedido de fila existentes para as novas tabelas, sem alterar valores ou durações registrados.
+A versão `2` copia o serviço de cada agendamento e pedido de fila existentes para as novas tabelas, sem alterar valores ou durações registrados. A versão `3` acrescenta `usuarios.google_id` (único) e torna `senha` e `telefone` opcionais; toda conta precisa ter senha ou id do Google.
 
 Antes de migrar um banco legado:
 
@@ -340,6 +343,10 @@ Todas as rotas abaixo são relativas a `/api`.
 | POST | `/auth/logout` | Autenticado; revoga a sessão enviada |
 | POST | `/auth/logout-all` | Autenticado; revoga todas as sessões do usuário, inclusive a enviada |
 | POST | `/auth/password` | Autenticado; troca a senha e revoga as outras sessões do usuário |
+| GET | `/auth/options` | Público; `{ "google": true }` quando o login com Google está configurado |
+| GET | `/auth/google` | Navegação; guarda `state`, PKCE e `nonce` em cookie e redireciona ao Google |
+| GET | `/auth/google/callback` | Retorno do Google; redireciona a `auth.html#google_code=...` ou `#google_error=...` |
+| POST | `/auth/google/session` | Público; troca o código de uso único (1 minuto) por `{ token, user }` |
 | GET | `/users` | Admin; usuários, incluindo administradores |
 | PATCH | `/users/:id` | Titular ou admin; nome, telefone e foto |
 | DELETE | `/users/:id` | Admin; exclui cliente sem vínculos impeditivos |
@@ -371,6 +378,7 @@ Todas as rotas abaixo são relativas a `/api`.
 | Cadastro | `name`, `email`, `phone`, `password` |
 | Login | `email`, `password` |
 | Troca de senha | `currentPassword`, `newPassword` (8 a 128 caracteres, diferente da atual) |
+| Sessão do Google | `code` (recebido em `auth.html#google_code=...`) |
 | Atualização de perfil | `name`, `phone`, `photoURL` (campos opcionais) |
 | Serviço | `name`, `price`, `duration` (padrão 60), `icon` (padrão `content_cut`) |
 | Profissional | `name`, `bio`, `photo`, `horarioInicio`, `horarioFim`, `diasDisponiveis`, `services` |
@@ -407,7 +415,7 @@ Invoke-RestMethod http://127.0.0.1:3000/api/health
 
 | HTTP | Exemplos de código / motivo |
 | --- | --- |
-| 400 | `VALIDATION_ERROR`, `WEAK_PASSWORD`, `WRONG_PASSWORD` (senha atual incorreta na troca), `BAD_REQUEST` (JSON malformado); campos ou regras inválidos |
+| 400 | `VALIDATION_ERROR`, `WEAK_PASSWORD`, `WRONG_PASSWORD` (senha atual incorreta na troca), `PHONE_REQUIRED` (reserva ou fila sem telefone cadastrado), `GOOGLE_FAILED` (código do Google inválido ou expirado), `BAD_REQUEST` (JSON malformado); campos ou regras inválidos |
 | 401 | `UNAUTHORIZED`, `INVALID_CREDENTIALS`; sessão ausente/expirada ou login inválido |
 | 403 | `FORBIDDEN`; perfil ou titularidade sem permissão |
 | 404 | `NOT_FOUND`; recurso ou rota inexistente |
@@ -416,7 +424,7 @@ Invoke-RestMethod http://127.0.0.1:3000/api/health
 | 429 | `RATE_LIMIT`; limite de login (por IP ou por conta), de cadastro ou de troca de senha atingido |
 | 500 | Falha interna; mensagem genérica ao cliente |
 
-`NETWORK_ERROR` é produzido pelo cliente JavaScript quando `fetch` falha; não é um status HTTP. Consulte `message` e `code`, pois nem toda falha interna tem o mesmo código.
+`NETWORK_ERROR` é produzido pelo cliente JavaScript quando `fetch` falha; não é um status HTTP. O retorno do Google não tem corpo JSON: os erros chegam em `auth.html#google_error=` como `GOOGLE_EMAIL_IN_USE` (e-mail já cadastrado com senha), `GOOGLE_CANCELLED`, `GOOGLE_DISABLED` ou `GOOGLE_FAILED`, e o motivo técnico fica no log do servidor. Consulte `message` e `code`, pois nem toda falha interna tem o mesmo código.
 
 ## Testes e validação
 
@@ -442,7 +450,7 @@ O teste utiliza essa conexão no lugar de `DATABASE_URL`, recusa um banco com ta
 
 No GitHub, o workflow [ci.yml](.github/workflows/ci.yml) executa `npm test` a cada push e pull request, com a integração em um PostgreSQL descartável do próprio GitHub Actions.
 
-Cobertura existente: hashing/validação, limitador de tentativas, limite de cadastro pelo cabeçalho de IP do proxy, cadastro, autorização, concorrência, sobreposição, fila, cotas de reserva e de avaliação pendente, moderação, logout, troca de senha com revogação das outras sessões, saída de todos os dispositivos, limite de login por conta, JSON malformado, cabeçalhos de segurança e preservação de preço histórico. Não há suíte de navegador, teste de carga ou restauração automatizada.
+Cobertura existente: hashing/validação, limitador de tentativas, limite de cadastro pelo cabeçalho de IP do proxy, cadastro, autorização, concorrência, sobreposição, fila, cotas de reserva e de avaliação pendente, moderação, logout, troca de senha com revogação das outras sessões, saída de todos os dispositivos, limite de login por conta, login com Google contra um servidor falso do Google (conta nova, código de uso único, telefone exigido para reservar, e-mail já cadastrado, e-mail não verificado, `state` e `nonce` forjados), JSON malformado, cabeçalhos de segurança e preservação de preço histórico. Não há suíte de navegador, teste de carga ou restauração automatizada.
 
 Última verificação local, em **23/10/2026**: 4 testes aprovados e 0 falhas, com a integração executada em um banco PostgreSQL descartável.
 
@@ -465,6 +473,14 @@ A publicação atual, em **https://barberapp-at0n.onrender.com**, usa um serviç
 3. No Render, crie o serviço por **New → Blueprint**, escolha o repositório e informe `DATABASE_URL` quando solicitado. As demais variáveis já estão no `render.yaml`.
 
 No plano grátis, o serviço é suspenso após 15 minutos sem acesso e a primeira requisição seguinte leva cerca de um minuto. O Neon também suspende o banco ocioso.
+
+### Login com Google
+
+1. No [Google Cloud Console](https://console.cloud.google.com/), crie um projeto e configure a tela de consentimento em **Google Auth Platform**: nome do app, e-mail de suporte e público **Externo**. Com os escopos básicos (`openid`, `email`, `profile`), publicar o app não exige verificação; em modo de teste, só os usuários de teste cadastrados conseguem entrar.
+2. Em **Clientes**, crie um cliente do tipo **Aplicativo da Web** com os URIs de redirecionamento autorizados `https://barberapp-at0n.onrender.com/api/auth/google/callback` e, para testes locais, `http://127.0.0.1:3000/api/auth/google/callback`.
+3. No Render, em **Environment**, defina `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`. `PUBLIC_URL` já está no `render.yaml`. Localmente, use as mesmas variáveis no `.env`, com `PUBLIC_URL=http://127.0.0.1:3000`.
+
+Sem essas três variáveis, o servidor funciona normalmente e o botão do Google não aparece. O login com Google exige frontend e API na mesma origem.
 
 ### Outra hospedagem com frontend e backend juntos
 
@@ -496,6 +512,7 @@ Mesmo que o site esteja em `https://organizacao.github.io/BarberApp/`, a origem 
 - Token aleatório de 32 bytes; somente hash SHA-256 armazenado no banco; validade de sete dias.
 - Logout revoga a sessão apresentada; "Sair de todos os dispositivos" revoga todas as sessões do usuário. O navegador armazena o token no `localStorage`.
 - Troca de senha exige a senha atual, rejeita repetir a mesma senha e revoga as demais sessões, mantendo apenas a do dispositivo que fez a troca. Limite de 5 tentativas por usuário a cada 15 minutos, para que um token roubado não sirva para descobrir a senha.
+- Login com Google pelo fluxo de código do OpenID Connect, feito no servidor, sem scripts do Google nas páginas: `state`, PKCE e `nonce` em cookie `HttpOnly` e `SameSite=Lax` restrito a `/api/auth/google`, `id_token` obtido direto do Google com o segredo do cliente e conferido (emissor, cliente, validade, `nonce` e e-mail verificado). O token da sessão não passa pela URL: a página recebe um código de uso único válido por 1 minuto. E-mails já cadastrados com senha não são vinculados, porque o site não confirma e-mails.
 - Autorização no backend por perfil e titularidade; cadastro não aceita escolher perfil administrativo.
 - Consultas SQL parametrizadas, transações, chaves estrangeiras e verificação de conflitos na API.
 - Validação de campos/fotos; escape de conteúdo dinâmico na interface.
@@ -554,6 +571,7 @@ Para acompanhar ações, registre: ID, responsável nominal, estado, prazo, indi
 - Seletores visuais e animações têm barreiras de acessibilidade; os fluxos precisam de validação por teclado e leitor de tela.
 - Exclusões e alterações de status não possuem trilha de auditoria. O painel “Clientes” recebe também contas administrativas da API.
 - Não há controle de pagamento, integração de notificações ou exigência de atendimento anterior para avaliar.
+- Uma conta com senha não pode ser ligada ao Google, e uma conta criada pelo Google não pode definir senha.
 - Não há política de retenção/privacidade, fluxo de anonimização ou backup implementados no projeto.
 
 ## Solução de problemas
@@ -572,6 +590,10 @@ Para acompanhar ações, registre: ID, responsável nominal, estado, prazo, indi
 | Não é possível entrar na fila pelo horário desejado | Horários ocupados são ocultados; a oferta atual aparece após `SLOT_TAKEN` |
 | Exclusão retorna `IN_USE` | Há vínculos que precisam ser preservados; cancelar/desativar pode ser adequado ao caso |
 | Login retorna 429 para vários usuários | Atrás de proxy, configure `CLIENT_IP_HEADER` (no Render, `CF-Connecting-IP`) ou `TRUST_PROXY` com o número de proxies; sem isso, todos compartilham o limite por IP |
+| Botão do Google não aparece | Confira `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e `PUBLIC_URL` no ambiente; `GET /api/auth/options` deve retornar `{ "google": true }` |
+| Google mostra `redirect_uri_mismatch` | O URI autorizado no Google Cloud deve ser exatamente `PUBLIC_URL` + `/api/auth/google/callback` |
+| "Não foi possível entrar com o Google" | O motivo fica no log do servidor, na linha `Falha no login com Google` (ex.: `invalid_client` indica segredo errado) |
+| Agendamento retorna `PHONE_REQUIRED` | Conta criada pelo Google ainda sem telefone; informe-o no Perfil |
 | Render não publica o commit | O deploy espera o workflow de testes passar; confira a aba **Actions** do GitHub |
 | Render falha ao iniciar pedindo migração | Aplique a migração no Neon com `node --env-file=.env.producao backend/migrate.js` e refaça o deploy |
 | Login de uma conta retorna 429 | Houve 10 tentativas para esse e-mail em 15 minutos; aguarde ou reinicie o servidor |

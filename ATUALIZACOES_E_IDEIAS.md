@@ -115,9 +115,23 @@ Os problemas abaixo foram relatados e ainda precisam ser investigados. As causas
 
 ## Outras ideias pendentes
 
-Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **016**.
+Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **017**.
 
 ## Atualizações concluídas
+
+### 016 — Entrar com uma conta do Google
+
+- **Estado:** Concluído — testado na API; aguardando as credenciais do Google Cloud e a validação no navegador
+- **Registrado em:** 23/10/2026
+- **Objetivo:** Permitir cadastro e login pelo Google, sem criar senha.
+- **Concluído em:** 23/10/2026
+- **Resumo da entrega:**
+  - Botão **Continuar com o Google** na página de login, exibido só quando o servidor tem `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e `PUBLIC_URL`.
+  - Fluxo de código do OpenID Connect feito no servidor, com `state`, PKCE e `nonce`; nenhum script do Google nas páginas. O token da sessão não passa pela URL: a página troca um código de uso único pela sessão.
+  - O primeiro acesso cria uma conta de cliente sem senha e sem telefone. O Perfil pede o telefone, e a API exige o número para agendar ou entrar na fila (`PHONE_REQUIRED`). O formulário de troca de senha não aparece para essas contas.
+  - Um e-mail já cadastrado com senha não é vinculado ao Google (o site não confirma e-mails); o usuário continua entrando com e-mail e senha.
+  - Migração 3: `usuarios.google_id`, com `senha` e `telefone` opcionais. O teste de integração cobre o fluxo completo contra um servidor falso do Google.
+  - Limpeza: removidos `barbeiros.html` e `js/barbeiros.js` (página legada), `LEIA-ME.txt` (repetia o README) e `backend/criar_banco_local.sql` (repetia as migrações).
 
 ### 015 — Publicação no Render com testes automáticos
 
@@ -161,7 +175,7 @@ Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo ident
 ## Modelo para novos registros
 
 ```markdown
-### 016 — Título da melhoria, correção ou ideia
+### 017 — Título da melhoria, correção ou ideia
 
 - **Estado:** Pendente
 - **Registrado em:** DD/MM/AAAA

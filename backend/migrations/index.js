@@ -2,7 +2,8 @@ import { readFile } from 'node:fs/promises';
 // Migrações em ordem. Nunca altere um arquivo já aplicado: crie uma nova versão.
 export const migrations=[
   {version:1,file:'../schema.sql'},
-  {version:2,file:'./002_varios_servicos.sql'}
+  {version:2,file:'./002_varios_servicos.sql'},
+  {version:3,file:'./003_login_google.sql'}
 ];
 export const latestVersion=migrations.at(-1).version;
 // Executar dentro de transação: aplica apenas as versões ainda não registradas.

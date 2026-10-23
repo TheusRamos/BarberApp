@@ -758,6 +758,9 @@ function loadFormPage() {
         lastFailedPayload = buildAppointmentPayload();
         showToast("Horário já reservado. Você pode entrar na fila de espera.");
         $("waitlist-offer")?.classList.remove("hidden");
+      } else if (error.code === "PHONE_REQUIRED") {
+        showToast(apiErrorMessage(error));
+        setTimeout(() => (window.location.href = "auth.html"), 1600);
       } else {
         showToast(apiErrorMessage(error, "Erro ao salvar agendamento."));
       }
