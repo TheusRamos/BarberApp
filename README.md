@@ -458,7 +458,7 @@ Cobertura existente: hashing/validação, limitador de tentativas, limite de cad
 
 ### Render e Neon
 
-A publicação atual usa um serviço web grátis no Render, descrito em [render.yaml](render.yaml), e o PostgreSQL do Neon. O Render instala com `npm ci`, inicia com `npm start`, verifica `/api/health` e só publica um commit de `main` depois que o workflow de testes passa.
+A publicação atual, em **https://barberapp-at0n.onrender.com**, usa um serviço web grátis no Render, descrito em [render.yaml](render.yaml), e o PostgreSQL do Neon. O Render instala com `npm ci`, inicia com `npm start`, verifica `/api/health` e só publica um commit de `main` depois que o workflow de testes passa.
 
 1. No Neon, use a string de conexão **sem pooling** (host sem `-pooler`), porque o servidor define o fuso na conexão, e com `sslmode=verify-full`.
 2. Aplique as migrações a partir do computador, com a string guardada em um arquivo `.env.producao` (ignorado pelo git): `node --env-file=.env.producao backend/migrate.js`. Faça isso **antes** de publicar uma versão que traga uma migração nova; o servidor recusa iniciar com o banco desatualizado.

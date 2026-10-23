@@ -115,9 +115,21 @@ Os problemas abaixo foram relatados e ainda precisam ser investigados. As causas
 
 ## Outras ideias pendentes
 
-Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **015**.
+Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **016**.
 
 ## Atualizações concluídas
+
+### 015 — Publicação no Render com testes automáticos
+
+- **Estado:** Concluído — aguardando o cadastro de serviços e profissionais no banco de produção
+- **Registrado em:** 23/10/2026
+- **Objetivo:** Publicar o sistema completo (site, API e banco) sem custo e executar os testes a cada envio ao GitHub, pendência da revisão de segurança (item 013).
+- **Concluído em:** 23/10/2026
+- **Resumo da entrega:**
+  - Site e API em https://barberapp-at0n.onrender.com (Render, plano grátis, região Ohio), configurados em `render.yaml`. Banco PostgreSQL no Neon, na mesma região.
+  - O workflow do GitHub Pages foi substituído por `ci.yml`, que executa `npm test` com um PostgreSQL descartável a cada push e pull request. O Render só publica depois que os testes passam. O GitHub Pages foi desativado.
+  - Os limites de login e cadastro por IP passam a usar o IP real do cliente atrás do Cloudflare do Render (`CLIENT_IP_HEADER=CF-Connecting-IP`), com teste de integração.
+  - Versão do Node.js fixada em `.node-version` (24) para o CI e o Render.
 
 ### 014 — Troca de senha e "Sair de todos os dispositivos"
 
@@ -144,12 +156,12 @@ Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo ident
   - Login sem diferença de tempo para e-mail inexistente; senha mínima de 8 caracteres; limpeza periódica de sessões expiradas.
   - Lista pública de avaliações sem identificador do autor; erros de JSON malformado sem mensagem interna.
   - Bloqueio de cliques repetidos em login, cadastro, reserva, fila, serviços, profissionais e moderação.
-- **Pendências da revisão:** recuperação de senha por e-mail, verificação de e-mail, deploy funcional do backend com testes no CI e revisão do histórico do git para o item 008. A revalidação da fila foi entregue com o item 001; troca de senha e "sair de todos os dispositivos" foram entregues no item 014.
+- **Pendências da revisão:** recuperação de senha por e-mail, verificação de e-mail e revisão do histórico do git para o item 008. A revalidação da fila foi entregue com o item 001; troca de senha e "sair de todos os dispositivos", no item 014; publicação do backend com testes no CI, no item 015.
 
 ## Modelo para novos registros
 
 ```markdown
-### 015 — Título da melhoria, correção ou ideia
+### 016 — Título da melhoria, correção ou ideia
 
 - **Estado:** Pendente
 - **Registrado em:** DD/MM/AAAA
