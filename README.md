@@ -40,17 +40,20 @@ Navegador: páginas HTML + CSS + JavaScript
 | Persistência | PostgreSQL, consultas parametrizadas e transações |
 | Autenticação | Senhas scrypt com salt; tokens de sessão com hash no banco |
 | Testes | Executor nativo `node:test` |
-| Publicação automatizada atual | GitHub Actions → GitHub Pages, somente frontend |
+| Integração contínua | GitHub Actions: testes com PostgreSQL descartável a cada push e pull request |
+| Hospedagem | Render (site e API, plano grátis) e Neon (PostgreSQL) |
 
 ## Estrutura do repositório
 
 ```text
 .
 ├── .env.example                 # Modelo de configuração, sem credenciais reais
-├── .github/workflows/deploy.yml  # Publicação do frontend no GitHub Pages
+├── .github/workflows/ci.yml      # Testes no GitHub Actions
 ├── .gitignore
+├── .node-version                # Versão do Node.js usada no CI e no Render
 ├── package.json
 ├── package-lock.json
+├── render.yaml                  # Configuração do serviço no Render (Blueprint)
 ├── README.md
 ├── Gestão de Riscos.docx         # Análise, respostas e monitoramento de 18 riscos
 ├── backend/
@@ -186,7 +189,8 @@ Os scripts de inicialização, desenvolvimento, migração e criação de admini
 | `APP_TIMEZONE` | Fuso da sessão PostgreSQL | `America/Sao_Paulo` |
 | `PGSSL` | Ativa TLS PostgreSQL com validação de certificado | Ativado apenas pelo valor `true`; não força TLS quando omitido ou `false` |
 | `CORS_ORIGIN` | Origem autorizada do frontend separado | Sem padrão; exemplo: `https://organizacao.github.io`, sem caminho ou barra final |
-| `TRUST_PROXY` | Proxies reversos confiáveis, para obter o IP real do cliente nos limites de tentativas | Sem padrão (desativado). Atrás de um proxy, use o número de saltos (ex.: `1`); não use `true` sem proxy, pois o cliente poderia forjar o IP |
+| `TRUST_PROXY` | Proxies reversos confiáveis, para reconhecer HTTPS e obter o IP real do cliente nos limites de tentativas | Sem padrão (desativado). Atrás de um proxy, use o número de saltos (ex.: `1`); não use `true` sem proxy, pois o cliente poderia forjar o IP |
+| `CLIENT_IP_HEADER` | Cabeçalho com o IP real do cliente, gravado pelo proxy; tem precedência sobre `TRUST_PROXY` nos limites de tentativas | Sem padrão. No Render, `CF-Connecting-IP`. Só defina se todo acesso passar pelo proxy que grava o cabeçalho |
 | `MAX_ACTIVE_BOOKINGS` | Máximo de reservas ativas futuras + pedidos na fila por cliente | `3`; administradores não têm limite |
 | `ADMIN_NAME` | Nome da nova conta administrativa | Apenas em `admin:create`; mínimo de 3 caracteres |
 | `ADMIN_EMAIL` | E-mail da nova conta administrativa | Apenas em `admin:create`; único |
@@ -436,9 +440,11 @@ Remove-Item Env:TEST_DATABASE_URL
 
 O teste utiliza essa conexão no lugar de `DATABASE_URL`, recusa um banco com tabelas no esquema `public` e cria seus próprios dados. **Não apaga as tabelas ao terminar**; prepare um novo banco vazio para outra execução. Não aponte para o banco da aplicação.
 
-Cobertura existente: hashing/validação, limitador de tentativas, cadastro, autorização, concorrência, sobreposição, fila, cotas de reserva e de avaliação pendente, moderação, logout, troca de senha com revogação das outras sessões, saída de todos os dispositivos, limite de login por conta, JSON malformado, cabeçalhos de segurança e preservação de preço histórico. Não há suíte de navegador, teste de carga ou restauração automatizada.
+No GitHub, o workflow [ci.yml](.github/workflows/ci.yml) executa `npm test` a cada push e pull request, com a integração em um PostgreSQL descartável do próprio GitHub Actions.
 
-Última verificação, em **21/10/2026**: 4 testes aprovados e 0 falhas, com a integração executada em um banco PostgreSQL descartável.
+Cobertura existente: hashing/validação, limitador de tentativas, limite de cadastro pelo cabeçalho de IP do proxy, cadastro, autorização, concorrência, sobreposição, fila, cotas de reserva e de avaliação pendente, moderação, logout, troca de senha com revogação das outras sessões, saída de todos os dispositivos, limite de login por conta, JSON malformado, cabeçalhos de segurança e preservação de preço histórico. Não há suíte de navegador, teste de carga ou restauração automatizada.
+
+Última verificação local, em **23/10/2026**: 4 testes aprovados e 0 falhas, com a integração executada em um banco PostgreSQL descartável.
 
 ### Conferência funcional antes de publicar
 
@@ -450,7 +456,17 @@ Cobertura existente: hashing/validação, limitador de tentativas, cadastro, aut
 
 ## Publicação
 
-### Frontend e backend juntos
+### Render e Neon
+
+A publicação atual usa um serviço web grátis no Render, descrito em [render.yaml](render.yaml), e o PostgreSQL do Neon. O Render instala com `npm ci`, inicia com `npm start`, verifica `/api/health` e só publica um commit de `main` depois que o workflow de testes passa.
+
+1. No Neon, use a string de conexão **sem pooling** (host sem `-pooler`), porque o servidor define o fuso na conexão, e com `sslmode=verify-full`.
+2. Aplique as migrações a partir do computador, com a string guardada em um arquivo `.env.producao` (ignorado pelo git): `node --env-file=.env.producao backend/migrate.js`. Faça isso **antes** de publicar uma versão que traga uma migração nova; o servidor recusa iniciar com o banco desatualizado.
+3. No Render, crie o serviço por **New → Blueprint**, escolha o repositório e informe `DATABASE_URL` quando solicitado. As demais variáveis já estão no `render.yaml`.
+
+No plano grátis, o serviço é suspenso após 15 minutos sem acesso e a primeira requisição seguinte leva cerca de um minuto. O Neon também suspende o banco ocioso.
+
+### Outra hospedagem com frontend e backend juntos
 
 Disponibilize um ambiente Node.js e PostgreSQL, instale dependências com `npm ci`, configure as variáveis da plataforma, aplique a migração e inicie com `npm start`. Mantenha `apiBaseUrl = '/api'`.
 
@@ -470,9 +486,7 @@ No backend, configure a origem exata do site:
 CORS_ORIGIN=https://organizacao.github.io
 ```
 
-Mesmo que o site esteja em `https://organizacao.github.io/BarberApp/`, a origem CORS não inclui `/BarberApp/`.
-
-O [workflow atual](.github/workflows/deploy.yml) publica `BarberApp/BarberApp` a cada push em `main`. Ele não provisiona Node.js/PostgreSQL, não aplica migrações e não executa testes. Para frontend separado, deixar `/api` aponta as requisições para o host estático, onde não existe a API.
+Mesmo que o site esteja em `https://organizacao.github.io/BarberApp/`, a origem CORS não inclui `/BarberApp/`. Para frontend separado, deixar `/api` aponta as requisições para o host estático, onde não existe a API.
 
 ## Operação e segurança
 
@@ -491,7 +505,7 @@ O [workflow atual](.github/workflows/deploy.yml) publica `BarberApp/BarberApp` a
 - Cotas de uso: reservas ativas + fila por cliente (`MAX_ACTIVE_BOOKINGS`) e uma avaliação pendente por usuário.
 - Sessões expiradas são removidas do banco na inicialização e a cada hora.
 
-O IP usado pelos limites é o da conexão, a menos que `TRUST_PROXY` esteja configurado; atrás de proxy sem essa variável, todos os clientes compartilham o mesmo contador. O limite por conta permite que alguém bloqueie temporariamente o login de um e-mail específico após 10 tentativas. Em múltiplas instâncias, os contadores são separados. Não existe autenticação multifator, recuperação de senha por e-mail ou verificação de e-mail. O token fica no `localStorage`; a CSP reduz, mas não elimina, o risco de roubo em caso de XSS.
+O IP usado pelos limites é o do cabeçalho `CLIENT_IP_HEADER`, quando configurado; senão, o da conexão, ajustado por `TRUST_PROXY`. Atrás de proxy sem essas variáveis, todos os clientes compartilham o mesmo contador. No Render, o Cloudflare acrescenta entradas ao `X-Forwarded-For` em vez de substituí-lo, por isso o IP vem de `CF-Connecting-IP`. O limite por conta permite que alguém bloqueie temporariamente o login de um e-mail específico após 10 tentativas. Em múltiplas instâncias, os contadores são separados. Não existe autenticação multifator, recuperação de senha por e-mail ou verificação de e-mail. O token fica no `localStorage`; a CSP reduz, mas não elimina, o risco de roubo em caso de XSS.
 
 ### Rotina operacional recomendada
 
@@ -557,7 +571,9 @@ Para acompanhar ações, registre: ID, responsável nominal, estado, prazo, indi
 | Nenhum horário disponível | Confira serviços associados, durações, dias, expediente, data futura e reservas ativas |
 | Não é possível entrar na fila pelo horário desejado | Horários ocupados são ocultados; a oferta atual aparece após `SLOT_TAKEN` |
 | Exclusão retorna `IN_USE` | Há vínculos que precisam ser preservados; cancelar/desativar pode ser adequado ao caso |
-| Login retorna 429 para vários usuários | Atrás de proxy, configure `TRUST_PROXY` com o número de proxies; sem isso, todos compartilham o limite por IP |
+| Login retorna 429 para vários usuários | Atrás de proxy, configure `CLIENT_IP_HEADER` (no Render, `CF-Connecting-IP`) ou `TRUST_PROXY` com o número de proxies; sem isso, todos compartilham o limite por IP |
+| Render não publica o commit | O deploy espera o workflow de testes passar; confira a aba **Actions** do GitHub |
+| Render falha ao iniciar pedindo migração | Aplique a migração no Neon com `node --env-file=.env.producao backend/migrate.js` e refaça o deploy |
 | Login de uma conta retorna 429 | Houve 10 tentativas para esse e-mail em 15 minutos; aguarde ou reinicie o servidor |
 | Reserva ou fila retorna `BOOKING_LIMIT` | O cliente atingiu `MAX_ACTIVE_BOOKINGS`; cancele uma reserva ou ajuste a variável |
 | Integração aparece como ignorada | Defina `TEST_DATABASE_URL` no ambiente do terminal |
@@ -572,7 +588,8 @@ Ao alterar o projeto, atualize os contratos de API, variáveis, regras e testes 
 - [Esquema SQL](backend/schema.sql)
 - [Manifesto e scripts](package.json)
 - [Cliente REST](BarberApp/BarberApp/js/api.js)
-- [Publicação no GitHub Pages](.github/workflows/deploy.yml)
+- [Testes no GitHub Actions](.github/workflows/ci.yml)
+- [Serviço no Render](render.yaml)
 - [Análise de riscos](<Gestão de Riscos.docx>)
 
 O repositório não contém arquivo de licença. Créditos exibidos na página inicial: Matheus Ramos e Lukas Raymond.

@@ -6,6 +6,7 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
   // Use exclusivamente um banco vazio e descartável. Nunca o banco da aplicação.
   process.env.DATABASE_URL=process.env.TEST_DATABASE_URL;
   process.env.MAX_ACTIVE_BOOKINGS='2';
+  process.env.CLIENT_IP_HEADER='X-Client-IP';
   const {pool,transaction}=await import('../db.js');
   const {app}=await import('../app.js');
   const {hashPassword}=await import('../security.js');
@@ -105,6 +106,11 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
     assert.equal((await call('/auth/login','POST',{email:'ninguem@test.com',password:'errada123'})).status,429);
     const bOther=(await call('/auth/login','POST',{email:'b@test.com',password:'senha123'})).body.token;
     assert.ok(bOther);
+    // Com CLIENT_IP_HEADER, o limite de cadastro conta pelo IP do cabeçalho; sem ele, pelo da conexão.
+    const register=ip=>fetch(base+'/auth/register',{method:'POST',headers:{'Content-Type':'application/json','X-Client-IP':ip},body:'{}'}).then(r=>r.status);
+    for(let i=0;i<10;i++) assert.equal(await register('203.0.113.1'),400);
+    assert.equal(await register('203.0.113.1'),429);
+    assert.equal(await register('203.0.113.2'),400);
     // Troca de senha mantém só a sessão atual; "sair de todos" encerra também a atual.
     assert.equal((await call('/auth/password','POST',{currentPassword:'errada123',newPassword:'nova12345'},b.token)).body.code,'WRONG_PASSWORD');
     assert.equal((await call('/auth/password','POST',{currentPassword:'senha123',newPassword:'senha123'},b.token)).status,400);

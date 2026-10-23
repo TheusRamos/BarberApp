@@ -39,7 +39,7 @@ Exclusão de usuários/serviços com histórico retorna conflito, preservando os
 
 ## Hospedagem
 
-GitHub Pages hospeda apenas o frontend. Para executar a aplicação completa, hospede este servidor Node.js e um PostgreSQL. Use HTTPS em produção e `HOST=0.0.0.0` quando a plataforma precisar receber conexões externas.
+A publicação atual usa o Render para este servidor, configurado em [render.yaml](../render.yaml), e o Neon para o PostgreSQL. Os passos estão em [Publicação](../README.md#publicação). Em outra hospedagem, use HTTPS em produção e `HOST=0.0.0.0` quando a plataforma precisar receber conexões externas. GitHub Pages hospeda apenas o frontend.
 
 Para manter o frontend separado, configure `BarberApp/BarberApp/js/config.js` com a URL HTTPS terminada em `/api` e configure `CORS_ORIGIN` no servidor com a origem exata do site, sem caminho. `PGSSL=true` ativa TLS com validação do certificado; configure a CA necessária no ambiente se o provedor exigir.
 

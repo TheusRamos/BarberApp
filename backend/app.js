@@ -9,6 +9,10 @@ app.disable('x-powered-by');
 // Atrás de proxy reverso, informe o número de proxies (ex.: 1) para que req.ip seja o IP real do cliente.
 const trustProxy=process.env.TRUST_PROXY;
 if(trustProxy) app.set('trust proxy',trustProxy==='true'?true:/^\d+$/.test(trustProxy)?Number(trustProxy):trustProxy);
+// Cabeçalho com o IP real gravado pelo proxy (no Render, CF-Connecting-IP, que o Cloudflare sobrescreve).
+// Só defina se todo acesso passar por esse proxy: sem ele, o cliente escolhe o IP usado nos limites.
+const ipHeader=process.env.CLIENT_IP_HEADER;
+const clientIp=req=>(ipHeader&&req.get(ipHeader))||req.ip;
 const csp=["default-src 'self'","script-src 'self'","style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com","img-src 'self' data:","connect-src 'self'","object-src 'none'",
   "base-uri 'self'","form-action 'self'","frame-ancestors 'none'"].join('; ');
@@ -57,7 +61,7 @@ const loginByIp=limiter(30,900000),loginByAccount=limiter(10,900000),registerByI
 const passwordByAccount=limiter(5,900000);
 app.get('/api/health',async(req,res)=>{await pool.query('SELECT 1');res.json({status:'ok'});});
 app.post('/api/auth/register',async(req,res)=>{
-  if(!registerByIp.hit(req.ip)) fail(429,'Muitos cadastros a partir desta conexão. Aguarde uma hora.','RATE_LIMIT');
+  if(!registerByIp.hit(clientIp(req))) fail(429,'Muitos cadastros a partir desta conexão. Aguarde uma hora.','RATE_LIMIT');
   const p=req.body;
   const values=[text(p.name,'Nome',3),email(p.email),phone(p.phone),await hashPassword(p.password)];
   res.status(201).json(await transaction(async db=>{
@@ -66,7 +70,7 @@ app.post('/api/auth/register',async(req,res)=>{
   }));
 });
 app.post('/api/auth/login',async(req,res)=>{
-  if(!loginByIp.hit(req.ip)) fail(429,'Muitas tentativas. Aguarde 15 minutos.','RATE_LIMIT');
+  if(!loginByIp.hit(clientIp(req))) fail(429,'Muitas tentativas. Aguarde 15 minutos.','RATE_LIMIT');
   const address=email(req.body.email);
   if(!loginByAccount.hit(address)) fail(429,'Muitas tentativas para esta conta. Aguarde 15 minutos.','RATE_LIMIT');
   const u=(await pool.query('SELECT * FROM usuarios WHERE lower(email)=$1',[address])).rows[0];

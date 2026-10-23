@@ -1,0 +1,27 @@
+# Blueprint do Render: um serviço web grátis entrega o site e a API na mesma origem.
+# O banco fica no Neon. Migrações são aplicadas à parte, do computador:
+#   node --env-file=.env.producao backend/migrate.js
+services:
+  - type: web
+    name: barberapp
+    runtime: node
+    plan: free
+    region: ohio
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    # Publica só depois que os testes do GitHub Actions passarem.
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: HOST
+        value: 0.0.0.0
+      - key: PGSSL
+        value: "true"
+      - key: APP_TIMEZONE
+        value: America/Sao_Paulo
+      - key: TRUST_PROXY
+        value: "1"
+      - key: CLIENT_IP_HEADER
+        value: CF-Connecting-IP
