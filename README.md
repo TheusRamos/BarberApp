@@ -54,6 +54,7 @@ Navegador: páginas HTML + CSS + JavaScript
 ├── .gitignore
 ├── .node-version                # Versão do Node.js usada no CI e no Render
 ├── ATUALIZACOES_E_IDEIAS.md     # Histórico de entregas e ideias pendentes
+├── LIMITES_DOS_SERVICOS.md      # Limites dos planos gratuitos usados em produção
 ├── package.json
 ├── package-lock.json
 ├── render.yaml                  # Configuração do serviço no Render (Blueprint)
@@ -477,7 +478,7 @@ A publicação atual, em **https://barberapp-at0n.onrender.com**, usa um serviç
 2. Aplique as migrações a partir do computador, com a string guardada em um arquivo `.env.producao` (ignorado pelo git): `node --env-file=.env.producao backend/migrate.js`. Faça isso **antes** de publicar uma versão que traga uma migração nova; o servidor recusa iniciar com o banco desatualizado.
 3. No Render, crie o serviço por **New → Blueprint**, escolha o repositório e informe `DATABASE_URL` quando solicitado. As demais variáveis já estão no `render.yaml`.
 
-No plano grátis, o serviço é suspenso após 15 minutos sem acesso e a primeira requisição seguinte leva cerca de um minuto. O Neon também suspende o banco ocioso. O Render fornece o certificado HTTPS e redireciona acessos `http://` para `https://`; o servidor envia `Strict-Transport-Security` nas respostas por HTTPS.
+No plano grátis, o serviço é suspenso após 15 minutos sem acesso e a primeira requisição seguinte leva cerca de um minuto. Os limites de uso de cada serviço estão em [LIMITES_DOS_SERVICOS.md](LIMITES_DOS_SERVICOS.md). O Neon também suspende o banco ocioso. O Render fornece o certificado HTTPS e redireciona acessos `http://` para `https://`; o servidor envia `Strict-Transport-Security` nas respostas por HTTPS.
 
 ### Login com Google
 
@@ -626,6 +627,7 @@ Para acompanhar ações, registre: ID, responsável nominal, estado, prazo, indi
 Ao alterar o projeto, atualize os contratos de API, variáveis, regras e testes afetados. Alterações de banco devem ganhar uma nova etapa de migração; mudanças de frontend/API precisam ser publicadas de forma compatível.
 
 - [Atualizações e ideias](ATUALIZACOES_E_IDEIAS.md): histórico das entregas (itens 001 a 016) e ideias pendentes
+- [Limites dos serviços gratuitos](LIMITES_DOS_SERVICOS.md): limites do Render, Neon, GitHub Actions e Google, capacidade estimada e onde acompanhar o consumo
 - [Backend: instalação e modelo](backend/README.md)
 - [Esquema SQL](backend/schema.sql)
 - [Manifesto e scripts](package.json)
