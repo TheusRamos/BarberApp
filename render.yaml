@@ -32,3 +32,8 @@ services:
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
+      # CAPTCHA (Cloudflare Turnstile): valores definidos no painel do Render (Environment).
+      - key: TURNSTILE_SITE_KEY
+        sync: false
+      - key: TURNSTILE_SECRET_KEY
+        sync: false

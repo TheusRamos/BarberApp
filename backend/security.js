@@ -4,10 +4,14 @@ const derive = promisify(scrypt);
 export function fail(status, message, code='VALIDATION_ERROR') {
   throw Object.assign(new Error(message), { status, code });
 }
+// Caracteres invisíveis e de controle são removidos: burlariam limites (palavras separadas por
+// espaço de largura zero) e permitiriam disfarçar nomes (inversão da direção do texto).
+const invisible=/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F​‎‏‪-‮⁠-⁤⁦-⁩﻿]/g;
 export function text(value, name, min=1, max=150) {
-  if (typeof value !== 'string' || value.trim().length<min || value.trim().length>max)
+  const clean=typeof value==='string' ? value.replace(invisible,'').trim() : null;
+  if (clean===null || clean.length<min || clean.length>max)
     fail(400, `${name}: informe entre ${min} e ${max} caracteres.`);
-  return value.trim();
+  return clean;
 }
 export function id(value) {
   if (!/^\d+$/.test(String(value)) || !Number.isSafeInteger(Number(value)) || Number(value)<1)
@@ -24,9 +28,16 @@ export function phone(value) {
   if (result.length<10 || result.length>15) fail(400,'Telefone inválido.');
   return result;
 }
+// O início do arquivo precisa ser do tipo declarado, não basta o prefixo data:image/...
+const signatures={
+  jpeg:b=>b[0]===0xff && b[1]===0xd8 && b[2]===0xff,
+  png:b=>b.subarray(0,8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a])),
+  webp:b=>b.toString('latin1',0,4)==='RIFF' && b.toString('latin1',8,12)==='WEBP'
+};
 export function photo(value='') {
+  const match=typeof value==='string' && /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/.exec(value);
   if (typeof value!=='string' || value.length>300000 ||
-      (value && !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(value)))
+      (value && !(match && signatures[match[1]](Buffer.from(match[2].slice(0,24),'base64')))))
     fail(400,'Foto inválida. Use o seletor de imagem.');
   return value;
 }

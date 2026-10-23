@@ -67,6 +67,7 @@ Navegador: páginas HTML + CSS + JavaScript
 │   ├── db.js                    # Pool PostgreSQL e transações
 │   ├── security.js              # Validações, senhas, sessões e limitador de tentativas
 │   ├── google.js                # Login com Google (OpenID Connect)
+│   ├── captcha.js               # Verificação anti-robô (Cloudflare Turnstile)
 │   ├── bookings.js              # Conflitos, reservas e promoção da fila
 │   ├── schema.sql               # Estrutura e adaptação inicial do banco (migração 1)
 │   ├── migrate.js               # Aplica as migrações pendentes
@@ -196,6 +197,8 @@ Os scripts de inicialização, desenvolvimento, migração e criação de admini
 | `CORS_ORIGIN` | Origem autorizada do frontend separado | Sem padrão; exemplo: `https://organizacao.github.io`, sem caminho ou barra final |
 | `TRUST_PROXY` | Proxies reversos confiáveis, para reconhecer HTTPS e obter o IP real do cliente nos limites de tentativas | Sem padrão (desativado). Atrás de um proxy, use o número de saltos (ex.: `1`); não use `true` sem proxy, pois o cliente poderia forjar o IP |
 | `CLIENT_IP_HEADER` | Cabeçalho com o IP real do cliente, gravado pelo proxy; tem precedência sobre `TRUST_PROXY` nos limites de tentativas | Sem padrão. No Render, `CF-Connecting-IP`. Só defina se todo acesso passar pelo proxy que grava o cabeçalho |
+| `TURNSTILE_SITE_KEY` | Chave do site do Cloudflare Turnstile (pública) | Sem padrão. Com `TURNSTILE_SECRET_KEY`, ativa o CAPTCHA no cadastro e no login após muitas tentativas |
+| `TURNSTILE_SECRET_KEY` | Chave secreta do Cloudflare Turnstile | Sem padrão; nunca coloque no frontend nem no repositório |
 | `PUBLIC_URL` | Endereço público do site, sem barra final; forma o retorno do login com Google | Sem padrão. Local: `http://127.0.0.1:3000`; Render: `https://barberapp-at0n.onrender.com` |
 | `GOOGLE_CLIENT_ID` | ID do cliente OAuth do Google | Sem padrão. Com `GOOGLE_CLIENT_SECRET` e `PUBLIC_URL`, ativa o botão **Continuar com o Google** |
 | `GOOGLE_CLIENT_SECRET` | Segredo do cliente OAuth do Google | Sem padrão; nunca coloque no frontend nem no repositório |
@@ -230,7 +233,7 @@ Não há scripts de build, lint, rollback de migração ou backup automatizado.
 | Agendar | Não | Para si, com telefone cadastrado | Para si |
 | Consultar agendamentos | Não | Próprios | Todos |
 | Editar reserva ativa | Não | Não | Sim |
-| Cancelar reserva | Não | Própria e ativa | Sim |
+| Cancelar reserva | Não | Própria, ativa e antes do horário | Sim |
 | Alterar status ou excluir reserva | Não | Não | Sim |
 | Entrar na fila de espera | Não | Sim | Não |
 | Enviar avaliação | Não | Sim | Sim, permitido pela API |
@@ -289,9 +292,10 @@ Ao sair de um status ativo, a reserva libera o intervalo e o backend processa a 
 - Envio exige autenticação, nota inteira de 1 a 5 e texto de até 50 palavras. A API limita a 500 caracteres; a interface atual limita a 350.
 - Não é exigido atendimento anterior para avaliar. Novas avaliações ficam pendentes; aprovação publica e reprovação pela interface exclui o registro. O administrador pode **ocultar** uma avaliação publicada, que volta para a moderação.
 - Cada usuário pode ter apenas uma avaliação aguardando aprovação; um novo envio retorna `COMMENT_PENDING`. Isso também impede registros duplicados por clique duplo.
-- A API retorna apenas avaliações aprovadas ao público e aos clientes, sem o identificador do autor; administradores recebem todas. A migração acrescenta aprovação com padrão `false` aos registros existentes quando a coluna ainda não existe.
+- A API retorna apenas avaliações aprovadas ao público e aos clientes, sem o identificador do autor e com o nome abreviado (primeiro nome e inicial do último sobrenome, ex.: "Maria S."); administradores recebem todas, com o nome completo. A migração acrescenta aprovação com padrão `false` aos registros existentes quando a coluna ainda não existe.
 - Clientes/serviços com vínculos podem ter exclusão impedida pelo banco, retornando conflito. A remoção de profissional exige ausência de reservas ativas, desativa o cadastro e remove suas entradas de fila.
 - A exclusão administrativa de agendamento é física. Cancelar mantém o registro; excluir remove o histórico correspondente.
+- O cliente só cancela a própria reserva antes do horário marcado. Depois disso, cancelar, concluir ou excluir fica a cargo do administrador.
 
 ## Banco de dados e migrações
 
@@ -302,7 +306,7 @@ Ao sair de um status ativo, a reserva libera o intervalo e o backend processa a 
 | `servicos` | Nome, preço, duração padrão e ícone |
 | `cabeleireiros` | Profissionais, expediente, dias, foto e situação |
 | `cabeleireiro_servicos` | Serviços e duração por profissional |
-| `horarios` | Data/hora por profissional e disponibilidade manual |
+| `horarios` | Data/hora por profissional e disponibilidade manual; criado ao reservar ou entrar na fila |
 | `agendamentos` | Cliente, primeiro serviço, profissional, horário, status, valor e duração totais históricos |
 | `agendamento_servicos` | Todos os serviços de cada agendamento, em ordem, com duração e preço de cada um |
 | `fila_espera` | Pedidos aguardando disponibilidade |
@@ -349,7 +353,7 @@ Todas as rotas abaixo são relativas a `/api`.
 | POST | `/auth/logout` | Autenticado; revoga a sessão enviada |
 | POST | `/auth/logout-all` | Autenticado; revoga todas as sessões do usuário, inclusive a enviada |
 | POST | `/auth/password` | Autenticado; troca a senha e revoga as outras sessões do usuário |
-| GET | `/auth/options` | Público; `{ "google": true }` quando o login com Google está configurado |
+| GET | `/auth/options` | Público; `{ "google": true/false, "captcha": "<chave do site>" ou null }`, conforme o login com Google e o Turnstile estejam configurados |
 | GET | `/auth/google` | Navegação; guarda `state`, PKCE e `nonce` em cookie e redireciona ao Google |
 | GET | `/auth/google/callback` | Retorno do Google; redireciona a `auth.html#google_code=...` ou `#google_error=...` |
 | POST | `/auth/google/session` | Público; troca o código de uso único (1 minuto) por `{ token, user }` |
@@ -360,8 +364,7 @@ Todas as rotas abaixo são relativas a `/api`.
 | POST / PATCH / DELETE | `/services` / `/services/:id` / `/services/:id` | Admin; criar, editar ou remover serviço |
 | GET | `/barbeiros` | Público; profissionais ativos e serviços |
 | POST / PATCH / DELETE | `/barbeiros` / `/barbeiros/:id` / `/barbeiros/:id` | Admin; criar, editar ou desativar profissional |
-| GET | `/horarios` | Público; horários materializados, disponíveis manualmente e com data de hoje em diante |
-| GET | `/slots` | Público; ocupações ativas com data de hoje em diante, sem nome/e-mail do cliente |
+| GET | `/slots` | Público; ocupações ativas de hoje em diante (`barbeiroId`, `data`, `hora`, `duracao`), sem dados do cliente nem ids; o administrador recebe também `appointmentId` |
 | GET | `/agendamentos` | Cliente: próprios; admin: todos |
 | GET | `/agendamentos/:id` | Titular ou admin; uma reserva |
 | POST | `/agendamentos` | Autenticado; reserva para o usuário atual |
@@ -375,14 +378,14 @@ Todas as rotas abaixo são relativas a `/api`.
 | PATCH | `/comments/:id` | Admin; altera aprovação |
 | DELETE | `/comments/:id` | Autor ou admin; exclui avaliação |
 
-`GET /horarios` não representa toda a disponibilidade calculada e pode incluir horários ocupados ou já passados no dia atual. Consulte as ocupações e a configuração do profissional; a validação definitiva ocorre ao reservar.
+A disponibilidade é calculada pela interface a partir de `GET /slots` e da configuração do profissional (dias, expediente e duração por serviço); a validação definitiva ocorre ao reservar.
 
 ### Corpos de requisição
 
 | Operação | Campos |
 | --- | --- |
-| Cadastro | `name`, `email`, `phone`, `password` |
-| Login | `email`, `password` |
+| Cadastro | `name`, `email`, `phone`, `password`; `captchaToken` quando o Turnstile está ativo |
+| Login | `email`, `password`; `captchaToken` quando a resposta anterior foi `CAPTCHA_REQUIRED` |
 | Troca de senha | `currentPassword`, `newPassword` (8 a 128 caracteres, diferente da atual) |
 | Sessão do Google | `code` (recebido em `auth.html#google_code=...`) |
 | Atualização de perfil | `name`, `phone`, `photoURL` (campos opcionais) |
@@ -421,13 +424,13 @@ Invoke-RestMethod http://127.0.0.1:3000/api/health
 
 | HTTP | Exemplos de código / motivo |
 | --- | --- |
-| 400 | `VALIDATION_ERROR`, `WEAK_PASSWORD`, `WRONG_PASSWORD` (senha atual incorreta na troca), `PHONE_REQUIRED` (reserva ou fila sem telefone cadastrado), `GOOGLE_FAILED` (código do Google inválido ou expirado), `BAD_REQUEST` (JSON malformado); campos ou regras inválidos |
+| 400 | `VALIDATION_ERROR`, `WEAK_PASSWORD`, `WRONG_PASSWORD` (senha atual incorreta na troca), `PHONE_REQUIRED` (reserva ou fila sem telefone cadastrado), `GOOGLE_FAILED` (código do Google inválido ou expirado), `CAPTCHA_REQUIRED` (verificação anti-robô ausente ou recusada), `BAD_REQUEST` (JSON malformado); campos ou regras inválidos |
 | 401 | `UNAUTHORIZED`, `INVALID_CREDENTIALS`; sessão ausente/expirada ou login inválido |
 | 403 | `FORBIDDEN`; perfil ou titularidade sem permissão |
 | 404 | `NOT_FOUND`; recurso ou rota inexistente |
 | 409 | `SLOT_TAKEN`, `SLOT_AVAILABLE`, `ALREADY_ON_WAITLIST`, `BOOKING_LIMIT`, `COMMENT_PENDING`, `EMAIL_IN_USE`, `DUPLICATE`, `IN_USE` |
 | 413 | `PAYLOAD_TOO_LARGE`; corpo JSON excede o limite |
-| 429 | `RATE_LIMIT`; limite de login (por IP ou por conta), de cadastro ou de troca de senha atingido |
+| 429 | `RATE_LIMIT`; limite de login (por IP, ou por conta quando o Turnstile está desligado), de cadastro ou de troca de senha atingido |
 | 500 | Falha interna; mensagem genérica ao cliente |
 
 `NETWORK_ERROR` é produzido pelo cliente JavaScript quando `fetch` falha; não é um status HTTP. O retorno do Google não tem corpo JSON: os erros chegam em `auth.html#google_error=` como `GOOGLE_EMAIL_IN_USE` (e-mail já cadastrado com senha), `GOOGLE_CANCELLED`, `GOOGLE_DISABLED` ou `GOOGLE_FAILED`, e o motivo técnico fica no log do servidor. Consulte `message` e `code`, pois nem toda falha interna tem o mesmo código.
@@ -456,7 +459,7 @@ O teste utiliza essa conexão no lugar de `DATABASE_URL`, recusa um banco com ta
 
 No GitHub, o workflow [ci.yml](.github/workflows/ci.yml) executa `npm test` a cada push e pull request, com a integração em um PostgreSQL descartável do próprio GitHub Actions.
 
-Cobertura existente: hashing/validação, limitador de tentativas, limite de cadastro pelo cabeçalho de IP do proxy, cadastro, autorização, concorrência, sobreposição, fila, cotas de reserva e de avaliação pendente, moderação, logout, troca de senha com revogação das outras sessões, saída de todos os dispositivos, limite de login por conta, login com Google contra um servidor falso do Google (conta nova, código de uso único, telefone exigido para reservar, e-mail já cadastrado, e-mail não verificado, `state` e `nonce` forjados), JSON malformado, cabeçalhos de segurança e preservação de preço histórico. Não há suíte de navegador, teste de carga ou restauração automatizada.
+Cobertura existente: hashing/validação, limitador de tentativas, limite de cadastro pelo cabeçalho de IP do proxy, cadastro, autorização, concorrência, sobreposição, fila, cotas de reserva e de avaliação pendente, moderação, logout, troca de senha com revogação das outras sessões, saída de todos os dispositivos, limite de login por conta, login com Google contra um servidor falso do Google (conta nova, código de uso único, telefone exigido para reservar, e-mail já cadastrado, e-mail não verificado, `state` e `nonce` forjados), CAPTCHA contra um servidor falso do Turnstile (cadastro e login após muitas tentativas), ocupações públicas sem ids, cancelamento recusado depois do horário, remoção de caracteres invisíveis, conteúdo das fotos, nome abreviado nas avaliações públicas, JSON malformado, cabeçalhos de segurança e preservação de preço histórico. Não há suíte de navegador, teste de carga ou restauração automatizada.
 
 Última verificação local, em **23/10/2026**: 4 testes aprovados e 0 falhas, com a integração executada em um banco PostgreSQL descartável.
 
@@ -500,6 +503,16 @@ Para remover a marcação (pendente):
 
 Não mude o endereço da rota para fugir do aviso: o Google pode tratar isso como evasão e marcar o domínio inteiro. Enquanto a análise não sai, quem quiser testar pode usar **Saiba mais → acesse este site não seguro**; para esconder o botão, apague `GOOGLE_CLIENT_ID` no Render. Um domínio próprio reduz a chance de novas marcações.
 
+### CAPTCHA (Cloudflare Turnstile)
+
+O Turnstile é o CAPTCHA gratuito da Cloudflare; na maioria das vezes, o visitante só vê uma marca de confirmação, sem desafio. Quando ativo, é pedido no cadastro e no login de uma conta que passou de 10 tentativas em 15 minutos.
+
+1. Em [dash.cloudflare.com](https://dash.cloudflare.com/), crie uma conta gratuita e abra **Turnstile → Adicionar widget**: nome `BarberApp`, nome de host `barberapp-at0n.onrender.com` e modo **Gerenciado**.
+2. Copie a **chave do site** e a **chave secreta** para `TURNSTILE_SITE_KEY` e `TURNSTILE_SECRET_KEY` no Render (**Environment**).
+3. Localmente, use as chaves de teste da Cloudflare, que sempre aprovam: `TURNSTILE_SITE_KEY=1x00000000000000000000AA` e `TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA`.
+
+Sem as duas chaves, o site funciona sem CAPTCHA, e a conta que passa do limite de tentativas fica bloqueada por 15 minutos. A política de segurança (CSP) só libera `challenges.cloudflare.com` quando o Turnstile está ativo.
+
 ### Outra hospedagem com frontend e backend juntos
 
 Disponibilize um ambiente Node.js e PostgreSQL, instale dependências com `npm ci`, configure as variáveis da plataforma, aplique a migração e inicie com `npm start`. Mantenha `apiBaseUrl = '/api'`.
@@ -533,14 +546,16 @@ Mesmo que o site esteja em `https://organizacao.github.io/BarberApp/`, a origem 
 - Login com Google pelo fluxo de código do OpenID Connect, feito no servidor, sem scripts do Google nas páginas: `state`, PKCE e `nonce` em cookie `HttpOnly` e `SameSite=Lax` restrito a `/api/auth/google`, `id_token` obtido direto do Google com o segredo do cliente e conferido (emissor, cliente, validade, `nonce` e e-mail verificado). O token da sessão não passa pela URL: a página recebe um código de uso único válido por 1 minuto. E-mails já cadastrados com senha não são vinculados, porque o site não confirma e-mails.
 - Autorização no backend por perfil e titularidade; cadastro não aceita escolher perfil administrativo.
 - Consultas SQL parametrizadas, transações, chaves estrangeiras e verificação de conflitos na API.
-- Validação de campos/fotos; escape de conteúdo dinâmico na interface.
+- Validação de campos/fotos; escape de conteúdo dinâmico na interface. Os textos perdem caracteres invisíveis e de controle (espaço de largura zero, inversão de direção), que burlariam limites ou disfarçariam nomes. As fotos precisam começar com a assinatura do formato declarado (JPEG, PNG ou WebP).
+- CAPTCHA opcional (Cloudflare Turnstile): quando ativo, é exigido no cadastro, contra contas falsas em massa, e no login de uma conta que atingiu o limite de tentativas, no lugar do bloqueio.
+- A lista pública de ocupações não traz ids sequenciais, que revelariam o volume de reservas; as avaliações públicas mostram só o primeiro nome e a inicial do sobrenome.
 - Senha com no mínimo 8 caracteres. O login calcula o scrypt mesmo para e-mails inexistentes, para que o tempo de resposta não revele contas cadastradas.
 - Cabeçalhos em todas as respostas: `Content-Security-Policy` (scripts apenas da própria origem, sem scripts inline; estilos e fontes do Google Fonts), `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Cross-Origin-Opener-Policy`, `Permissions-Policy` e `X-Content-Type-Options: nosniff`; `Strict-Transport-Security` quando a requisição chega por HTTPS; `Cache-Control: no-store` para a API.
-- Limites em memória no processo: login com 30 tentativas por IP e 10 por conta (e-mail informado) a cada 15 minutos, zerado após login bem-sucedido; cadastro com 10 contas por IP por hora.
+- Limites em memória no processo: login com 30 tentativas por IP e 10 por conta (e-mail informado) a cada 15 minutos, zerado após login bem-sucedido; cadastro com 10 contas por IP por hora. Com o Turnstile ativo, a conta que passa de 10 tentativas exige o CAPTCHA em vez de ficar bloqueada.
 - Cotas de uso: reservas ativas + fila por cliente (`MAX_ACTIVE_BOOKINGS`) e uma avaliação pendente por usuário.
 - Sessões expiradas são removidas do banco na inicialização e a cada hora.
 
-O IP usado pelos limites é o do cabeçalho `CLIENT_IP_HEADER`, quando configurado; senão, o da conexão, ajustado por `TRUST_PROXY`. Atrás de proxy sem essas variáveis, todos os clientes compartilham o mesmo contador. No Render, o Cloudflare acrescenta entradas ao `X-Forwarded-For` em vez de substituí-lo, por isso o IP vem de `CF-Connecting-IP`. O limite por conta permite que alguém bloqueie temporariamente o login de um e-mail específico após 10 tentativas. Em múltiplas instâncias, os contadores são separados. Não existe autenticação multifator, recuperação de senha por e-mail ou verificação de e-mail. O token fica no `localStorage`; a CSP reduz, mas não elimina, o risco de roubo em caso de XSS.
+O IP usado pelos limites é o do cabeçalho `CLIENT_IP_HEADER`, quando configurado; senão, o da conexão, ajustado por `TRUST_PROXY`. Atrás de proxy sem essas variáveis, todos os clientes compartilham o mesmo contador. No Render, o Cloudflare acrescenta entradas ao `X-Forwarded-For` em vez de substituí-lo, por isso o IP vem de `CF-Connecting-IP`. Sem o Turnstile, o limite por conta permite que alguém bloqueie temporariamente o login de um e-mail específico após 10 tentativas; com ele, o dono da conta só precisa resolver o CAPTCHA. O cadastro informa quando um e-mail ou telefone já existe; o CAPTCHA impede que isso seja consultado em massa. Em múltiplas instâncias, os contadores são separados. Não existe autenticação multifator, recuperação de senha por e-mail ou verificação de e-mail. O token fica no `localStorage`; a CSP reduz, mas não elimina, o risco de roubo em caso de XSS.
 
 ### Rotina operacional recomendada
 
@@ -583,11 +598,12 @@ Para acompanhar ações, registre: ID, responsável nominal, estado, prazo, indi
 - A fila só é oferecida na interface após conflito; não há listagem, desistência ou aviso de promoção ao cliente.
 - Mudanças de dias, expediente e serviços não reconciliam automaticamente reservas já existentes. A promoção da fila revalida essas regras, mas pedidos que deixaram de atendê-las permanecem na fila até a data passar.
 - Não há calendário de feriados, férias, pausas ou rota de bloqueio manual. Horários e contatos da página **Sobre** são textos fixos a revisar antes de publicar.
-- O navegador usa seu próprio fuso/relógio para filtrar horários, enquanto o banco usa `APP_TIMEZONE`.
+- A interface filtra os horários já passados no fuso da barbearia (`appTimeZone` em [config.js](BarberApp/BarberApp/js/config.js), que deve ser igual a `APP_TIMEZONE`), mas com o relógio do aparelho; o servidor revalida ao reservar.
 - Listagens não têm paginação e a trava global serializa escritas de agenda de todos os profissionais.
 - Falhas de carregamento podem virar listas/caches vazias; `fetch` não possui timeout explícito no cliente REST.
 - Seletores visuais e animações têm barreiras de acessibilidade; os fluxos precisam de validação por teclado e leitor de tela.
-- Exclusões e alterações de status não possuem trilha de auditoria. O painel “Clientes” recebe também contas administrativas da API.
+- Exclusões e alterações de status não possuem trilha de auditoria.
+- O cliente não consegue excluir a própria conta pelo site (direito previsto na LGPD); a exclusão é feita pelo administrador e só funciona para contas sem reservas, avaliações ou pedidos na fila.
 - Não há controle de pagamento, integração de notificações ou exigência de atendimento anterior para avaliar.
 - Uma conta com senha não pode ser ligada ao Google, e uma conta criada pelo Google não pode definir senha.
 - Até a análise do Google Safe Browsing, o botão **Continuar com o Google** leva ao aviso "Site perigoso" do Chrome.
@@ -610,6 +626,8 @@ Para acompanhar ações, registre: ID, responsável nominal, estado, prazo, indi
 | Exclusão retorna `IN_USE` | Há vínculos que precisam ser preservados; cancelar/desativar pode ser adequado ao caso |
 | Login retorna 429 para vários usuários | Atrás de proxy, configure `CLIENT_IP_HEADER` (no Render, `CF-Connecting-IP`) ou `TRUST_PROXY` com o número de proxies; sem isso, todos compartilham o limite por IP |
 | Chrome mostra "Site perigoso" ao clicar em **Continuar com o Google** | Marcação do Google Safe Browsing; peça a análise pelo Search Console, como em [Aviso "Site perigoso" do Chrome](#aviso-site-perigoso-do-chrome) |
+| CAPTCHA não aparece no cadastro | Confira `TURNSTILE_SITE_KEY` e `TURNSTILE_SECRET_KEY`; `GET /api/auth/options` deve trazer a chave em `captcha` |
+| "A verificação anti-robô falhou" | Chave secreta errada ou nome de host não autorizado no widget; erros de rede aparecem no log como `Falha ao consultar o Turnstile` |
 | Botão do Google não aparece | Confira `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e `PUBLIC_URL` no ambiente; `GET /api/auth/options` deve retornar `{ "google": true }` |
 | Google mostra `redirect_uri_mismatch` | O URI autorizado no Google Cloud deve ser exatamente `PUBLIC_URL` + `/api/auth/google/callback` |
 | "Não foi possível entrar com o Google" | O motivo fica no log do servidor, na linha `Falha no login com Google` (ex.: `invalid_client` indica segredo errado) |

@@ -17,7 +17,8 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
   const {hashPassword}=await import('../security.js');
   const {runMigrations}=await import('../migrations/index.js');
   const {google}=await import('../google.js');
-  let server,fakeGoogle;
+  const {turnstile}=await import('../captcha.js');
+  let server,fakeGoogle,fakeTurnstile;
   try {
     const tables=await pool.query("SELECT 1 FROM information_schema.tables WHERE table_schema='public' LIMIT 1");
     assert.equal(tables.rowCount,0,'TEST_DATABASE_URL precisa apontar para um banco vazio.');
@@ -50,6 +51,9 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
     assert.equal((await call(`/agendamentos/${booking.id}`,'GET',undefined,loser.token)).status,403);
     assert.equal((await call('/agendamentos','GET',undefined,loser.token)).body.length,0);
     assert.equal((await call('/slots')).body.length,1);
+    // Ocupações públicas sem ids sequenciais; o administrador recebe o id da reserva.
+    assert.deepEqual(Object.keys((await call('/slots')).body[0]).sort(),['barbeiroId','data','duracao','hora']);
+    assert.equal((await call('/slots','GET',undefined,admin)).body[0].appointmentId,booking.id);
     assert.equal((await call('/agendamentos','POST',{...payload,hora:'10:15'},loser.token)).status,409);
     assert.equal((await call('/agendamentos','POST',{...payload,hora:'08:00'},loser.token)).status,400);
     assert.equal((await call('/waitlist','POST',payload,loser.token)).status,201);
@@ -90,6 +94,12 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
     assert.deepEqual(dBookings[1].servicos,['Corte','Barba']);assert.equal(dBookings[1].duracao,45);
     const edited=await call(`/agendamentos/${multi.body.id}`,'PATCH',{...combo,servicos:['Barba']},admin);
     assert.equal(edited.status,200);assert.deepEqual(edited.body.servicos,['Barba']);assert.equal(edited.body.valor,25);
+    // Reserva que já passou: o cliente não cancela mais; o administrador ainda pode.
+    const pastSlot=(await pool.query("INSERT INTO horarios(data,hora,cabeleireiro_id) VALUES(current_date-1,'10:00',$1) RETURNING id",[barber.id])).rows[0].id;
+    const past=(await pool.query("INSERT INTO agendamentos(cliente_id,servico_id,cabeleireiro_id,horario_id,duracao,valor) VALUES($1,$2,$3,$4,30,45) RETURNING id",
+      [d.user.id,service.body.id,barber.id,pastSlot])).rows[0].id;
+    assert.equal((await call(`/agendamentos/${past}/cancel`,'POST',{},d.token)).status,403);
+    assert.equal((await call(`/agendamentos/${past}/cancel`,'POST',{},admin)).status,200);
     const [first,second]=await Promise.all([call('/comments','POST',{rating:5,text:'Ótimo atendimento'},a.token),
       call('/comments','POST',{rating:5,text:'Ótimo atendimento'},a.token)]);
     assert.deepEqual([first.status,second.status].sort(),[201,409]);
@@ -101,6 +111,7 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
     assert.equal(approved.status,200);assert.equal(approved.body.authorName,'Cliente A');
     const publicComments=(await call('/comments')).body;
     assert.equal(publicComments.length,1);assert.equal(publicComments[0].userId,undefined);
+    assert.equal(publicComments[0].authorName,'Cliente A.');
     assert.equal((await call('/comments','POST',{rating:5,text:'palavra '.repeat(51)},a.token)).status,400);
     await call('/services/'+service.body.id,'PATCH',{price:90},admin);
     assert.equal((await call(`/agendamentos/${promoted.id}`,'GET',undefined,admin)).body.valor,45);
@@ -117,6 +128,13 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
     for(let i=0;i<10;i++) assert.equal(await register('203.0.113.1'),400);
     assert.equal(await register('203.0.113.1'),429);
     assert.equal(await register('203.0.113.2'),400);
+    // Caracteres invisíveis são removidos dos textos; a foto precisa ter o conteúdo do tipo declarado.
+    const hidden=(await call('/auth/register','POST',{name:'Ana‮ Lima​',email:'ana@test.com',phone:'11988888888',password:'senha123'})).body;
+    assert.equal(hidden.user.name,'Ana Lima');
+    assert.equal((await call('/comments','POST',{rating:5,text:'bom​trabalho'},hidden.token)).body.text,'bomtrabalho');
+    const png='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=';
+    assert.equal((await call(`/users/${hidden.user.id}`,'PATCH',{photoURL:png},hidden.token)).status,200);
+    assert.equal((await call(`/users/${hidden.user.id}`,'PATCH',{photoURL:'data:image/png;base64,'+Buffer.from('<html><script>').toString('base64')},hidden.token)).status,400);
     // Troca de senha mantém só a sessão atual; "sair de todos" encerra também a atual.
     assert.equal((await call('/auth/password','POST',{currentPassword:'errada123',newPassword:'nova12345'},b.token)).body.code,'WRONG_PASSWORD');
     assert.equal((await call('/auth/password','POST',{currentPassword:'senha123',newPassword:'senha123'},b.token)).status,400);
@@ -149,7 +167,7 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
         {headers:{cookie:cookie.split(';')[0]},redirect:'manual'});
       return Object.fromEntries(new URLSearchParams(new URL(back.headers.get('location'),base).hash.slice(1)));
     }
-    assert.deepEqual((await call('/auth/options')).body,{google:true});
+    assert.deepEqual((await call('/auth/options')).body,{google:true,captcha:null});
     const googleFirst=await googleLogin({sub:'g-1',email:'G@test.com',name:'Cliente Google'});
     const g=await call('/auth/google/session','POST',{code:googleFirst.google_code});
     assert.equal(g.status,200);
@@ -159,6 +177,8 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
     assert.equal((await call('/waitlist','POST',{},g.body.token)).body.code,'PHONE_REQUIRED');
     assert.equal((await call('/users/'+g.body.user.id,'PATCH',{phone:'11977777777'},g.body.token)).status,200);
     assert.notEqual((await call('/agendamentos','POST',{},g.body.token)).body.code,'PHONE_REQUIRED');
+    const shortName=await googleLogin({sub:'g-4',email:'jo@test.com',name:'Jo'});
+    assert.equal((await call('/auth/google/session','POST',{code:shortName.google_code})).body.user.name,'Cliente');
     const googleAgain=await googleLogin({sub:'g-1',email:'g@test.com',name:'Cliente Google'});
     assert.equal((await call('/auth/google/session','POST',{code:googleAgain.google_code})).body.user.id,g.body.user.id);
     assert.equal((await googleLogin({sub:'g-2',email:'a@test.com'})).google_error,'GOOGLE_EMAIL_IN_USE');
@@ -167,6 +187,24 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
     assert.equal((await googleLogin({sub:'g-3',email:'h@test.com'},'forjado')).google_error,'GOOGLE_FAILED');
     assert.equal((await call('/auth/login','POST',{email:'g@test.com',password:'qualquer123'})).status,401);
     assert.equal((await call('/auth/password','POST',{currentPassword:'qualquer123',newPassword:'nova12345'},g.body.token)).body.code,'WRONG_PASSWORD');
+    // Turnstile contra um servidor falso: cadastro exige o CAPTCHA; conta no limite pede o CAPTCHA em vez de travar.
+    fakeTurnstile=await new Promise(resolve=>{const s=createServer((req,res)=>{let body='';req.on('data',c=>body+=c);req.on('end',()=>{
+      const p=new URLSearchParams(body);
+      res.writeHead(200,{'Content-Type':'application/json'});
+      res.end(JSON.stringify({success:p.get('secret')==='segredo-turnstile' && p.get('response')==='ok'}));
+    });}).listen(0,'127.0.0.1',()=>resolve(s));});
+    Object.assign(turnstile,{siteKey:'chave-site',secret:'segredo-turnstile',verifyUrl:`http://127.0.0.1:${fakeTurnstile.address().port}/siteverify`});
+    const post=(route,body,ip)=>fetch(base+route,{method:'POST',headers:{'Content-Type':'application/json','X-Client-IP':ip},body:JSON.stringify(body)})
+      .then(async r=>({status:r.status,body:await r.json()}));
+    assert.equal((await call('/auth/options')).body.captcha,'chave-site');
+    const human={name:'Cliente Humano',email:'humano@test.com',phone:'11999999999',password:'senha123'};
+    assert.equal((await post('/auth/register',human,'198.51.100.1')).body.code,'CAPTCHA_REQUIRED');
+    assert.equal((await post('/auth/register',{...human,captchaToken:'falso'},'198.51.100.1')).body.code,'CAPTCHA_REQUIRED');
+    assert.equal((await post('/auth/register',{...human,captchaToken:'ok'},'198.51.100.1')).status,201);
+    for(let i=0;i<10;i++) await post('/auth/login',{email:'humano@test.com',password:'errada123'},`198.51.100.${10+i}`);
+    assert.equal((await post('/auth/login',{email:'humano@test.com',password:'senha123'},'198.51.100.30')).body.code,'CAPTCHA_REQUIRED');
+    assert.equal((await post('/auth/login',{email:'humano@test.com',password:'senha123',captchaToken:'ok'},'198.51.100.30')).status,200);
+    Object.assign(turnstile,{siteKey:undefined,secret:undefined});
     const malformed=await fetch(base+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:'{'});
     assert.equal(malformed.status,400);assert.equal((await malformed.json()).message,'Requisição inválida.');
     const page=await fetch(base.replace(/\/api$/,'/'));
@@ -176,6 +214,7 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
   } finally {
     if(server) await new Promise(resolve=>server.close(resolve));
     if(fakeGoogle) await new Promise(resolve=>fakeGoogle.close(resolve));
+    if(fakeTurnstile) await new Promise(resolve=>fakeTurnstile.close(resolve));
     await pool.end();
   }
 });

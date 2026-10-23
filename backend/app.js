@@ -4,6 +4,7 @@ import { pool,transaction } from './db.js';
 import { fail,text,id,email,phone,photo,hashPassword,verifyPassword,tokenHash,userDTO,session,limiter } from './security.js';
 import { bookingSelect,bookingDTO,getBooking,lockAgenda,prepare,conflict,insertBooking,insertWaitlist,saveBookingServices,promote,statusDB,active,checkQuota } from './bookings.js';
 import { googleEnabled,start,finish,googleUser,issueCode,redeemCode } from './google.js';
+import { turnstile,captchaEnabled,requireCaptcha } from './captcha.js';
 
 export const app=express();
 app.disable('x-powered-by');
@@ -14,7 +15,9 @@ if(trustProxy) app.set('trust proxy',trustProxy==='true'?true:/^\d+$/.test(trust
 // Só defina se todo acesso passar por esse proxy: sem ele, o cliente escolhe o IP usado nos limites.
 const ipHeader=process.env.CLIENT_IP_HEADER;
 const clientIp=req=>(ipHeader&&req.get(ipHeader))||req.ip;
-const csp=["default-src 'self'","script-src 'self'","style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+// O widget do Turnstile (script e iframe) vem de challenges.cloudflare.com; só é liberado quando ativo.
+const cf=captchaEnabled()?' https://challenges.cloudflare.com':'';
+const csp=["default-src 'self'",`script-src 'self'${cf}`,`frame-src 'self'${cf}`,"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com","img-src 'self' data:","connect-src 'self'","object-src 'none'",
   "base-uri 'self'","form-action 'self'","frame-ancestors 'none'"].join('; ');
 app.use((req,res,next)=>{
@@ -56,7 +59,8 @@ app.use('/api',async(req,res,next)=>{
 function auth(req,res,next) {if(!req.user) fail(401,'Faça login para continuar.','UNAUTHORIZED');next();}
 function admin(req,res,next) {if(req.user?.tipo!=='administrador') fail(403,'Acesso restrito ao administrador.','FORBIDDEN');next();}
 // Login: limite por IP contra varredura e por conta contra força bruta distribuída.
-// O limite por conta vale para qualquer email informado, existente ou não.
+// O limite por conta vale para qualquer email informado, existente ou não. Com o Turnstile ativo,
+// a conta no limite passa a exigir o CAPTCHA em vez de travar: senão, qualquer um bloquearia a vítima.
 const loginByIp=limiter(30,900000),loginByAccount=limiter(10,900000),registerByIp=limiter(10,3600000);
 // Troca de senha: limite por usuário para que um token roubado não sirva para testar a senha atual.
 const passwordByAccount=limiter(5,900000);
@@ -65,6 +69,7 @@ app.post('/api/auth/register',async(req,res)=>{
   if(!registerByIp.hit(clientIp(req))) fail(429,'Muitos cadastros a partir desta conexão. Aguarde uma hora.','RATE_LIMIT');
   const p=req.body;
   const values=[text(p.name,'Nome',3),email(p.email),phone(p.phone),await hashPassword(p.password)];
+  if(captchaEnabled()) await requireCaptcha(p.captchaToken,clientIp(req));
   res.status(201).json(await transaction(async db=>{
     const u=(await db.query("INSERT INTO usuarios(nome,email,telefone,senha,tipo) VALUES($1,$2,$3,$4,'cliente') RETURNING *",values)).rows[0];
     return session(db,u);
@@ -73,7 +78,10 @@ app.post('/api/auth/register',async(req,res)=>{
 app.post('/api/auth/login',async(req,res)=>{
   if(!loginByIp.hit(clientIp(req))) fail(429,'Muitas tentativas. Aguarde 15 minutos.','RATE_LIMIT');
   const address=email(req.body.email);
-  if(!loginByAccount.hit(address)) fail(429,'Muitas tentativas para esta conta. Aguarde 15 minutos.','RATE_LIMIT');
+  if(!loginByAccount.hit(address)) {
+    if(!captchaEnabled()) fail(429,'Muitas tentativas para esta conta. Aguarde 15 minutos.','RATE_LIMIT');
+    await requireCaptcha(req.body.captchaToken,clientIp(req));
+  }
   const u=(await pool.query('SELECT * FROM usuarios WHERE lower(email)=$1',[address])).rows[0];
   const valid=await verifyPassword(req.body.password,u?.senha);
   if(!u || !valid) fail(401,'Email ou senha incorretos.','INVALID_CREDENTIALS');
@@ -99,7 +107,7 @@ app.post('/api/auth/password',auth,async(req,res)=>{
 });
 // Login com Google: /api/auth/google leva ao Google, que volta para /callback; a página recebe
 // um código de uso único no fragmento da URL e o troca pela sessão em /session.
-app.get('/api/auth/options',(req,res)=>res.json({google:googleEnabled()}));
+app.get('/api/auth/options',(req,res)=>res.json({google:googleEnabled(),captcha:captchaEnabled()?turnstile.siteKey:null}));
 app.get('/api/auth/google',(req,res)=>{
   if(!googleEnabled()) return res.redirect('/auth.html#google_error=GOOGLE_DISABLED');
   const {url,cookie}=start();
@@ -205,10 +213,14 @@ app.delete('/api/barbeiros/:id',auth,admin,async(req,res)=>{
     await db.query('DELETE FROM fila_espera WHERE horario_id IN (SELECT id FROM horarios WHERE cabeleireiro_id=$1)',[key]);
     await db.query('UPDATE cabeleireiros SET ativo=false WHERE id=$1',[key]);});res.json({});
 });
-app.get('/api/horarios',async(req,res)=>res.json((await pool.query(`SELECT h.*,b.nome AS barbeiro FROM horarios h
-  JOIN cabeleireiros b ON b.id=h.cabeleireiro_id WHERE h.disponivel AND b.ativo AND h.data>=current_date`)).rows.map(h=>({id:String(h.id),data:h.data,hora:h.hora.slice(0,5),barbeiro:h.barbeiro,barbeiroId:String(h.cabeleireiro_id)}))));
-app.get('/api/slots',async(req,res)=>res.json((await pool.query(`SELECT a.id,a.horario_id,a.cabeleireiro_id,a.duracao,h.data,h.hora
-  FROM agendamentos a JOIN horarios h ON h.id=a.horario_id WHERE a.status IN ('agendado','confirmado') AND h.data>=current_date`)).rows.map(a=>({id:String(a.horario_id),horarioId:String(a.horario_id),appointmentId:String(a.id),barbeiroId:String(a.cabeleireiro_id),data:a.data,hora:a.hora.slice(0,5),duracao:a.duracao}))));
+// Ocupações públicas sem ids sequenciais, que revelariam o volume de reservas da barbearia;
+// o administrador recebe o id da reserva para ignorá-la ao editar.
+app.get('/api/slots',async(req,res)=>{
+  const isAdmin=req.user?.tipo==='administrador';
+  res.json((await pool.query(`SELECT a.id,a.cabeleireiro_id,a.duracao,h.data,h.hora
+    FROM agendamentos a JOIN horarios h ON h.id=a.horario_id WHERE a.status IN ('agendado','confirmado') AND h.data>=current_date`)).rows
+    .map(a=>({barbeiroId:String(a.cabeleireiro_id),data:a.data,hora:a.hora.slice(0,5),duracao:a.duracao,...(isAdmin?{appointmentId:String(a.id)}:{})})));
+});
 app.get('/api/agendamentos',auth,async(req,res)=>res.json((await pool.query(`${bookingSelect}${req.user.tipo==='administrador'?'':' WHERE a.cliente_id=$1'} ORDER BY h.data,h.hora`,req.user.tipo==='administrador'?[]:[req.user.id])).rows.map(bookingDTO)));
 app.get('/api/agendamentos/:id',auth,async(req,res)=>res.json(bookingDTO(await getBooking(pool,req.params.id,req.user))));
 // Contas criadas pelo Google começam sem telefone; a barbearia precisa dele para contatar o cliente.
@@ -235,7 +247,12 @@ async function changeStatus(req,res) {
   const target=req.path.endsWith('/cancel')?'cancelado':statusDB(req.body.status);
   if(!target) fail(400,'Status inválido.');
   const result=await transaction(async db=>{await lockAgenda(db);const old=await getBooking(db,req.params.id,req.user,true);
-    if(req.user.tipo!=='administrador' && (!active(old.status)||target!=='cancelado')) fail(403,'Este agendamento não pode ser cancelado.','FORBIDDEN');
+    if(req.user.tipo!=='administrador') {
+      if(!active(old.status)||target!=='cancelado') fail(403,'Este agendamento não pode ser cancelado.','FORBIDDEN');
+      // O cliente só cancela antes do horário; depois disso, o registro fica a cargo do administrador.
+      if(!(await db.query('SELECT $1::date+$2::time>localtimestamp AS future',[old.data,old.hora])).rows[0].future)
+        fail(403,'Reservas que já passaram não podem ser canceladas.','FORBIDDEN');
+    }
     if(active(target) && !active(old.status)) {
       await prepare(db,bookingDTO(old));
       if(await conflict(db,old,old.duracao,old.id)) fail(409,'Horário já reservado.','SLOT_TAKEN');
@@ -259,11 +276,13 @@ app.post('/api/waitlist',auth,phoneRequired,async(req,res)=>{
     if(!key) fail(409,'Você já está na fila.','ALREADY_ON_WAITLIST');return {id:String(key)};});res.status(201).json(result);
 });
 const commentDTO=c=>({id:String(c.id),userId:String(c.cliente_id),authorName:c.nome,rating:c.estrelas,text:c.texto,approved:c.aprovado,createdAt:c.criado_em});
+// Em público, o autor aparece com o primeiro nome e a inicial do último sobrenome.
+const publicName=name=>{const parts=String(name).trim().split(/\s+/);return parts.length>1?`${parts[0]} ${parts.at(-1)[0].toUpperCase()}.`:parts[0];};
 app.get('/api/comments',async(req,res)=>{
   const isAdmin=req.user?.tipo==='administrador';
   const rows=(await pool.query(`SELECT c.*,u.nome FROM comentarios c JOIN usuarios u ON u.id=c.cliente_id
     ${isAdmin?'':'WHERE c.aprovado'} ORDER BY c.criado_em DESC`)).rows;
-  res.json(rows.map(c=>{const dto=commentDTO(c);if(!isAdmin) delete dto.userId;return dto;}));
+  res.json(rows.map(c=>{const dto=commentDTO(c);if(!isAdmin) {delete dto.userId;dto.authorName=publicName(c.nome);}return dto;}));
 });
 app.post('/api/comments',auth,async(req,res)=>{
   const p=req.body,body=text(p.text,'Comentário',1,500);

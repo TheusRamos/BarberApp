@@ -115,9 +115,26 @@ Os problemas abaixo foram relatados e ainda precisam ser investigados. As causas
 
 ## Outras ideias pendentes
 
-Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **017**.
+Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **018**.
 
 ## Atualizações concluídas
+
+### 017 — Correções da auditoria de segurança
+
+- **Estado:** Concluído — o CAPTCHA aguarda as chaves do Cloudflare Turnstile no Render; o projeto antigo do Firebase aguarda exclusão pelo responsável
+- **Registrado em:** 23/10/2026
+- **Objetivo:** Corrigir as vulnerabilidades e os bugs encontrados nos testes de segurança e de funcionamento (124 verificações automáticas numa cópia local, checagens de leitura em produção, revisão do código e do histórico do git).
+- **Concluído em:** 23/10/2026
+- **Resumo da entrega:**
+  - Dependência `proxy-addr` atualizada (alerta crítico do `npm audit`, GHSA-jqcg-44mw-7w3h).
+  - CAPTCHA opcional (Cloudflare Turnstile): exigido no cadastro, contra contas falsas que lotariam a agenda, e no login de uma conta com muitas tentativas, no lugar do bloqueio de 15 minutos que permitia travar o acesso de outra pessoa.
+  - O cliente só cancela a própria reserva antes do horário; o botão some para reservas que já passaram.
+  - Textos sem caracteres invisíveis ou de controle; fotos conferidas pela assinatura do arquivo.
+  - Lista pública de ocupações sem ids sequenciais; rota legada `GET /api/horarios` removida.
+  - Avaliações públicas com o nome abreviado (primeiro nome e inicial do sobrenome).
+  - Conta do Google com nome curto passa a se chamar "Cliente" em vez de ficar impedida de agendar; o formulário de reserva deixa de validar nome e e-mail, que vêm da conta.
+  - Painel "Clientes" sem os administradores; horários filtrados no fuso da barbearia.
+- **Pendências:** excluir o projeto antigo do Firebase (`barbearia-7387c`), ainda ativo e com dados de junho, cuja configuração está no histórico público do git; exclusão da própria conta pelo cliente (LGPD), que depende de decidir como preservar o histórico de reservas.
 
 ### 016 — Entrar com uma conta do Google
 
@@ -175,7 +192,7 @@ Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo ident
 ## Modelo para novos registros
 
 ```markdown
-### 017 — Título da melhoria, correção ou ideia
+### 018 — Título da melhoria, correção ou ideia
 
 - **Estado:** Pendente
 - **Registrado em:** DD/MM/AAAA

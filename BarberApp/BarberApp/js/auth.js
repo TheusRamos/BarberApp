@@ -6,6 +6,8 @@ const shouldLogout = params.get("logout") === "1";
 
 let pendingPhotoBase64 = null;
 let currentUser = null;
+let captchaSiteKey = null;
+const captcha = { login: { widget: null, token: "" }, register: { widget: null, token: "" } };
 
 // ============================================================
 // TOAST
@@ -58,7 +60,8 @@ function translateApiError(error) {
     "GOOGLE_EMAIL_IN_USE": "Este email já tem cadastro com senha. Entre com email e senha.",
     "GOOGLE_CANCELLED": "Login com Google cancelado.",
     "GOOGLE_DISABLED": "Login com Google indisponível no momento.",
-    "GOOGLE_FAILED": "Não foi possível entrar com o Google. Tente novamente."
+    "GOOGLE_FAILED": "Não foi possível entrar com o Google. Tente novamente.",
+    "CAPTCHA_REQUIRED": "Confirme que você não é um robô e tente novamente."
   };
   return map[code] || error?.message || "Erro inesperado. Tente novamente.";
 }
@@ -81,6 +84,53 @@ function showRegister() {
   $("login-form")?.classList.add("hidden");
   $("tab-register")?.classList.replace("ghost-btn", "secondary-btn");
   $("tab-login")?.classList.replace("secondary-btn", "ghost-btn");
+  showCaptcha("register");
+}
+
+// ============================================================
+// CAPTCHA (Cloudflare Turnstile)
+// ============================================================
+
+// O script só é carregado quando o servidor informa a chave do site.
+function loadTurnstile() {
+  loadTurnstile.promise ??= new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+    script.onload = () => resolve(window.turnstile);
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+  return loadTurnstile.promise;
+}
+
+async function showCaptcha(form) {
+  const box = $(`${form}-captcha`);
+  if (!captchaSiteKey || !box) return;
+  box.classList.remove("hidden");
+  if (captcha[form].widget !== null) return;
+
+  try {
+    const turnstile = await loadTurnstile();
+    captcha[form].widget = turnstile.render(box, {
+      sitekey: captchaSiteKey,
+      language: "pt-br",
+      callback: token => {
+        captcha[form].token = token;
+        clearError(`${form}-captcha`);
+      },
+      "expired-callback": () => (captcha[form].token = ""),
+      "error-callback": () => (captcha[form].token = "")
+    });
+  } catch (error) {
+    console.error("Erro ao carregar a verificação anti-robô:", error);
+    setError(`${form}-captcha`, "Não foi possível carregar a verificação anti-robô. Recarregue a página.");
+  }
+}
+
+// Cada token do Turnstile vale para um único envio.
+function resetCaptcha(form) {
+  captcha[form].token = "";
+  if (captcha[form].widget !== null) window.turnstile?.reset(captcha[form].widget);
 }
 
 // ============================================================
@@ -301,20 +351,31 @@ async function handleLogin(event) {
   let valid = true;
   if (!isValidEmail(email)) { setError("login-email", "Informe um email válido."); valid = false; }
   if (!password)            { setError("login-password", "Informe sua senha."); valid = false; }
+  if (captcha.login.widget !== null && !captcha.login.token) {
+    setError("login-captcha", "Confirme que você não é um robô.");
+    valid = false;
+  }
   if (!valid) return;
 
   const submitBtn = submitButton(event);
   if (submitBtn) submitBtn.disabled = true;
 
   try {
-    const { token, user } = await api.auth.login({ email, password });
+    const { token, user } = await api.auth.login({ email, password, captchaToken: captcha.login.token || undefined });
     setToken(token);
     currentUser = user;
     showToast("Login realizado com sucesso.");
     setTimeout(() => (window.location.href = "index.html"), 650);
   } catch (error) {
     console.error(error);
-    showToast(translateApiError(error));
+    resetCaptcha("login");
+    // Muitas tentativas nesta conta: o servidor passa a exigir a verificação anti-robô.
+    if (error.code === "CAPTCHA_REQUIRED") {
+      await showCaptcha("login");
+      setError("login-captcha", "Muitas tentativas nesta conta. Confirme que você não é um robô e entre de novo.");
+    } else {
+      showToast(translateApiError(error));
+    }
     if (submitBtn) submitBtn.disabled = false;
   }
 }
@@ -340,19 +401,21 @@ async function handleRegister(event) {
   if (!phone || phone.replace(/\D/g, "").length < 10) { setError("register-phone", "Informe um telefone válido com DDD."); valid = false; }
   if (password.length < 8)                            { setError("register-password", "A senha precisa ter pelo menos 8 caracteres."); valid = false; }
   if (password !== confirm)                           { setError("register-password-confirm", "As senhas não coincidem."); valid = false; }
+  if (captchaSiteKey && !captcha.register.token)      { setError("register-captcha", "Confirme que você não é um robô."); valid = false; }
   if (!valid) return;
 
   const submitBtn = submitButton(event);
   if (submitBtn) submitBtn.disabled = true;
 
   try {
-    const { token, user } = await api.auth.register({ name, email, phone, password });
+    const { token, user } = await api.auth.register({ name, email, phone, password, captchaToken: captcha.register.token || undefined });
     setToken(token);
     currentUser = user;
     showToast("Cadastro realizado com sucesso.");
     setTimeout(() => (window.location.href = "index.html"), 700);
   } catch (error) {
     console.error("Erro no cadastro:", error);
+    resetCaptcha("register");
     showToast(translateApiError(error));
     if (submitBtn) submitBtn.disabled = false;
   }
@@ -419,10 +482,13 @@ async function handleGoogleReturn() {
   }
 }
 
-async function showGoogleButton() {
+// Opções que dependem da configuração do servidor: botão do Google e chave do Turnstile.
+async function loadAuthOptions() {
   try {
-    const { google } = await api.auth.options();
-    $("google-login")?.classList.toggle("hidden", !google);
+    const options = await api.auth.options();
+    $("google-login")?.classList.toggle("hidden", !options.google);
+    captchaSiteKey = options.captcha || null;
+    if (!$("register-form")?.classList.contains("hidden")) showCaptcha("register");
   } catch (error) {
     console.warn("Não foi possível consultar as opções de login.", error);
   }
@@ -481,6 +547,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   } else {
     showAuthPanel();
-    showGoogleButton();
+    loadAuthOptions();
   }
 });

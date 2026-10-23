@@ -195,6 +195,12 @@
               <small class="field-error" id="error-login-password"></small>
             </div>
 
+            <!-- Verificação anti-robô, pedida pelo servidor depois de muitas tentativas nesta conta. -->
+            <div class="form-group">
+              <div id="login-captcha" class="captcha-box hidden"></div>
+              <small class="field-error" id="error-login-captcha"></small>
+            </div>
+
             <div class="form-actions">
               <button type="submit" class="submit-btn">Entrar</button>
             </div>
@@ -229,6 +235,12 @@
               <label for="register-password-confirm">Confirmar senha</label>
               <input type="password" id="register-password-confirm" required autocomplete="new-password" />
               <small class="field-error" id="error-register-password-confirm"></small>
+            </div>
+
+            <!-- Verificação anti-robô, exibida quando o servidor tem o Turnstile configurado. -->
+            <div class="form-group">
+              <div id="register-captcha" class="captcha-box hidden"></div>
+              <small class="field-error" id="error-register-captcha"></small>
             </div>
 
             <div class="form-actions">

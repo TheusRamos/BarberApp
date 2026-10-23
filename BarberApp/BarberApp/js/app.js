@@ -1,4 +1,5 @@
 import { api, getToken } from "./api.js";
+import { appTimeZone } from "./config.js";
 
 const EDIT_KEY = "barber_agendamento_editando";
 const STATUS_SEQUENCE = ["Pendente", "Confirmado", "Concluído", "Cancelado"];
@@ -19,9 +20,8 @@ let pendingPhoto = null;
 let editingBarbeiroId = null;
 let appointmentsCache = [];
 let servicesCache = [];
-let horariosCache = [];
 let commentsCache = [];
-let slotsCache = new Map();
+let slotsCache = [];
 let usersCache = [];
 let barbeirosCache = [];
 let selectedBarbeiroId = null;
@@ -75,10 +75,6 @@ function slugify(value = "") {
     .replace(/^-+|-+$/g, "") || "principal";
 }
 
-function buildHorarioId(data, hora, barbeiro = "") {
-  return `${data}_${hora}_${slugify(barbeiro)}`;
-}
-
 function formatDateBR(dateString) {
   if (!dateString) return "";
   const [year, month, day] = dateString.split("-");
@@ -117,10 +113,6 @@ function setError(fieldName, message) {
   if (errorEl) errorEl.textContent = message;
 }
 
-function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
 function getServicesForUI() {
   return servicesCache;
 }
@@ -138,10 +130,22 @@ function sortByDateTime(items) {
   });
 }
 
+// Data e minuto atuais no fuso da barbearia, não no do visitante.
+function nowInShop() {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+    timeZone: appTimeZone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+  }).formatToParts(new Date()).map(part => [part.type, part.value]));
+  return { date: `${parts.year}-${parts.month}-${parts.day}`, minutes: Number(parts.hour) * 60 + Number(parts.minute) };
+}
+
 function getTodayISO() {
-  const now = new Date();
-  const offset = now.getTimezoneOffset() * 60000;
-  return new Date(now.getTime() - offset).toISOString().split("T")[0];
+  return nowInShop().date;
+}
+
+function isUpcoming(appointment) {
+  const now = nowInShop();
+  const [hours, minutes] = (appointment.hora || "00:00").split(":").map(Number);
+  return appointment.data > now.date || (appointment.data === now.date && hours * 60 + minutes > now.minutes);
 }
 
 function getSelectedServiceNames() {
@@ -174,12 +178,6 @@ function updateServiceTotal() {
   totalEl.textContent = `${label} • Total: ${formatMoney(price)}${minutes ? ` • ${minutes} min` : ""}`;
 }
 
-function getSelectedHorario() {
-  const select = $("hora");
-  if (!select || !select.value) return null;
-  return horariosCache.find(item => item.id === select.value) || null;
-}
-
 function generateBarberSlots(barbeiro, selectedDate, selectedServices, editId) {
   const inicio = barbeiro.horarioInicio || "09:00";
   const fim    = barbeiro.horarioFim    || "20:00";
@@ -200,26 +198,22 @@ function generateBarberSlots(barbeiro, selectedDate, selectedServices, editId) {
 
   // Collect booked intervals for this barber+date (excluding the appointment being edited)
   const booked = [];
-  for (const [id, slot] of slotsCache) {
-    const slotDate    = slot.data || id.split("_")[0];
-    const slotBarbId  = slot.barbeiroId || (id.split("_")[2] || "");
-    if (slotDate !== selectedDate) continue;
-    if (slotBarbId && slotBarbId !== barbeiro.id) continue;
+  for (const slot of slotsCache) {
+    if (slot.data !== selectedDate || slot.barbeiroId !== barbeiro.id) continue;
     if (editId && slot.appointmentId === editId) continue;
 
-    const slotHora = slot.hora || id.split("_").slice(1, 3).join(":");
-    if (!slotHora) continue;
-    const [sh, sm] = slotHora.split(":").map(Number);
+    const [sh, sm] = slot.hora.split(":").map(Number);
     const startMin = sh * 60 + sm;
     const dur      = Number(slot.duracao) || svcDur;
     booked.push({ s: startMin, e: startMin + dur });
   }
 
+  const now = nowInShop();
   const slots = [];
   while (cur + svcDur <= fimMin) {
     const end = cur + svcDur;
     const blocked = booked.some(b => cur < b.e && end > b.s) ||
-      (selectedDate === getTodayISO() && cur <= new Date().getHours() * 60 + new Date().getMinutes());
+      (selectedDate === now.date && cur <= now.minutes);
     if (!blocked) {
       const hh = Math.floor(cur / 60);
       const mm = cur % 60;
@@ -261,7 +255,7 @@ function updateAdminStats() {
   const barbeiros = $("admin-stat-barbeiros");
   const services  = $("admin-stat-services");
   const pending   = $("admin-stat-pending");
-  if (clients)   clients.textContent   = usersCache.length;
+  if (clients)   clients.textContent   = usersCache.filter(user => user.role !== "admin").length;
   if (barbeiros) barbeiros.textContent = barbeirosCache.length;
   if (services)  services.textContent  = servicesCache.length;
   if (pending)   pending.textContent   = appointmentsCache.filter(a => a.status === "Pendente").length;
@@ -463,39 +457,17 @@ function updateAvailableTimes() {
     return;
   }
 
-  // ── Fallback: manual horarios (legacy) ───────────────────────
-  const horarios = sortByDateTime(
-    horariosCache.filter(horario => {
-      if (horario.data !== selectedDate) return false;
-      const slot = slotsCache.get(horario.id);
-      return !slot || (editId && slot.appointmentId === editId);
-    })
-  );
-
-  if (!horarios.length) {
-    select.disabled = true;
-    select.innerHTML = `<option value="">Nenhum horário disponível nessa data</option>`;
-    return;
-  }
-
-  select.disabled = false;
-  select.innerHTML = `<option value="">Selecione um horário</option>` +
-    horarios.map(h => {
-      const barb = h.barbeiro ? ` • ${h.barbeiro}` : "";
-      return `<option value="${escapeHTML(h.id)}">${escapeHTML(h.hora)}${escapeHTML(barb)}</option>`;
-    }).join("");
-
-  const currentHorarioId = pendingEditAppointment?.horarioId || "";
-  if (currentHorarioId && horarios.some(h => h.id === currentHorarioId)) {
-    select.value = currentHorarioId;
-  }
+  // Os horários dependem do expediente e dos serviços do barbeiro escolhido.
+  select.disabled = true;
+  select.innerHTML = barbeirosCache.length
+    ? `<option value="">Selecione um barbeiro primeiro</option>`
+    : `<option value="">Nenhum barbeiro disponível</option>`;
 }
 
 function validateForm() {
   let isValid = true;
 
-  const nome = $("nome")?.value.trim() || "";
-  const email = $("email")?.value.trim() || "";
+  // Nome e e-mail não são validados aqui: vêm da conta logada, ficam somente leitura e o servidor os ignora.
   const data = $("data")?.value || "";
   const horarioId = $("hora")?.value || "";
   const servicos = getSelectedServiceNames();
@@ -504,16 +476,6 @@ function validateForm() {
 
   if (barbeirosCache.length > 0 && !selectedBarbeiroId) {
     setError("barbeiro", "Selecione um barbeiro.");
-    isValid = false;
-  }
-
-  if (nome.length < 3) {
-    setError("nome", "Informe um nome válido.");
-    isValid = false;
-  }
-
-  if (!isValidEmail(email)) {
-    setError("email", "Informe um email válido.");
     isValid = false;
   }
 
@@ -615,12 +577,7 @@ async function fillFormForEdit(docId) {
     updateServiceTotal();
 
     updateAvailableTimes();
-    // For auto-generated slots the select value is the hora string; for legacy it's the horarioId
-    if ($("hora")) {
-      $("hora").value = selectedBarbeiroId
-        ? (appointment.hora || "")
-        : (appointment.horarioId || "");
-    }
+    if ($("hora")) $("hora").value = appointment.hora || "";
 
     const formTitle = $("form-title");
     const formSubtitle = $("form-subtitle");
@@ -644,31 +601,15 @@ function buildAppointmentPayload() {
   const data         = $("data")?.value || "";
   const barbeiroData = barbeirosCache.find(b => b.id === selectedBarbeiroId);
 
-  let hora, horarioId, barbeiro, duracao;
-
-  if (barbeiroData) {
-    hora      = selectValue;
-    horarioId = hora ? `${data}_${hora}_${selectedBarbeiroId}` : "";
-    barbeiro  = barbeiroData.name;
-    duracao   = servicos.reduce((sum, name) => sum + getBarberServiceDuration(barbeiroData, name), 0);
-  } else {
-    const horario = getSelectedHorario();
-    hora      = horario?.hora || "";
-    horarioId = horario?.id   || "";
-    barbeiro  = horario?.barbeiro || "";
-    duracao   = 0;
-  }
-
   return {
     nome:        $("nome").value.trim(),
     email:       $("email").value.trim(),
     servicos,
     data,
-    hora,
-    horarioId,
+    hora:        selectValue,
     barbeiroId:  selectedBarbeiroId || "",
-    barbeiro,
-    duracao,
+    barbeiro:    barbeiroData?.name || "",
+    duracao:     barbeiroData ? servicos.reduce((sum, name) => sum + getBarberServiceDuration(barbeiroData, name), 0) : 0,
     observacoes: $("observacoes").value.trim(),
     valor:       servicos.reduce((sum, name) => sum + getServicePrice(name), 0)
   };
@@ -803,7 +744,8 @@ function createAppointmentCard(appointment) {
   article.className = "appointment-card anim-fade-up";
 
   const observationsText = appointment.observacoes?.trim() ? appointment.observacoes : "Sem observações.";
-  const canClientCancel = currentUser && appointment.userId === currentUser.id && !isAdmin && !["Cancelado", "Concluído"].includes(appointment.status);
+  const canClientCancel = currentUser && appointment.userId === currentUser.id && !isAdmin &&
+    !["Cancelado", "Concluído"].includes(appointment.status) && isUpcoming(appointment);
 
   article.innerHTML = `
     <div class="card-top">
@@ -1094,24 +1036,12 @@ async function loadServices() {
   }
 }
 
-async function loadHorarios() {
-  try {
-    horariosCache = sortByDateTime((await api.horarios.list()) || []);
-  } catch (error) {
-    console.error("Erro ao carregar horários:", error);
-    horariosCache = [];
-  }
-  updateAvailableTimes();
-  updateAdminStats();
-}
-
 async function loadSlots() {
   try {
-    const data = (await api.slots.list()) || [];
-    slotsCache = new Map(data.map(slot => [slot.horarioId || slot.id, slot]));
+    slotsCache = (await api.slots.list()) || [];
   } catch (error) {
     console.error("Erro ao carregar reservas:", error);
-    slotsCache = new Map();
+    slotsCache = [];
   }
   updateAvailableTimes();
   updateAdminStats();
@@ -1423,22 +1353,22 @@ function renderUsersList() {
   const container = $("clients-list");
   if (!container) return;
 
-  if (!usersCache.length) {
+  // A API devolve também os administradores; a lista mostra só os clientes.
+  const clients = usersCache.filter(user => user.role !== "admin");
+  if (!clients.length) {
     container.innerHTML = `<div class="empty-row">Nenhum cliente encontrado.</div>`;
     return;
   }
 
-  container.innerHTML = usersCache.map(user => `
+  container.innerHTML = clients.map(user => `
     <div class="service-row">
       <div>
         <strong>${escapeHTML(user.name || "Sem nome")}</strong>
-        <span>${escapeHTML(user.email || "")} ${user.phone ? "• " + escapeHTML(user.phone) : ""} • ${escapeHTML(user.role || "client")}</span>
+        <span>${escapeHTML(user.email || "")} ${user.phone ? "• " + escapeHTML(user.phone) : ""}</span>
       </div>
-      ${user.role !== "admin" ? `
       <div class="row-actions">
         <button class="action-btn delete-client" type="button" data-id="${escapeHTML(user.id)}">Remover</button>
       </div>
-      ` : ""}
     </div>
   `).join("");
 
@@ -1782,7 +1712,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   loadFormPage();
   loadAppointmentsPage();
 
-  await Promise.all([loadServices(), loadHorarios(), loadSlots(), loadBarbeiros(), loadComments()]);
+  await Promise.all([loadServices(), loadSlots(), loadBarbeiros(), loadComments()]);
   await initAuth();
 
   loadBarberAdminSection();

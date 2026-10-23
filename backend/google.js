@@ -1,5 +1,5 @@
 import { randomBytes, createHash } from 'node:crypto';
-import { fail, email } from './security.js';
+import { fail, email, text } from './security.js';
 
 // Login com Google por OpenID Connect (fluxo de código com PKCE), sem scripts do Google nas páginas.
 export const google={
@@ -34,8 +34,10 @@ export async function finish(code,cookie) {
   if(!['https://accounts.google.com','accounts.google.com'].includes(claims.iss) || claims.aud!==google.clientId ||
      !(claims.exp*1000>Date.now()) || claims.nonce!==nonce || claims.email_verified!==true || typeof claims.sub!=='string')
     fail(401,'id_token recusado (emissor, cliente, validade, nonce ou e-mail não verificado).','GOOGLE_FAILED');
-  const name=typeof claims.name==='string' && claims.name.trim().length>=3?claims.name.trim():String(claims.email).split('@')[0];
-  return {sub:claims.sub,email:email(claims.email),name:name.slice(0,150)};
+  // O nome precisa de 3 caracteres (regra do cadastro); sem um nome assim, usa o início do e-mail ou "Cliente".
+  const address=email(claims.email),local=address.split('@')[0];
+  const name=[typeof claims.name==='string'?text(claims.name,'Nome',0,500):'',local].find(n=>n.length>=3) || 'Cliente';
+  return {sub:claims.sub,email:address,name:name.slice(0,150)};
 }
 
 // Conta ligada ao id do Google ou conta nova. Um e-mail já cadastrado com senha não é vinculado:

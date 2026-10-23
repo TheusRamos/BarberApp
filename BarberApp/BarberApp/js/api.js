@@ -6,13 +6,13 @@
 //
 // Contrato da API implementada em backend/:
 //
-//   POST   /auth/register        { name, email, phone, password }        -> { token, user }
-//   POST   /auth/login           { email, password }                     -> { token, user }
+//   POST   /auth/register        { name, email, phone, password, captchaToken? } -> { token, user }
+//   POST   /auth/login           { email, password, captchaToken? }      -> { token, user }   (CAPTCHA_REQUIRED após muitas tentativas)
 //   POST   /auth/logout          -                                       -> {}
 //   POST   /auth/logout-all      -                                       -> {}                (encerra todas as sessões)
 //   POST   /auth/password        { currentPassword, newPassword }        -> {}                (encerra as outras sessões)
 //   GET    /auth/me              -                                       -> { user }
-//   GET    /auth/options         -                                       -> { google }        (login com Google ativo)
+//   GET    /auth/options         -                                       -> { google, captcha } (login com Google ativo; chave do Turnstile ou null)
 //   GET    /auth/google          (navegação) leva ao Google e volta para auth.html#google_code=... ou #google_error=...
 //   POST   /auth/google/session  { code }                                -> { token, user }   (código de uso único)
 //
@@ -30,10 +30,9 @@
 //   PATCH  /barbeiros/:id        Partial<Barbeiro>                       -> Barbeiro          (admin)
 //   DELETE /barbeiros/:id                                                -> {}                (admin)
 //
-//   GET    /horarios                                                     -> Horario[]         (legado)
 //   Horários são gerados pelo backend ao reservar, usando a configuração do profissional.
 //
-//   GET    /slots                                                        -> Slot[]
+//   GET    /slots                                                        -> Slot[]            (appointmentId só para admin)
 //
 //   GET    /agendamentos                                                 -> Agendamento[]     (próprios ou todos se admin)
 //   POST   /agendamentos         Agendamento { servicos: [nomes], ... }  -> Agendamento        (erro SLOT_TAKEN se conflito)
@@ -139,12 +138,8 @@ export const api = {
     remove: id => request(`/barbeiros/${id}`, { method: "DELETE" })
   },
 
-  horarios: {
-    list: () => request("/horarios", { auth: false }),
-  },
-
   slots: {
-    list: () => request("/slots", { auth: false })
+    list: () => request("/slots")
   },
 
   agendamentos: {
