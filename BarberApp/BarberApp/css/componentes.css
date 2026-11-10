@@ -14,6 +14,16 @@ a:focus-visible {
   outline-offset: 2px;
 }
 
+/* Lista aberta dos selects (barbeiro, horário, filtro de serviço).
+   O campo tem fundo transparente, então o navegador desenhava a lista
+   com fundo branco e o texto claro do tema: ficava ilegível. Aqui as
+   opções ganham o fundo e o texto do tema escuro. */
+select option,
+select optgroup {
+  background-color: var(--dropdown-bg);
+  color: var(--text);
+}
+
 /* ============================================================
    DIVISOR COM TESOURA   ○○○ ✂ ○○○
    Separa as seções principais de uma página. No HTML:
