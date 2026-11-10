@@ -1,0 +1,15 @@
+/* ============================================================
+   COMPONENTES COMPARTILHADOS
+   Peças usadas em todas as páginas. Este arquivo é carregado
+   depois do style.css / agendamentos.css, e as cores vêm do
+   variaveis.css.
+   ============================================================ */
+
+/* Anel de foco: aparece ao navegar pelo teclado (Tab) em botões e links.
+   O style.css e o agendamentos.css tiram o contorno padrão do navegador,
+   então sem isto não daria para ver onde o foco está. */
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}

@@ -75,7 +75,7 @@
   --action-btn-hover-border: rgba(var(--primary-rgb), 0.45);
 
   /* --- Sombras (no escuro precisam ser mais fortes para aparecer) --- */
-  --success-shadow: rgba(var(--primary-rgb), 0.18);    /* brilho dourado do botão principal */
+  --primary-glow: rgba(var(--primary-rgb), 0.2);       /* brilho dourado suave embaixo dos botões principais */
   --card-shadow: 0 16px 36px rgba(0, 0, 0, 0.3);
   --dropdown-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
 

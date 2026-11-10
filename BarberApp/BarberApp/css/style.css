@@ -301,19 +301,21 @@ input, textarea, button {
   border-radius: var(--radius);
   font-weight: 700;
   cursor: pointer;
-  transition: transform var(--transition), filter var(--transition), background var(--transition), border-color var(--transition);
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
 }
 
+/* Botão secundário: só o contorno dourado fino, sem fundo */
 .secondary-btn {
-  background: rgba(var(--primary-rgb), 0.1);
+  background: transparent;
   color: var(--primary);
-  border: 1px solid rgba(var(--primary-rgb), 0.18);
+  border: 1px solid var(--border-gold);
 }
 
 .secondary-btn:hover,
 .ghost-btn:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.06);
+  background: rgba(var(--primary-rgb), 0.08);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .ghost-btn {
@@ -336,19 +338,19 @@ a.secondary-btn {
   min-width: 200px;
   padding: 14px 18px;
   border-radius: var(--radius);
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
+  /* Botão principal: dourado liso com texto escuro; no hover vira creme */
+  background: var(--primary);
   color: var(--on-primary);
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 18px 40px var(--success-shadow);
-  transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
+  box-shadow: 0 12px 32px var(--primary-glow);
+  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .submit-btn:hover {
-  transform: translateY(-2px) scale(1.01);
-  filter: brightness(1.05);
+  background: var(--cream);
 }
 
 .submit-btn:active {
@@ -968,9 +970,10 @@ button:disabled,
    FOCUS STATES
    ============================================================ */
 
-input:focus, textarea:focus, select:focus, button:focus-visible {
+/* O anel de foco dos botões e links fica no componentes.css */
+input:focus, textarea:focus, select:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.08);
+  box-shadow: 0 0 0 1px var(--primary);
 }
 
 /* ============================================================
