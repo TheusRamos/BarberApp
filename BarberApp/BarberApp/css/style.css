@@ -767,12 +767,25 @@ button:disabled,
    AUTH
    ============================================================ */
 
-.auth-page-grid {
-  align-items: center;
+/* Login e perfil numa coluna só, em qualquer tamanho de tela: emblema e
+   textos centralizados no topo e, logo abaixo, o formulário.
+   (São duas classes juntas para vencer o .hero-grid, que a partir de
+   1024px divide a página em duas colunas.) */
+.hero-grid.auth-page-grid {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
 }
 
 .auth-copy {
   min-height: auto;
+  align-items: center;
+  text-align: center;
+}
+
+/* O formulário (login, cadastro ou perfil) não estica na coluna toda */
+.auth-page-grid .form-panel {
+  width: 100%;
+  max-width: 560px;
 }
 
 /* Emblema grande acima do título "Acesse sua conta" */
@@ -780,15 +793,6 @@ button:disabled,
   display: block;
   width: 200px;
   height: auto;
-}
-
-/* Com uma coluna só (celular e tablet), o topo do login fica centralizado:
-   emblema, selo, título e texto */
-@media (max-width: 979px) {
-  .auth-copy {
-    align-items: center;
-    text-align: center;
-  }
 }
 
 /* No celular o emblema fica menor, para não empurrar o formulário para baixo */
@@ -1148,11 +1152,6 @@ input:focus, textarea:focus, select:focus {
 h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); font-weight: var(--heading-weight); }
 body, input, textarea, select, button { font-family: var(--font-body); }
 
-@media (min-width: 980px) {
-  .auth-page-grid {
-    grid-template-columns: minmax(0, 0.9fr) minmax(380px, 0.75fr);
-  }
-}
 
 
 /* Footer */
