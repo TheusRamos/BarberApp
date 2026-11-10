@@ -27,9 +27,9 @@
 }
 
 .barbeiro-form-card h3 {
-  font-family: 'Manrope', sans-serif;
+  font-family: var(--font-heading);
   font-size: 1.1rem;
-  font-weight: 700;
+  font-weight: var(--heading-weight);
   margin-bottom: 20px;
 }
 
@@ -49,8 +49,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Manrope', sans-serif;
-  font-weight: 800;
+  font-family: var(--font-heading);
+  font-weight: var(--heading-weight);
   font-size: 1.6rem;
   color: var(--on-primary);
   overflow: hidden;
@@ -219,8 +219,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Manrope', sans-serif;
-  font-weight: 800;
+  font-family: var(--font-heading);
+  font-weight: var(--heading-weight);
   font-size: 1.2rem;
   color: var(--on-primary);
   overflow: hidden;
@@ -245,9 +245,9 @@
 
 .barbeiro-card-info strong {
   display: block;
-  font-family: 'Manrope', sans-serif;
+  font-family: var(--font-heading);
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: var(--heading-weight);
   margin-bottom: 4px;
   white-space: nowrap;
   overflow: hidden;
@@ -412,9 +412,9 @@
 }
 
 .horario-form-mini h3 {
-  font-family: 'Manrope', sans-serif;
+  font-family: var(--font-heading);
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: var(--heading-weight);
   margin-bottom: 16px;
 }
 

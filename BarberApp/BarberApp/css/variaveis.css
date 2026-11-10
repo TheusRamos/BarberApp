@@ -121,10 +121,12 @@
 
   --transition: 0.24s ease;
 
+  --font-heading: "Prata", Georgia, "Times New Roman", serif;  /* títulos */
+  --font-body: "Lato", "Helvetica Neue", Arial, sans-serif;     /* textos, botões e campos */
   --font-base: 1rem;
   --leading-tight: 1.1;
   --leading-normal: 1.65;
-  --heading-weight: 800;
+  --heading-weight: 400;  /* a Prata só existe neste peso */
   --body-weight: 400;
 
   --sidebar-w: 230px;
