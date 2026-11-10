@@ -87,7 +87,7 @@
   /* --- Avisos flutuantes (toast) --- */
   --toast-bg: rgba(54, 55, 49, 0.97);
   --toast-text: var(--text);
-  --toast-border: rgba(var(--primary-rgb), 0.35);
+  --toast-border: var(--border-gold);
 
   /* --- Efeitos do fundo --- */
   --app-glow: rgba(var(--primary-rgb), 0.06);   /* brilho dourado no canto superior direito */

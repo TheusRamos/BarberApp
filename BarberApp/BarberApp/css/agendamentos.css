@@ -617,6 +617,9 @@ textarea::placeholder { color: var(--text-soft); }
   pointer-events: none;
   transition: opacity 0.22s ease, transform 0.22s ease;
   z-index: 100;
+  /* Largura do texto, até a largura da tela (sem isto o left: 50% deixava
+     o aviso com só meia tela e o texto quebrava em várias linhas no celular) */
+  width: max-content;
   max-width: calc(100% - 32px);
   text-align: center;
   font-size: 0.9rem;

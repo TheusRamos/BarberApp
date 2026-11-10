@@ -531,7 +531,9 @@ button:disabled,
   box-shadow: 0 0 0 1px var(--input-border-error);
 }
 
-.form-group input:disabled {
+/* Campo desabilitado (ex.: horário antes de escolher a data) fica esmaecido */
+.form-group input:disabled,
+.form-group select:disabled {
   opacity: 0.55;
   cursor: default;
 }
@@ -634,6 +636,31 @@ button:disabled,
   border-color: var(--primary);
 }
 
+/* No celular os cards de serviço viram linhas compactas (ícone, nome e preço
+   lado a lado), para a lista não ocupar a tela inteira */
+@media (max-width: 639px) {
+  .service-card {
+    flex-direction: row;
+    min-height: 0;
+    padding: 14px 16px;
+    gap: 12px;
+    text-align: left;
+  }
+
+  .service-card .service-icon {
+    font-size: 24px;
+  }
+
+  .service-card .service-price {
+    margin-left: auto;
+  }
+}
+
+/* Erro nos serviços: os cards ganham a borda vermelha discreta, como os campos */
+.form-section:has(.field-error:not(:empty)) .service-card {
+  border-color: var(--input-border-error);
+}
+
 .services-grid input[name="servico"]:checked + .service-card .service-title,
 .services-grid input[name="servico"]:checked + .service-card .service-price {
   color: var(--primary);
@@ -723,6 +750,9 @@ button:disabled,
   pointer-events: none;
   transition: opacity 0.22s ease, transform 0.22s ease;
   z-index: 100;
+  /* Largura do texto, até a largura da tela (sem isto o left: 50% deixava
+     o aviso com só meia tela e o texto quebrava em várias linhas no celular) */
+  width: max-content;
   max-width: calc(100% - 32px);
   text-align: center;
   font-size: 0.9rem;
@@ -1094,9 +1124,14 @@ body, input, textarea, select, button { font-family: var(--font-body); }
 /* Footer */
 .site-footer {
   text-align: center;
-  padding: 0 16px 24px;  /* a separação do conteúdo é o .divisor-tesoura logo acima */
+  padding: 0 16px 24px;
   color: var(--text-muted);
   font-size: 0.85rem;
+}
+
+/* O divisor com tesoura abre o rodapé, separando-o do conteúdo */
+.site-footer .divisor-tesoura {
+  margin-block: 0 16px;
 }
 
 .site-footer strong {
