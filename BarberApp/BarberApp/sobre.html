@@ -22,7 +22,7 @@
 
     .sobre-hero {
       padding-bottom: 56px;
-      border-bottom: 1px solid rgba(148, 141, 162, 0.1);
+      border-bottom: 1px solid var(--border-subtle);
       margin-bottom: 56px;
     }
 
@@ -95,7 +95,7 @@
       gap: 14px;
       padding: 20px 18px;
       background: transparent;
-      border: 1px solid rgba(138, 100, 32, 0.4);
+      border: 1px solid var(--border-gold);
       border-radius: 18px;
       position: relative;
       overflow: hidden;
@@ -116,7 +116,7 @@
     }
 
     .highlight-item:hover {
-      border-color: var(--primary, #8A6420);
+      border-color: var(--primary);
       transform: translateY(-2px);
     }
 
@@ -124,7 +124,7 @@
       width: 44px;
       height: 44px;
       border-radius: 12px;
-      background: rgba(196, 150, 58, 0.1);
+      background: rgba(var(--gold-rgb), 0.1);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -160,7 +160,7 @@
 
     .sobre-servico-card {
       background: transparent;
-      border: 1px solid rgba(138, 100, 32, 0.4);
+      border: 1px solid var(--border-gold);
       border-radius: 22px;
       padding: 24px 20px;
       display: flex;
@@ -171,14 +171,14 @@
 
     .sobre-servico-card:hover {
       transform: translateY(-3px);
-      border-color: var(--primary, #8A6420);
+      border-color: var(--primary);
     }
 
     .sobre-servico-icon {
       width: 52px;
       height: 52px;
       border-radius: 14px;
-      background: linear-gradient(135deg, rgba(196, 150, 58, 0.15), rgba(138, 97, 32, 0.08));
+      background: linear-gradient(135deg, rgba(var(--gold-rgb), 0.15), rgba(var(--primary-alt-rgb), 0.08));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -221,7 +221,7 @@
 
     .sobre-equipe-card {
       background: transparent;
-      border: 1px solid rgba(138, 100, 32, 0.4);
+      border: 1px solid var(--border-gold);
       border-radius: 24px;
       padding: 28px 24px;
       display: flex;
@@ -232,7 +232,7 @@
 
     .sobre-equipe-card:hover {
       transform: translateY(-3px);
-      border-color: var(--primary, #8A6420);
+      border-color: var(--primary);
     }
 
     .equipe-avatar {
@@ -245,20 +245,20 @@
       font-family: 'Manrope', sans-serif;
       font-weight: 800;
       font-size: 1.5rem;
-      color: #fff;
+      color: var(--on-avatar);
       flex-shrink: 0;
     }
 
     .equipe-avatar.av1 {
-      background: linear-gradient(135deg, #C4963A, #8A6420);
+      background: var(--avatar-gradient-1);
     }
 
     .equipe-avatar.av2 {
-      background: linear-gradient(135deg, #5B8DB8, #2A5E8A);
+      background: var(--avatar-gradient-2);
     }
 
     .equipe-avatar.av3 {
-      background: linear-gradient(135deg, #ffc84d, #c07800);
+      background: var(--avatar-gradient-3);
     }
 
     .equipe-info h3 {
@@ -292,7 +292,7 @@
 
     .sobre-info-card {
       background: transparent;
-      border: 1px solid rgba(138, 100, 32, 0.4);
+      border: 1px solid var(--border-gold);
       border-radius: 22px;
       padding: 26px 22px;
     }
@@ -323,7 +323,7 @@
       justify-content: space-between;
       align-items: center;
       padding: 10px 0;
-      border-bottom: 1px solid rgba(148, 141, 162, 0.07);
+      border-bottom: 1px solid rgba(var(--neutral-rgb), 0.07);
     }
 
     .horario-item:last-child {
@@ -419,13 +419,13 @@
       padding: 16px 32px;
       border-radius: 20px;
       background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
-      color: #fff;
+      color: var(--on-primary);
       text-decoration: none;
       font-weight: 800;
       font-size: 0.95rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      box-shadow: 0 18px 40px rgba(138, 97, 32, 0.28);
+      box-shadow: 0 18px 40px rgba(var(--primary-alt-rgb), 0.28);
       transition: transform var(--transition), filter var(--transition);
     }
 
