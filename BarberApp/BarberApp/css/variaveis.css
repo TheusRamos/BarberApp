@@ -108,10 +108,7 @@
   --avatar-gradient-5: linear-gradient(135deg, #CFC8AE, #9E977B);         /* areia */
 
   /* --- Medidas e tipografia --- */
-  --radius-sm: 10px;
-  --radius-md: 16px;
-  --radius-lg: 22px;
-  --radius-xl: 28px;
+  --radius: 4px;  /* cantos quase retos, como no UI kit da referência (círculos usam 50%) */
 
   --transition: 0.24s ease;
 

@@ -132,7 +132,7 @@ textarea::placeholder { color: var(--text-soft); }
   justify-content: center;
   width: 30px;
   height: 30px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: transparent;
   border: none;
   color: var(--text-soft);
@@ -157,7 +157,7 @@ textarea::placeholder { color: var(--text-soft); }
   align-items: center;
   gap: 11px;
   padding: 11px 14px;
-  border-radius: 11px;
+  border-radius: var(--radius);
   text-decoration: none;
   color: var(--text-muted);
   font-weight: 600;
@@ -186,7 +186,7 @@ textarea::placeholder { color: var(--text-soft); }
   left: 14px;
   width: 42px;
   height: 42px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--sidebar-toggle-bg);
   border: 1px solid var(--sidebar-toggle-border);
   backdrop-filter: blur(12px);
@@ -230,7 +230,7 @@ textarea::placeholder { color: var(--text-soft); }
   gap: 9px;
   width: fit-content;
   padding: 9px 14px;
-  border-radius: 999px;
+  border-radius: var(--radius);
   background: transparent;
   border: 1px solid var(--border-gold);
   backdrop-filter: blur(12px);
@@ -284,7 +284,7 @@ textarea::placeholder { color: var(--text-soft); }
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
   color: var(--on-primary);
   padding: 13px 20px;
-  border-radius: 16px;
+  border-radius: var(--radius);
   font-weight: 700;
   box-shadow: 0 18px 40px rgba(var(--primary-rgb), 0.24);
   transition: transform var(--transition), filter var(--transition);
@@ -312,7 +312,7 @@ textarea::placeholder { color: var(--text-soft); }
   gap: 9px;
   background: transparent;
   border: 1px solid var(--border-gold);
-  border-radius: 16px;
+  border-radius: var(--radius);
   padding: 13px 15px;
   box-shadow: none;
 }
@@ -351,7 +351,7 @@ textarea::placeholder { color: var(--text-soft); }
 .stat-item {
   background: transparent;
   border: 1px solid var(--border-gold);
-  border-radius: 22px;
+  border-radius: var(--radius);
   padding: 20px 16px;
   box-shadow: none;
 }
@@ -409,7 +409,7 @@ textarea::placeholder { color: var(--text-soft); }
 .appointment-card {
   background: transparent;
   border: 1px solid var(--border-gold-soft);
-  border-radius: 26px;
+  border-radius: var(--radius);
   padding: 20px;
   box-shadow: none;
   transition: transform var(--transition), border-color var(--transition);
@@ -467,7 +467,7 @@ textarea::placeholder { color: var(--text-soft); }
 
 .status-badge {
   padding: 8px 13px;
-  border-radius: 999px;
+  border-radius: var(--radius);
   font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
@@ -525,7 +525,7 @@ textarea::placeholder { color: var(--text-soft); }
   align-items: center;
   gap: 7px;
   padding: 10px 14px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   font-weight: 700;
   font-size: 0.85rem;
   transition: transform var(--transition), filter var(--transition), background var(--transition);
@@ -568,7 +568,7 @@ textarea::placeholder { color: var(--text-soft); }
 .empty-state {
   grid-column: 1 / -1;
   min-height: 240px;
-  border-radius: 26px;
+  border-radius: var(--radius);
   background: transparent;
   border: 1px solid var(--border-gold-soft);
   box-shadow: none;
@@ -611,7 +611,7 @@ textarea::placeholder { color: var(--text-soft); }
   color: var(--toast-text);
   border: 1px solid var(--toast-border);
   padding: 13px 18px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   box-shadow: var(--card-shadow);
   opacity: 0;
   pointer-events: none;
@@ -687,7 +687,7 @@ a.new-booking-btn {
   justify-content: center;
   gap: 9px;
   padding: 13px 18px;
-  border-radius: 16px;
+  border-radius: var(--radius);
   font-weight: 700;
   cursor: pointer;
   transition: transform var(--transition), filter var(--transition), background var(--transition), border-color var(--transition);
@@ -742,7 +742,7 @@ a.new-booking-btn {
 .comment-form {
   background: transparent;
   border: 1px solid var(--border-gold);
-  border-radius: 26px;
+  border-radius: var(--radius);
   padding: 20px;
   box-shadow: none;
 }
@@ -789,7 +789,7 @@ a.new-booking-btn {
   background: var(--surface-lowest);
   color: var(--text);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius);
   padding: 13px 15px;
   transition: border-color var(--transition), box-shadow var(--transition);
 }
@@ -824,7 +824,7 @@ a.new-booking-btn {
 .empty-row {
   background: transparent;
   border: 1px solid var(--border-gold-soft);
-  border-radius: 16px;
+  border-radius: var(--radius);
   padding: 13px;
 }
 
@@ -952,7 +952,7 @@ a.new-booking-btn {
   .admin-card,
   .comment-form {
     padding: 14px;
-    border-radius: 18px;
+    border-radius: var(--radius);
   }
 
   /* Service & client rows — stack content + actions vertically */
@@ -1015,7 +1015,7 @@ a.new-booking-btn {
   z-index: 200;
   background: var(--dropdown-bg);
   border: 1px solid rgba(var(--primary-rgb), 0.16);
-  border-radius: 18px;
+  border-radius: var(--radius);
   padding: 8px;
   box-shadow: var(--dropdown-shadow);
   backdrop-filter: blur(20px);
@@ -1036,7 +1036,7 @@ a.new-booking-btn {
   align-items: center;
   gap: 5px;
   padding: 10px 13px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   font-size: 0.75rem;
   font-weight: 700;
   text-align: center;
