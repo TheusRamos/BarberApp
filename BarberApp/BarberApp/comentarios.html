@@ -3,14 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#282823" />
   <title>BarberApp | Avaliações</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&family=Prata&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
 
+  <link rel="stylesheet" href="css/variaveis.css" />
   <link rel="stylesheet" href="css/agendamentos.css" />
+  <link rel="stylesheet" href="css/componentes.css" />
 
   <style>
     /* ============================================================
@@ -36,9 +39,9 @@
       align-items: center;
       gap: 14px;
       padding: 16px 20px;
-      border-radius: 16px;
+      border-radius: var(--radius);
       background: transparent;
-      border: 1px solid rgba(138, 97, 32, 0.35);
+      border: 1px solid rgba(var(--primary-rgb), 0.35);
       margin-bottom: 28px;
     }
 
@@ -62,7 +65,7 @@
     .stars-display {
       display: inline-flex;
       gap: 2px;
-      color: var(--warning);
+      color: var(--primary);
       font-size: 1rem;
       margin-bottom: 6px;
     }
@@ -85,7 +88,7 @@
       height: 38px;
       border-radius: 50%;
       background: linear-gradient(135deg, var(--primary), var(--primary-strong));
-      color: #fff;
+      color: var(--on-primary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -108,7 +111,7 @@
     }
 
     .comment-meta .comment-stars {
-      color: var(--warning);
+      color: var(--primary);
       font-size: 0.85rem;
       letter-spacing: 1px;
     }
@@ -122,6 +125,8 @@
     .comment-actions {
       display: flex;
       justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 8px;  /* sem isto Ocultar e Remover ficavam colados */
     }
 
     /* Layout: form on left (wide screens), list on right */
@@ -141,8 +146,8 @@
     /* Form card */
     .comment-form-card {
       background: transparent;
-      border: 1px solid rgba(138, 100, 32, 0.4);
-      border-radius: 26px;
+      border: 1px solid var(--border-gold);
+      border-radius: var(--radius);
       padding: 24px;
       box-shadow: none;
       position: sticky;
@@ -150,9 +155,9 @@
     }
 
     .comment-form-card h3 {
-      font-family: 'Manrope', sans-serif;
+      font-family: var(--font-heading);
       font-size: 1.1rem;
-      font-weight: 700;
+      font-weight: var(--heading-weight);
       margin-bottom: 6px;
     }
 
@@ -188,7 +193,7 @@
     }
 
     .star-picker:hover label {
-      color: var(--warning);
+      color: var(--primary);
     }
 
     .star-picker input[type="radio"]:checked ~ label {
@@ -197,7 +202,7 @@
 
     .star-picker label:has(~ input[type="radio"]:checked),
     .star-picker input[type="radio"]:checked + label {
-      color: var(--warning);
+      color: var(--primary);
     }
 
     /* fallback: JS-driven star highlight via data-selected */
@@ -212,7 +217,7 @@
     .star-picker[data-selected="4"] label:nth-of-type(3),
     .star-picker[data-selected="4"] label:nth-of-type(4),
     .star-picker[data-selected="5"] label {
-      color: var(--warning);
+      color: var(--primary);
     }
 
     /* Comments list */
@@ -224,8 +229,8 @@
 
     .comment-card {
       background: transparent;
-      border: 1px solid rgba(138, 100, 32, 0.4);
-      border-radius: 20px;
+      border: 1px solid var(--border-gold);
+      border-radius: var(--radius);
       padding: 18px 20px;
       box-shadow: none;
       display: flex;
@@ -234,16 +239,17 @@
       transition: border-color var(--transition);
     }
 
+    /* No hover a borda fica mais forte (antes ficava mais fraca que o normal) */
     .comment-card:hover {
-      border-color: rgba(196, 150, 58, 0.18);
+      border-color: var(--primary);
     }
 
     .empty-comments {
       text-align: center;
       padding: 48px 20px;
       background: transparent;
-      border: 1px solid rgba(138, 100, 32, 0.4);
-      border-radius: 20px;
+      border: 1px solid var(--border-gold);
+      border-radius: var(--radius);
     }
 
     .empty-comments .material-symbols-outlined {
@@ -268,9 +274,9 @@
        ============================================================ */
 
     .admin-review-panel {
-      background: rgba(255, 255, 255, 0.96);
-      border: 1px solid rgba(138, 100, 32, 0.4);
-      border-radius: 26px;
+      background: transparent;
+      border: 1px solid var(--border-gold);
+      border-radius: var(--radius);
       padding: 24px;
       box-shadow: none;
     }
@@ -281,7 +287,7 @@
       gap: 14px;
       margin-bottom: 20px;
       padding-bottom: 16px;
-      border-bottom: 1px solid rgba(148, 141, 162, 0.1);
+      border-bottom: 1px solid var(--border-subtle);
     }
 
     .admin-review-header > .material-symbols-outlined {
@@ -292,9 +298,9 @@
     }
 
     .admin-review-header h3 {
-      font-family: 'Manrope', sans-serif;
+      font-family: var(--font-heading);
       font-size: 1.1rem;
-      font-weight: 700;
+      font-weight: var(--heading-weight);
       margin-bottom: 4px;
     }
 
@@ -308,11 +314,11 @@
     .pending-badge {
       margin-left: auto;
       background: var(--primary);
-      color: #fff;
+      color: var(--on-primary);
       font-size: 0.78rem;
       font-weight: 700;
       padding: 4px 12px;
-      border-radius: 99px;
+      border-radius: var(--radius);
       white-space: nowrap;
       flex-shrink: 0;
     }
@@ -326,8 +332,8 @@
       flex-direction: column;
       gap: 10px;
       padding: 16px;
-      border: 1px solid rgba(138, 100, 32, 0.3);
-      border-radius: 16px;
+      border: 1px solid rgba(var(--primary-rgb), 0.3);
+      border-radius: var(--radius);
       margin-bottom: 12px;
       transition: border-color var(--transition);
     }
@@ -337,7 +343,7 @@
     }
 
     .review-item:hover {
-      border-color: rgba(196, 150, 58, 0.18);
+      border-color: var(--primary);
     }
 
     .review-item-header {
@@ -353,23 +359,23 @@
     }
 
     .approve-btn {
-      background: rgba(34, 197, 94, 0.12);
-      color: #22c55e;
-      border: 1px solid rgba(34, 197, 94, 0.22);
+      background: rgba(var(--success-rgb), 0.12);
+      color: var(--success);
+      border: 1px solid rgba(var(--success-rgb), 0.22);
     }
 
     .approve-btn:hover {
-      background: rgba(34, 197, 94, 0.22);
+      background: rgba(var(--success-rgb), 0.22);
     }
 
     .reject-btn {
-      background: rgba(239, 68, 68, 0.1);
-      color: #ef4444;
-      border: 1px solid rgba(239, 68, 68, 0.2);
+      background: rgba(var(--danger-rgb), 0.1);
+      color: var(--danger);
+      border: 1px solid rgba(var(--danger-rgb), 0.2);
     }
 
     .reject-btn:hover {
-      background: rgba(239, 68, 68, 0.2);
+      background: rgba(var(--danger-rgb), 0.2);
     }
 
     .empty-review {
@@ -380,7 +386,7 @@
 
     .empty-review .material-symbols-outlined {
       font-size: 36px;
-      color: #22c55e;
+      color: var(--success);
       margin-bottom: 8px;
       display: block;
     }
@@ -520,6 +526,7 @@
 
     <!-- Admin moderation panel (only visible to admins) -->
     <section class="container" id="admin-comment-review-section" style="display:none; margin-top: 28px; margin-bottom: 28px;">
+      <div class="divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined">content_cut</span></div>
       <div class="admin-review-panel">
         <div class="admin-review-header">
           <span class="material-symbols-outlined">admin_panel_settings</span>

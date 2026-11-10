@@ -3,47 +3,38 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#282823" />
   <title>BarberApp | Sobre Nós</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&family=Prata&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
 
+  <link rel="stylesheet" href="css/variaveis.css" />
   <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/componentes.css" />
 
   <style>
     /* ============================================================
        SOBRE NÓS – PAGE STYLES
        ============================================================ */
 
-    .sobre-hero {
-      padding-bottom: 56px;
-      border-bottom: 1px solid rgba(148, 141, 162, 0.1);
-      margin-bottom: 56px;
-    }
-
+    /* O espaço entre o topo e as seções vem do .divisor-tesoura (componentes.css) */
     .sobre-hero .hero-title {
       margin-top: 20px;
     }
 
-    .sobre-section {
-      margin-bottom: 64px;
-    }
-
     .sobre-section-title {
-      font-family: 'Manrope', sans-serif;
+      font-family: var(--font-heading);
       font-size: clamp(1.5rem, 4vw, 2.2rem);
-      font-weight: 800;
-      letter-spacing: -0.04em;
+      font-weight: var(--heading-weight);
+      letter-spacing: 0;
       margin-bottom: 8px;
     }
 
     .sobre-section-title span {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: var(--primary);
     }
 
     .sobre-section-subtitle {
@@ -85,6 +76,14 @@
       align-content: start;
     }
 
+    /* No celular, um card por linha: em duas colunas o texto quebrava quase
+       palavra por palavra */
+    @media (max-width: 559px) {
+      .sobre-historia-highlight {
+        grid-template-columns: 1fr;
+      }
+    }
+
     .highlight-item {
       display: flex;
       flex-direction: row;
@@ -92,8 +91,8 @@
       gap: 14px;
       padding: 20px 18px;
       background: transparent;
-      border: 1px solid rgba(138, 100, 32, 0.4);
-      border-radius: 18px;
+      border: 1px solid var(--border-gold);
+      border-radius: var(--radius);
       position: relative;
       overflow: hidden;
       transition: border-color var(--transition), transform var(--transition);
@@ -113,15 +112,15 @@
     }
 
     .highlight-item:hover {
-      border-color: var(--primary, #8A6420);
+      border-color: var(--primary);
       transform: translateY(-2px);
     }
 
     .highlight-icon {
       width: 44px;
       height: 44px;
-      border-radius: 12px;
-      background: rgba(196, 150, 58, 0.1);
+      border-radius: var(--radius);
+      background: rgba(var(--primary-rgb), 0.1);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -135,8 +134,8 @@
 
     .highlight-text strong {
       display: block;
-      font-family: 'Manrope', sans-serif;
-      font-weight: 700;
+      font-family: var(--font-heading);
+      font-weight: var(--heading-weight);
       margin-bottom: 4px;
       font-size: 0.92rem;
       color: var(--text);
@@ -157,8 +156,8 @@
 
     .sobre-servico-card {
       background: transparent;
-      border: 1px solid rgba(138, 100, 32, 0.4);
-      border-radius: 22px;
+      border: 1px solid var(--border-gold);
+      border-radius: var(--radius);
       padding: 24px 20px;
       display: flex;
       align-items: center;
@@ -168,14 +167,14 @@
 
     .sobre-servico-card:hover {
       transform: translateY(-3px);
-      border-color: var(--primary, #8A6420);
+      border-color: var(--primary);
     }
 
     .sobre-servico-icon {
       width: 52px;
       height: 52px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, rgba(196, 150, 58, 0.15), rgba(138, 97, 32, 0.08));
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.15), rgba(var(--primary-rgb), 0.08));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -188,9 +187,9 @@
     }
 
     .sobre-servico-info h3 {
-      font-family: 'Manrope', sans-serif;
+      font-family: var(--font-heading);
       font-size: 1rem;
-      font-weight: 700;
+      font-weight: var(--heading-weight);
       margin-bottom: 4px;
     }
 
@@ -203,8 +202,8 @@
     .sobre-servico-price {
       margin-left: auto;
       flex-shrink: 0;
-      font-family: 'Manrope', sans-serif;
-      font-weight: 800;
+      font-family: var(--font-heading);
+      font-weight: var(--heading-weight);
       font-size: 1.05rem;
       color: var(--primary);
     }
@@ -218,8 +217,8 @@
 
     .sobre-equipe-card {
       background: transparent;
-      border: 1px solid rgba(138, 100, 32, 0.4);
-      border-radius: 24px;
+      border: 1px solid var(--border-gold);
+      border-radius: var(--radius);
       padding: 28px 24px;
       display: flex;
       align-items: center;
@@ -229,7 +228,7 @@
 
     .sobre-equipe-card:hover {
       transform: translateY(-3px);
-      border-color: var(--primary, #8A6420);
+      border-color: var(--primary);
     }
 
     .equipe-avatar {
@@ -239,29 +238,29 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-family: 'Manrope', sans-serif;
-      font-weight: 800;
+      font-family: var(--font-heading);
+      font-weight: var(--heading-weight);
       font-size: 1.5rem;
-      color: #fff;
+      color: var(--on-avatar);
       flex-shrink: 0;
     }
 
     .equipe-avatar.av1 {
-      background: linear-gradient(135deg, #C4963A, #8A6420);
+      background: var(--avatar-gradient-1);
     }
 
     .equipe-avatar.av2 {
-      background: linear-gradient(135deg, #5B8DB8, #2A5E8A);
+      background: var(--avatar-gradient-2);
     }
 
     .equipe-avatar.av3 {
-      background: linear-gradient(135deg, #ffc84d, #c07800);
+      background: var(--avatar-gradient-3);
     }
 
     .equipe-info h3 {
-      font-family: 'Manrope', sans-serif;
+      font-family: var(--font-heading);
       font-size: 1.05rem;
-      font-weight: 700;
+      font-weight: var(--heading-weight);
       margin-bottom: 3px;
     }
 
@@ -289,8 +288,8 @@
 
     .sobre-info-card {
       background: transparent;
-      border: 1px solid rgba(138, 100, 32, 0.4);
-      border-radius: 22px;
+      border: 1px solid var(--border-gold);
+      border-radius: var(--radius);
       padding: 26px 22px;
     }
 
@@ -298,9 +297,9 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      font-family: 'Manrope', sans-serif;
+      font-family: var(--font-heading);
       font-size: 1.05rem;
-      font-weight: 700;
+      font-weight: var(--heading-weight);
       margin-bottom: 20px;
     }
 
@@ -320,7 +319,7 @@
       justify-content: space-between;
       align-items: center;
       padding: 10px 0;
-      border-bottom: 1px solid rgba(148, 141, 162, 0.07);
+      border-bottom: 1px solid var(--border-faint);
     }
 
     .horario-item:last-child {
@@ -385,22 +384,19 @@
     /* CTA */
     .sobre-cta {
       text-align: center;
-      padding: 56px 0 16px;
+      padding: 0 0 16px;
     }
 
     .sobre-cta h2 {
-      font-family: 'Manrope', sans-serif;
+      font-family: var(--font-heading);
       font-size: clamp(1.6rem, 4vw, 2.4rem);
-      font-weight: 800;
-      letter-spacing: -0.04em;
+      font-weight: var(--heading-weight);
+      letter-spacing: 0;
       margin-bottom: 10px;
     }
 
     .sobre-cta h2 span {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: var(--primary);
     }
 
     .sobre-cta p {
@@ -414,21 +410,21 @@
       align-items: center;
       gap: 9px;
       padding: 16px 32px;
-      border-radius: 20px;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
-      color: #fff;
+      border-radius: var(--radius);
+      /* Mesmo estilo do botão principal: dourado liso, creme no hover */
+      background: var(--primary);
+      color: var(--on-primary);
       text-decoration: none;
       font-weight: 800;
       font-size: 0.95rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      box-shadow: 0 18px 40px rgba(138, 97, 32, 0.28);
-      transition: transform var(--transition), filter var(--transition);
+      box-shadow: 0 12px 32px var(--primary-glow);
+      transition: background var(--transition), box-shadow var(--transition);
     }
 
     .sobre-cta-btn:hover {
-      transform: translateY(-2px) scale(1.01);
-      filter: brightness(1.05);
+      background: var(--cream);
     }
 
     /* Responsive */
@@ -531,6 +527,8 @@
       </p>
     </section>
 
+    <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined">content_cut</span></div>
+
     <!-- Nossa História -->
     <section class="container sobre-section">
       <h2 class="sobre-section-title anim-fade-up">Nossa <span>História</span></h2>
@@ -590,6 +588,8 @@
       </div>
     </section>
 
+    <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined">content_cut</span></div>
+
     <!-- Serviços -->
     <section class="container sobre-section">
       <h2 class="sobre-section-title anim-fade-up">Nossos <span>Serviços</span></h2>
@@ -600,6 +600,8 @@
       </div>
     </section>
 
+    <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined">content_cut</span></div>
+
     <!-- Equipe -->
     <section class="container sobre-section">
       <h2 class="sobre-section-title anim-fade-up">Nossa <span>Equipe</span></h2>
@@ -609,6 +611,8 @@
         <div class="sobre-loading-hint">Carregando equipe...</div>
       </div>
     </section>
+
+    <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined">content_cut</span></div>
 
     <!-- Horários e Contato -->
     <section class="container sobre-section">
@@ -679,6 +683,8 @@
         </div>
       </div>
     </section>
+
+    <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined">content_cut</span></div>
 
     <!-- CTA -->
     <section class="container sobre-cta">

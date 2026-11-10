@@ -1,31 +1,4 @@
-:root {
-  --background: #F5F1E8;
-  --surface: #ffffff;
-  --surface-low: #FFFCF5;
-  --surface-lowest: #F8F4EC;
-  --surface-high: #EDE7D8;
-
-  --text: #16120A;
-  --text-muted: #5A5040;
-  --text-soft: #7A6E58;
-
-  --primary: #8A6420;
-  --primary-strong: #5C4010;
-  --tertiary: #7A6E60;
-
-  --danger: #C94040;
-  --warning: #B87818;
-  --success: #3A9E68;
-  --info: #7A6E60;
-
-  --card-shadow: 0 16px 36px rgba(12, 10, 5, 0.06);
-  --radius-md: 16px;
-  --radius-lg: 22px;
-  --radius-xl: 28px;
-  --transition: 0.24s ease;
-
-  --sidebar-w: 230px;
-}
+/* As cores e medidas (variáveis) ficam em css/variaveis.css */
 
 * {
   margin: 0;
@@ -42,15 +15,17 @@ html, body {
 }
 
 body {
-  font-family: "Inter", sans-serif;
+  font-family: var(--font-body);
+  /* A Prata só tem peso normal: isto impede o navegador de criar um "negrito falso" */
+  font-synthesis: none;
   background: var(--background);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-h1, h2, h3, h4, h5, h6 { font-family: 'Manrope', sans-serif; }
-body, input, textarea, select, button { font-family: 'Inter', sans-serif; }
+h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); font-weight: var(--heading-weight); }
+body, input, textarea, select, button { font-family: var(--font-body); }
 
 button, input, select {
   font: inherit;
@@ -60,7 +35,9 @@ button, input, select {
 
 button { cursor: pointer; }
 
-input[type="date"] { color-scheme: light; }
+/* Texto de exemplo dos campos: sem isto o navegador usa um cinza escuro demais */
+input::placeholder,
+textarea::placeholder { color: var(--text-soft); }
 
 .hidden { display: none !important; }
 
@@ -73,9 +50,10 @@ input[type="date"] { color-scheme: light; }
   overflow: hidden;
   min-height: 100vh;
   padding: 64px 0 50px;
+  /* Fundo liso, só com um brilho dourado suave no canto superior direito */
   background:
-    radial-gradient(ellipse at top right, rgba(138, 100, 32, 0.05), transparent 40%),
-    linear-gradient(180deg, #F5F1E8 0%, #EDE7D8 100%);
+    radial-gradient(ellipse at top right, var(--app-glow), transparent 40%),
+    var(--background);
 }
 
 .container {
@@ -90,7 +68,7 @@ input[type="date"] { color-scheme: light; }
 .sidebar-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--overlay-bg);
   backdrop-filter: blur(4px);
   z-index: 50;
   opacity: 0;
@@ -109,8 +87,8 @@ input[type="date"] { color-scheme: light; }
   top: 0;
   bottom: 0;
   width: var(--sidebar-w);
-  background: rgba(250, 246, 236, 0.98);
-  border-right: 1px solid rgba(14, 10, 0, 0.08);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
   backdrop-filter: blur(24px);
   z-index: 60;
   display: flex;
@@ -138,15 +116,15 @@ input[type="date"] { color-scheme: light; }
   align-items: center;
   gap: 9px;
   text-decoration: none;
-  font-family: 'Manrope', sans-serif;
-  font-weight: 800;
-  font-size: 1rem;
+  font-family: var(--font-heading);
+  font-weight: var(--heading-weight);
+  font-size: 1.3rem;
   color: var(--primary);
-  letter-spacing: -0.01em;
+  letter-spacing: 0.02em;
 }
 
 .sidebar-brand .material-symbols-outlined {
-  font-size: 20px;
+  font-size: 22px;
 }
 
 .sidebar-close {
@@ -155,7 +133,7 @@ input[type="date"] { color-scheme: light; }
   justify-content: center;
   width: 30px;
   height: 30px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: transparent;
   border: none;
   color: var(--text-soft);
@@ -164,7 +142,7 @@ input[type="date"] { color-scheme: light; }
 }
 
 .sidebar-close:hover {
-  background: rgba(148, 141, 162, 0.1);
+  background: var(--hover-neutral);
   color: var(--text);
 }
 
@@ -180,12 +158,13 @@ input[type="date"] { color-scheme: light; }
   align-items: center;
   gap: 11px;
   padding: 11px 14px;
-  border-radius: 11px;
+  border-radius: var(--radius);
   text-decoration: none;
   color: var(--text-muted);
   font-weight: 600;
   font-size: 0.9rem;
-  transition: background var(--transition), color var(--transition);
+  border: 1px solid transparent;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
 }
 
 .sidebar-link .material-symbols-outlined {
@@ -194,12 +173,13 @@ input[type="date"] { color-scheme: light; }
 }
 
 .sidebar-link:hover {
-  background: rgba(196, 150, 58, 0.07);
-  color: var(--text);
+  color: var(--primary);
 }
 
+/* Página atual: texto dourado e contorno dourado fino */
 .sidebar-link.active {
-  background: rgba(196, 150, 58, 0.11);
+  background: rgba(var(--primary-rgb), 0.06);
+  border-color: var(--border-gold);
   color: var(--primary);
 }
 
@@ -209,9 +189,9 @@ input[type="date"] { color-scheme: light; }
   left: 14px;
   width: 42px;
   height: 42px;
-  border-radius: 12px;
-  background: rgba(248, 243, 232, 0.94);
-  border: 1px solid rgba(14, 10, 0, 0.10);
+  border-radius: var(--radius);
+  background: var(--sidebar-toggle-bg);
+  border: 1px solid var(--sidebar-toggle-border);
   backdrop-filter: blur(12px);
   color: var(--text);
   cursor: pointer;
@@ -223,7 +203,7 @@ input[type="date"] { color-scheme: light; }
 }
 
 .sidebar-toggle:hover {
-  background: rgba(12, 16, 30, 0.96);
+  background: var(--sidebar-toggle-hover-bg);
 }
 
 .sidebar-toggle .material-symbols-outlined {
@@ -253,10 +233,9 @@ input[type="date"] { color-scheme: light; }
   gap: 9px;
   width: fit-content;
   padding: 9px 14px;
-  border-radius: 999px;
+  border-radius: var(--radius);
   background: transparent;
-  border: 1px solid rgba(138, 100, 32, 0.4);
-  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-gold);
 }
 
 .welcome-dot {
@@ -264,7 +243,7 @@ input[type="date"] { color-scheme: light; }
   height: 7px;
   border-radius: 50%;
   background: var(--primary);
-  box-shadow: 0 0 8px rgba(196, 150, 58, 0.6);
+  box-shadow: 0 0 8px rgba(var(--primary-rgb), 0.6);
   animation: pulse 1.6s infinite;
 }
 
@@ -277,18 +256,16 @@ input[type="date"] { color-scheme: light; }
 }
 
 .page-title {
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-heading);
   font-size: clamp(2rem, 7vw, 3.6rem);
   line-height: 0.95;
-  font-weight: 800;
-  letter-spacing: -0.05em;
+  font-weight: var(--heading-weight);
+  letter-spacing: 0;
 }
 
+/* Palavra em destaque do título: dourado liso */
 .page-title span {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--primary);
 }
 
 .page-description {
@@ -304,18 +281,18 @@ input[type="date"] { color-scheme: light; }
   align-items: center;
   gap: 9px;
   text-decoration: none;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
-  color: #fff;
+  /* Mesmo estilo do botão principal: dourado liso, creme no hover */
+  background: var(--primary);
+  color: var(--on-primary);
   padding: 13px 20px;
-  border-radius: 16px;
+  border-radius: var(--radius);
   font-weight: 700;
-  box-shadow: 0 18px 40px rgba(138, 97, 32, 0.24);
-  transition: transform var(--transition), filter var(--transition);
+  box-shadow: 0 12px 32px var(--primary-glow);
+  transition: background var(--transition), box-shadow var(--transition);
 }
 
 .new-booking-btn:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.05);
+  background: var(--cream);
 }
 
 /* ============================================================
@@ -334,10 +311,16 @@ input[type="date"] { color-scheme: light; }
   align-items: center;
   gap: 9px;
   background: transparent;
-  border: 1px solid rgba(138, 100, 32, 0.4);
-  border-radius: 16px;
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius);
   padding: 13px 15px;
   box-shadow: none;
+}
+
+/* Foco num campo do filtro: a caixa inteira fica com o contorno dourado */
+.filter-group:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
 }
 
 .filter-group span {
@@ -373,18 +356,28 @@ input[type="date"] { color-scheme: light; }
 
 .stat-item {
   background: transparent;
-  border: 1px solid rgba(138, 100, 32, 0.4);
-  border-radius: 22px;
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius);
   padding: 20px 16px;
   box-shadow: none;
 }
 
+/* Números em Lato: na Prata o "1" parece um "l" minúsculo */
 .stat-item strong {
   display: block;
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
   font-size: 1.7rem;
   line-height: 1;
   margin-bottom: 7px;
+}
+
+/* No celular (2 colunas), o último card sozinho ocupa a linha inteira */
+@media (max-width: 767px) {
+  .stat-item:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
 }
 
 .stat-item span {
@@ -408,7 +401,7 @@ input[type="date"] { color-scheme: light; }
 }
 
 .section-top h2 {
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-heading);
   font-size: 1.6rem;
   margin-bottom: 5px;
 }
@@ -431,8 +424,8 @@ input[type="date"] { color-scheme: light; }
 
 .appointment-card {
   background: transparent;
-  border: 1px solid rgba(138, 100, 32, 0.35);
-  border-radius: 26px;
+  border: 1px solid var(--border-gold-soft);
+  border-radius: var(--radius);
   padding: 20px;
   box-shadow: none;
   transition: transform var(--transition), border-color var(--transition);
@@ -456,13 +449,13 @@ input[type="date"] { color-scheme: light; }
   height: 50px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
-  color: #fff;
+  color: var(--on-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
   font-size: 1.05rem;
-  box-shadow: 0 10px 22px rgba(138, 97, 32, 0.22);
+  box-shadow: 0 10px 22px rgba(var(--primary-rgb), 0.22);
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -490,7 +483,7 @@ input[type="date"] { color-scheme: light; }
 
 .status-badge {
   padding: 8px 13px;
-  border-radius: 999px;
+  border-radius: var(--radius);
   font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
@@ -498,22 +491,22 @@ input[type="date"] { color-scheme: light; }
 }
 
 .status-badge.confirmed {
-  background: rgba(58, 158, 104, 0.1);
+  background: rgba(var(--success-rgb), 0.1);
   color: var(--success);
 }
 
 .status-badge.pending {
-  background: rgba(184, 120, 24, 0.1);
+  background: rgba(var(--warning-rgb), 0.1);
   color: var(--warning);
 }
 
 .status-badge.completed {
-  background: rgba(122, 110, 96, 0.1);
+  background: rgba(var(--info-rgb), 0.1);
   color: var(--info);
 }
 
 .status-badge.cancelled {
-  background: rgba(201, 64, 64, 0.1);
+  background: rgba(var(--danger-rgb), 0.1);
   color: var(--danger);
 }
 
@@ -548,25 +541,37 @@ input[type="date"] { color-scheme: light; }
   align-items: center;
   gap: 7px;
   padding: 10px 14px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   font-weight: 700;
   font-size: 0.85rem;
   transition: transform var(--transition), filter var(--transition), background var(--transition);
 }
 
-.edit-btn {
-  background: rgba(196, 150, 58, 0.1);
+/* Editar (agendamento ou barbeiro): dourado */
+.edit-btn,
+.edit-barbeiro-btn {
+  background: rgba(var(--primary-rgb), 0.1);
   color: var(--primary);
 }
 
-.delete-btn {
-  background: rgba(255, 96, 112, 0.1);
+/* Excluir e remover (agendamento, comentário ou cliente): vermelho */
+.delete-btn,
+.delete-client {
+  background: var(--delete-btn-bg);
   color: var(--danger);
 }
 
 .status-btn {
-  background: rgba(85, 222, 162, 0.1);
+  background: var(--status-btn-bg);
   color: var(--success);
+}
+
+/* Botões neutros (Ocultar comentário, Cancelar agendamento): sem isto eles
+   usavam o cinza padrão do navegador */
+.hide-comment,
+.cancel-btn {
+  background: var(--hover-neutral);
+  color: var(--text-muted);
 }
 
 .action-btn:hover {
@@ -581,9 +586,9 @@ input[type="date"] { color-scheme: light; }
 .empty-state {
   grid-column: 1 / -1;
   min-height: 240px;
-  border-radius: 26px;
+  border-radius: var(--radius);
   background: transparent;
-  border: 1px solid rgba(138, 100, 32, 0.35);
+  border: 1px solid var(--border-gold-soft);
   box-shadow: none;
   display: flex;
   flex-direction: column;
@@ -620,16 +625,19 @@ input[type="date"] { color-scheme: light; }
   left: 50%;
   bottom: 28px;
   transform: translateX(-50%) translateY(16px);
-  background: rgba(10, 14, 28, 0.95);
-  color: #F5F1E8;
-  border: 1px solid rgba(196, 150, 58, 0.14);
+  background: var(--toast-bg);
+  color: var(--toast-text);
+  border: 1px solid var(--toast-border);
   padding: 13px 18px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   box-shadow: var(--card-shadow);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.22s ease, transform 0.22s ease;
   z-index: 100;
+  /* Largura do texto, até a largura da tela (sem isto o left: 50% deixava
+     o aviso com só meia tela e o texto quebrava em várias linhas no celular) */
+  width: max-content;
   max-width: calc(100% - 32px);
   text-align: center;
   font-size: 0.9rem;
@@ -657,7 +665,7 @@ input[type="date"] { color-scheme: light; }
   left: -100px;
   width: 260px;
   height: 260px;
-  background: rgba(196, 150, 58, 0.06);
+  background: rgba(var(--primary-rgb), 0.06);
 }
 
 .orb-bottom {
@@ -665,7 +673,7 @@ input[type="date"] { color-scheme: light; }
   bottom: 100px;
   width: 300px;
   height: 300px;
-  background: rgba(91, 141, 184, 0.05);
+  background: var(--orb-glow);
 }
 
 @keyframes pulse {
@@ -700,39 +708,45 @@ a.new-booking-btn {
   justify-content: center;
   gap: 9px;
   padding: 13px 18px;
-  border-radius: 16px;
+  border-radius: var(--radius);
   font-weight: 700;
   cursor: pointer;
-  transition: transform var(--transition), filter var(--transition), background var(--transition), border-color var(--transition);
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
 }
 
 .ghost-btn {
   background: transparent;
   color: var(--text-muted);
-  border: 1px solid rgba(148, 141, 162, 0.15);
+  border: 1px solid var(--border-medium);
 }
 
+/* Botão secundário: só o contorno dourado fino, sem fundo */
 .secondary-btn {
-  background: rgba(196, 150, 58, 0.1);
+  background: transparent;
   color: var(--primary);
-  border: 1px solid rgba(196, 150, 58, 0.18);
+  border: 1px solid var(--border-gold);
 }
 
+/* Botão principal: dourado liso com texto escuro; no hover vira creme */
 .submit-btn {
   width: 100%;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
-  color: #fff;
+  background: var(--primary);
+  color: var(--on-primary);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   font-weight: 800;
-  box-shadow: 0 18px 40px rgba(138, 97, 32, 0.24);
+  box-shadow: 0 12px 32px var(--primary-glow);
 }
 
 .ghost-btn:hover,
-.secondary-btn:hover,
+.secondary-btn:hover {
+  background: rgba(var(--primary-rgb), 0.08);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
 .submit-btn:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.05);
+  background: var(--cream);
 }
 
 /* ============================================================
@@ -754,14 +768,14 @@ a.new-booking-btn {
 .admin-card,
 .comment-form {
   background: transparent;
-  border: 1px solid rgba(138, 100, 32, 0.4);
-  border-radius: 26px;
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius);
   padding: 20px;
   box-shadow: none;
 }
 
 .admin-card h3 {
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-heading);
   margin-bottom: 14px;
   font-size: 1.05rem;
 }
@@ -794,24 +808,31 @@ a.new-booking-btn {
   margin-left: 3px;
 }
 
+/* Campo só com contorno, sem fundo (o select do filtro já fica dentro
+   da caixa dourada do .filter-group, então não ganha contorno próprio) */
 .form-group input,
 .form-group textarea,
-.form-group select,
-.filter-group select {
+.form-group select {
   width: 100%;
-  background: var(--surface-lowest);
+  background: transparent;
   color: var(--text);
-  border: 1px solid rgba(148, 141, 162, 0.1);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius);
   padding: 13px 15px;
   transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.form-group input:hover:not(:focus),
+.form-group textarea:hover:not(:focus),
+.form-group select:hover:not(:focus) {
+  border-color: var(--input-border-hover);
 }
 
 .form-group input:focus,
 .form-group textarea:focus,
 .form-group select:focus {
-  border-color: rgba(196, 150, 58, 0.3);
-  box-shadow: 0 0 0 3px rgba(196, 150, 58, 0.07);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
 }
 
 .form-group textarea {
@@ -836,8 +857,8 @@ a.new-booking-btn {
 .comment-row,
 .empty-row {
   background: transparent;
-  border: 1px solid rgba(138, 100, 32, 0.35);
-  border-radius: 16px;
+  border: 1px solid var(--border-gold-soft);
+  border-radius: var(--radius);
   padding: 13px;
 }
 
@@ -876,7 +897,7 @@ a.new-booking-btn {
 }
 
 .reserved-row {
-  border-color: rgba(255, 200, 77, 0.2);
+  border-color: var(--reserved-border);
 }
 
 .comments-layout {
@@ -965,7 +986,7 @@ a.new-booking-btn {
   .admin-card,
   .comment-form {
     padding: 14px;
-    border-radius: 18px;
+    border-radius: var(--radius);
   }
 
   /* Service & client rows — stack content + actions vertically */
@@ -1026,11 +1047,11 @@ a.new-booking-btn {
 .status-picker-dropdown {
   position: fixed;
   z-index: 200;
-  background: rgba(255, 252, 245, 0.98);
-  border: 1px solid rgba(138, 97, 32, 0.16);
-  border-radius: 18px;
+  background: var(--dropdown-bg);
+  border: 1px solid rgba(var(--primary-rgb), 0.16);
+  border-radius: var(--radius);
   padding: 8px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--dropdown-shadow);
   backdrop-filter: blur(20px);
   display: flex;
   flex-direction: row;
@@ -1049,7 +1070,7 @@ a.new-booking-btn {
   align-items: center;
   gap: 5px;
   padding: 10px 13px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   font-size: 0.75rem;
   font-weight: 700;
   text-align: center;
@@ -1068,7 +1089,7 @@ a.new-booking-btn {
 .status-picker-item.cancelled { color: var(--danger);  }
 
 .status-picker-item:hover:not(:disabled) {
-  background: rgba(148, 141, 162, 0.1);
+  background: var(--hover-neutral);
 }
 
 .status-picker-item.current,

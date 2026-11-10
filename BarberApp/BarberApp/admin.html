@@ -3,15 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#282823" />
   <title>BarberApp | Administração</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&family=Prata&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
 
+  <link rel="stylesheet" href="css/variaveis.css" />
   <link rel="stylesheet" href="css/agendamentos.css" />
   <link rel="stylesheet" href="css/barbeiros.css" />
+  <link rel="stylesheet" href="css/componentes.css" />
 
   <style>
     /* ============================================================
@@ -20,12 +23,13 @@
 
     .admin-badge {
       display: inline-flex;
+      width: fit-content;  /* sem isto o selo esticava na largura toda */
       align-items: center;
       gap: 6px;
       padding: 4px 12px;
-      border-radius: 999px;
-      background: rgba(196, 150, 58, 0.10);
-      border: 1px solid rgba(196, 150, 58, 0.20);
+      border-radius: var(--radius);
+      background: rgba(var(--primary-rgb), 0.10);
+      border: 1px solid rgba(var(--primary-rgb), 0.20);
       font-size: 0.78rem;
       font-weight: 700;
       letter-spacing: 0.08em;
@@ -47,19 +51,19 @@
       .admin-stats-row { grid-template-columns: repeat(4, 1fr); }
     }
 
+    /* Card de número em destaque: só a borda dourada fina, sem fundo */
     .admin-stat-card {
-      background: rgba(255, 255, 255, 0.96);
-      border: 1px solid rgba(148, 141, 162, 0.10);
-      border-radius: 18px;
+      background: transparent;
+      border: 1px solid var(--border-gold);
+      border-radius: var(--radius);
       padding: 18px 20px;
-      box-shadow: var(--card-shadow);
       display: flex;
       flex-direction: column;
       gap: 6px;
       transition: border-color var(--transition);
     }
 
-    .admin-stat-card:hover { border-color: rgba(196, 150, 58, 0.18); }
+    .admin-stat-card:hover { border-color: var(--primary); }
 
     .admin-stat-card .stat-icon {
       font-size: 20px;
@@ -67,10 +71,12 @@
       margin-bottom: 4px;
     }
 
+    /* Números em Lato: na Prata o "1" parece um "l" minúsculo */
     .admin-stat-card strong {
-      font-family: 'Manrope', sans-serif;
+      font-family: var(--font-body);
       font-size: 1.6rem;
-      font-weight: 800;
+      font-weight: 400;
+      font-variant-numeric: tabular-nums;
       line-height: 1;
       color: var(--text);
     }
@@ -92,13 +98,13 @@
       gap: 10px;
       margin-bottom: 16px;
       padding-bottom: 12px;
-      border-bottom: 1px solid rgba(148, 141, 162, 0.1);
+      border-bottom: 1px solid var(--border-subtle);
     }
 
     .admin-section-title h3 {
-      font-family: 'Manrope', sans-serif;
+      font-family: var(--font-heading);
       font-size: 1.05rem;
-      font-weight: 700;
+      font-weight: var(--heading-weight);
     }
 
     .admin-section-title .material-symbols-outlined {
@@ -122,16 +128,22 @@
 
     /* Form panel inside admin card */
     .barbeiro-admin-form {
-      background: rgba(0, 0, 0, 0.02);
-      border: 1px solid rgba(148, 141, 162, 0.08);
-      border-radius: 18px;
+      background: transparent;
+      border: 1px solid var(--border-faint);
+      border-radius: var(--radius);
       padding: 20px 18px;
     }
 
+    /* Espaço entre os campos do formulário de barbeiro (antes os títulos
+       encostavam no campo de cima) */
+    .barbeiro-admin-form .form-group + .form-group {
+      margin-top: 18px;
+    }
+
     .barbeiro-admin-form h4 {
-      font-family: 'Manrope', sans-serif;
+      font-family: var(--font-heading);
       font-size: 0.95rem;
-      font-weight: 700;
+      font-weight: var(--heading-weight);
       margin-bottom: 16px;
       color: var(--primary);
     }
@@ -145,7 +157,7 @@
 
       .admin-stat-card {
         padding: 14px 12px;
-        border-radius: 14px;
+        border-radius: var(--radius);
       }
 
       .admin-stat-card strong {
@@ -154,7 +166,7 @@
 
       .barbeiro-admin-form {
         padding: 14px;
-        border-radius: 14px;
+        border-radius: var(--radius);
       }
 
       .admin-section-gap {
@@ -257,6 +269,8 @@
       </div>
     </section>
 
+    <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined">content_cut</span></div>
+
     <!-- Services + Clients -->
     <section class="container admin-section-page">
       <div class="admin-grid">
@@ -290,8 +304,8 @@
           <div id="services-list" class="admin-list"></div>
         </div>
 
-        <!-- Clients list -->
-        <div class="admin-card admin-card-wide">
+        <!-- Clients list (ao lado de Serviços no desktop) -->
+        <div class="admin-card">
           <div class="admin-section-title">
             <span class="material-symbols-outlined">group</span>
             <h3>Clientes cadastrados</h3>
@@ -302,6 +316,8 @@
 
       </div>
     </section>
+
+    <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined">content_cut</span></div>
 
     <!-- Barbeiros management (full width) -->
     <section class="container admin-section-gap">

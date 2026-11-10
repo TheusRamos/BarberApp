@@ -1,42 +1,4 @@
-:root {
-  --background: #F5F1E8;
-  --surface: #ffffff;
-  --surface-low: #FFFCF5;
-  --surface-lowest: #F8F4EC;
-  --surface-high: #EDE7D8;
-  --surface-border: rgba(14, 10, 0, 0.06);
-
-  --text: #16120A;
-  --text-muted: #5A5040;
-  --text-soft: #7A6E58;
-
-  --primary: #8A6420;
-  --primary-strong: #5C4010;
-  --primary-dark: #3A2808;
-  --tertiary: #7A6E60;
-
-  --success: #55C48A;
-  --warning: #E8A020;
-  --danger: #E06060;
-
-  --success-shadow: rgba(138, 100, 32, 0.12);
-  --card-shadow: 0 16px 36px rgba(12, 10, 5, 0.06);
-
-  --radius-sm: 10px;
-  --radius-md: 16px;
-  --radius-lg: 22px;
-  --radius-xl: 28px;
-
-  --transition: 0.24s ease;
-
-  --font-base: 1rem;
-  --leading-tight: 1.1;
-  --leading-normal: 1.65;
-  --heading-weight: 800;
-  --body-weight: 400;
-
-  --sidebar-w: 230px;
-}
+/* As cores e medidas (variáveis) ficam em css/variaveis.css */
 
 * {
   margin: 0;
@@ -53,7 +15,9 @@ html, body {
 }
 
 body {
-  font-family: "Inter", sans-serif;
+  font-family: var(--font-body);
+  /* A Prata só tem peso normal: isto impede o navegador de criar um "negrito falso" */
+  font-synthesis: none;
   background: var(--background);
   color: var(--text);
   font-size: var(--font-base);
@@ -77,11 +41,6 @@ input, textarea, button {
   outline: none;
 }
 
-input[type="date"],
-input[type="time"] {
-  color-scheme: light;
-}
-
 .hidden {
   display: none !important;
 }
@@ -95,9 +54,10 @@ input[type="time"] {
   overflow: hidden;
   min-height: 100vh;
   padding: 64px 0 50px;
+  /* Fundo liso, só com um brilho dourado suave no canto superior direito */
   background:
-    radial-gradient(ellipse at top right, rgba(138, 100, 32, 0.05), transparent 40%),
-    linear-gradient(180deg, #F5F1E8 0%, #EDE7D8 100%);
+    radial-gradient(ellipse at top right, var(--app-glow), transparent 40%),
+    var(--background);
 }
 
 .container {
@@ -112,7 +72,7 @@ input[type="time"] {
 .sidebar-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--overlay-bg);
   backdrop-filter: blur(4px);
   z-index: 50;
   opacity: 0;
@@ -131,8 +91,8 @@ input[type="time"] {
   top: 0;
   bottom: 0;
   width: var(--sidebar-w);
-  background: rgba(250, 246, 236, 0.98);
-  border-right: 1px solid rgba(14, 10, 0, 0.08);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
   backdrop-filter: blur(24px);
   z-index: 60;
   display: flex;
@@ -160,15 +120,15 @@ input[type="time"] {
   align-items: center;
   gap: 9px;
   text-decoration: none;
-  font-family: 'Manrope', sans-serif;
-  font-weight: 800;
-  font-size: 1rem;
+  font-family: var(--font-heading);
+  font-weight: var(--heading-weight);
+  font-size: 1.3rem;
   color: var(--primary);
-  letter-spacing: -0.01em;
+  letter-spacing: 0.02em;
 }
 
 .sidebar-brand .material-symbols-outlined {
-  font-size: 20px;
+  font-size: 22px;
 }
 
 .sidebar-close {
@@ -177,7 +137,7 @@ input[type="time"] {
   justify-content: center;
   width: 30px;
   height: 30px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: transparent;
   border: none;
   color: var(--text-soft);
@@ -186,7 +146,7 @@ input[type="time"] {
 }
 
 .sidebar-close:hover {
-  background: rgba(148, 141, 162, 0.1);
+  background: var(--hover-neutral);
   color: var(--text);
 }
 
@@ -202,12 +162,13 @@ input[type="time"] {
   align-items: center;
   gap: 11px;
   padding: 11px 14px;
-  border-radius: 11px;
+  border-radius: var(--radius);
   text-decoration: none;
   color: var(--text-muted);
   font-weight: 600;
   font-size: 0.9rem;
-  transition: background var(--transition), color var(--transition);
+  border: 1px solid transparent;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
 }
 
 .sidebar-link .material-symbols-outlined {
@@ -216,12 +177,13 @@ input[type="time"] {
 }
 
 .sidebar-link:hover {
-  background: rgba(196, 150, 58, 0.07);
-  color: var(--text);
+  color: var(--primary);
 }
 
+/* Página atual: texto dourado e contorno dourado fino */
 .sidebar-link.active {
-  background: rgba(196, 150, 58, 0.11);
+  background: rgba(var(--primary-rgb), 0.06);
+  border-color: var(--border-gold);
   color: var(--primary);
 }
 
@@ -231,9 +193,9 @@ input[type="time"] {
   left: 14px;
   width: 42px;
   height: 42px;
-  border-radius: 12px;
-  background: rgba(248, 243, 232, 0.94);
-  border: 1px solid rgba(14, 10, 0, 0.10);
+  border-radius: var(--radius);
+  background: var(--sidebar-toggle-bg);
+  border: 1px solid var(--sidebar-toggle-border);
   backdrop-filter: blur(12px);
   color: var(--text);
   cursor: pointer;
@@ -245,7 +207,7 @@ input[type="time"] {
 }
 
 .sidebar-toggle:hover {
-  background: rgba(12, 16, 30, 0.96);
+  background: var(--sidebar-toggle-hover-bg);
 }
 
 .sidebar-toggle .material-symbols-outlined {
@@ -275,10 +237,9 @@ input[type="time"] {
   gap: 9px;
   width: fit-content;
   padding: 9px 14px;
-  border-radius: 999px;
+  border-radius: var(--radius);
   background: transparent;
-  border: 1px solid rgba(138, 100, 32, 0.4);
-  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-gold);
 }
 
 .welcome-dot {
@@ -286,7 +247,7 @@ input[type="time"] {
   height: 7px;
   border-radius: 50%;
   background: var(--primary);
-  box-shadow: 0 0 8px rgba(196, 150, 58, 0.6);
+  box-shadow: 0 0 8px rgba(var(--primary-rgb), 0.6);
   animation: pulse 1.6s infinite;
 }
 
@@ -299,19 +260,17 @@ input[type="time"] {
 }
 
 .hero-title {
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-heading);
   font-size: clamp(1.9rem, 5.5vw, 3.4rem);
   line-height: var(--leading-tight);
   font-weight: var(--heading-weight);
-  letter-spacing: -0.05em;
+  letter-spacing: 0;
   max-width: 640px;
 }
 
+/* Palavra em destaque do título: dourado liso */
 .hero-title span {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--primary);
 }
 
 .hero-description {
@@ -339,28 +298,30 @@ input[type="time"] {
   justify-content: center;
   gap: 9px;
   padding: 13px 18px;
-  border-radius: 16px;
+  border-radius: var(--radius);
   font-weight: 700;
   cursor: pointer;
-  transition: transform var(--transition), filter var(--transition), background var(--transition), border-color var(--transition);
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
 }
 
+/* Botão secundário: só o contorno dourado fino, sem fundo */
 .secondary-btn {
-  background: rgba(196, 150, 58, 0.1);
+  background: transparent;
   color: var(--primary);
-  border: 1px solid rgba(196, 150, 58, 0.18);
+  border: 1px solid var(--border-gold);
 }
 
 .secondary-btn:hover,
 .ghost-btn:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.06);
+  background: rgba(var(--primary-rgb), 0.08);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .ghost-btn {
   background: transparent;
   color: var(--text-muted);
-  border: 1px solid rgba(148, 141, 162, 0.15);
+  border: 1px solid var(--border-medium);
 }
 
 a.ghost-btn,
@@ -376,20 +337,20 @@ a.secondary-btn {
   flex: 1;
   min-width: 200px;
   padding: 14px 18px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
-  color: #ffffff;
+  border-radius: var(--radius);
+  /* Botão principal: dourado liso com texto escuro; no hover vira creme */
+  background: var(--primary);
+  color: var(--on-primary);
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 18px 40px var(--success-shadow);
-  transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
+  box-shadow: 0 12px 32px var(--primary-glow);
+  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .submit-btn:hover {
-  transform: translateY(-2px) scale(1.01);
-  filter: brightness(1.05);
+  background: var(--cream);
 }
 
 .submit-btn:active {
@@ -411,7 +372,7 @@ button:disabled,
 .hero-image-card {
   position: relative;
   overflow: hidden;
-  border-radius: 24px;
+  border-radius: var(--radius);
   background: var(--surface-low);
   box-shadow: var(--card-shadow);
   min-height: 240px;
@@ -422,19 +383,22 @@ button:disabled,
   height: 100%;
   min-height: 240px;
   object-fit: cover;
-  filter: grayscale(100%);
+  /* Tom quente e escurecido, como as fotos da referência:
+     tira a cor, aplica sépia (marrom dourado) e escurece um pouco */
+  filter: grayscale(100%) sepia(45%) brightness(0.8);
   transition: transform 0.7s ease, filter 0.7s ease;
 }
 
+/* No hover a foto clareia e ganha um pouco da cor original */
 .hero-image-card:hover .hero-image {
   transform: scale(1.04);
-  filter: grayscale(0%);
+  filter: grayscale(30%) sepia(30%) brightness(0.95);
 }
 
 .hero-image-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(9, 12, 24, 0.95), rgba(9, 12, 24, 0.06), rgba(9, 12, 24, 0));
+  background: linear-gradient(to top, rgba(var(--hero-overlay-rgb), 0.95), rgba(var(--hero-overlay-rgb), 0.06), rgba(var(--hero-overlay-rgb), 0));
 }
 
 /* ============================================================
@@ -443,8 +407,8 @@ button:disabled,
 
 .form-panel {
   background: transparent;
-  border: 1px solid rgba(138, 100, 32, 0.4);
-  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius);
   box-shadow: none;
   padding: 24px;
   position: relative;
@@ -458,7 +422,7 @@ button:disabled,
   right: -40px;
   width: 160px;
   height: 160px;
-  background: radial-gradient(circle, rgba(196, 150, 58, 0.14), transparent 70%);
+  background: radial-gradient(circle, rgba(var(--primary-rgb), 0.14), transparent 70%);
   pointer-events: none;
 }
 
@@ -469,7 +433,7 @@ button:disabled,
 }
 
 .panel-top h2 {
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-heading);
   font-size: 1.2rem;
   margin-bottom: 5px;
   line-height: 1.15;
@@ -526,10 +490,11 @@ button:disabled,
 .form-group textarea,
 .form-group select {
   width: 100%;
+  /* Campo só com contorno, sem fundo */
   background: transparent;
   color: var(--text);
-  border: 1px solid rgba(138, 100, 32, 0.35);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius);
   padding: 13px 15px;
   transition: border-color var(--transition), box-shadow var(--transition);
 }
@@ -539,14 +504,36 @@ button:disabled,
   color: var(--text-soft);
 }
 
+.form-group input:hover:not(:focus),
+.form-group textarea:hover:not(:focus),
+.form-group select:hover:not(:focus) {
+  border-color: var(--input-border-hover);
+}
+
 .form-group input:focus,
 .form-group textarea:focus,
 .form-group select:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(138, 100, 32, 0.1);
+  box-shadow: 0 0 0 1px var(--primary);
 }
 
-.form-group input:disabled {
+/* Campo com erro: quando o <small class="field-error"> do mesmo grupo tem
+   texto, a borda do campo fica vermelha (discreta), mesmo com o foco nele */
+.form-group:has(.field-error:not(:empty)) input,
+.form-group:has(.field-error:not(:empty)) textarea,
+.form-group:has(.field-error:not(:empty)) select {
+  border-color: var(--input-border-error);
+}
+
+.form-group:has(.field-error:not(:empty)) input:focus,
+.form-group:has(.field-error:not(:empty)) textarea:focus,
+.form-group:has(.field-error:not(:empty)) select:focus {
+  box-shadow: 0 0 0 1px var(--input-border-error);
+}
+
+/* Campo desabilitado (ex.: horário antes de escolher a data) fica esmaecido */
+.form-group input:disabled,
+.form-group select:disabled {
   opacity: 0.55;
   cursor: default;
 }
@@ -554,10 +541,6 @@ button:disabled,
 .form-group textarea {
   resize: none;
   min-height: 112px;
-}
-
-.form-group select {
-  color-scheme: light;
 }
 
 .field-error {
@@ -603,10 +586,11 @@ button:disabled,
   outline-offset: 2px;
 }
 
+/* Card de serviço: só contorno; fica dourado quando escolhido */
 .service-card {
-  background: var(--surface-lowest);
-  border: 1px solid rgba(148, 141, 162, 0.1);
-  border-radius: 20px;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
   padding: 22px 14px;
   display: flex;
   flex-direction: column;
@@ -620,8 +604,8 @@ button:disabled,
 
 .service-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(196, 150, 58, 0.3);
-  background: var(--surface-high);
+  border-color: var(--input-border-hover);
+  background: rgba(var(--primary-rgb), 0.04);
 }
 
 .service-icon {
@@ -648,9 +632,33 @@ button:disabled,
 }
 
 .services-grid input[name="servico"]:checked + .service-card {
-  background: linear-gradient(180deg, rgba(196, 150, 58, 0.11), rgba(196, 150, 58, 0.05));
-  border-color: rgba(196, 150, 58, 0.38);
-  box-shadow: 0 12px 28px rgba(138, 97, 32, 0.14);
+  background: rgba(var(--primary-rgb), 0.08);
+  border-color: var(--primary);
+}
+
+/* No celular os cards de serviço viram linhas compactas (ícone, nome e preço
+   lado a lado), para a lista não ocupar a tela inteira */
+@media (max-width: 639px) {
+  .service-card {
+    flex-direction: row;
+    min-height: 0;
+    padding: 14px 16px;
+    gap: 12px;
+    text-align: left;
+  }
+
+  .service-card .service-icon {
+    font-size: 24px;
+  }
+
+  .service-card .service-price {
+    margin-left: auto;
+  }
+}
+
+/* Erro nos serviços: os cards ganham a borda vermelha discreta, como os campos */
+.form-section:has(.field-error:not(:empty)) .service-card {
+  border-color: var(--input-border-error);
 }
 
 .services-grid input[name="servico"]:checked + .service-card .service-title,
@@ -665,7 +673,7 @@ button:disabled,
 .stats-section {
   margin-top: 48px;
   padding-top: 26px;
-  border-top: 1px solid rgba(148, 141, 162, 0.1);
+  border-top: 1px solid var(--border-subtle);
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 20px 16px;
@@ -673,15 +681,15 @@ button:disabled,
 
 .stat-item {
   background: transparent;
-  border: 1px solid rgba(138, 100, 32, 0.4);
-  border-radius: 20px;
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius);
   padding: 20px 16px;
   box-shadow: none;
 }
 
 .stat-item strong {
   display: block;
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-heading);
   font-size: 1rem;
   line-height: 1.1;
   margin-bottom: 5px;
@@ -712,7 +720,7 @@ button:disabled,
   left: -100px;
   width: 260px;
   height: 260px;
-  background: rgba(196, 150, 58, 0.06);
+  background: rgba(var(--primary-rgb), 0.06);
 }
 
 .orb-bottom {
@@ -720,7 +728,7 @@ button:disabled,
   bottom: 100px;
   width: 300px;
   height: 300px;
-  background: rgba(91, 141, 184, 0.05);
+  background: var(--orb-glow);
 }
 
 /* ============================================================
@@ -732,16 +740,19 @@ button:disabled,
   left: 50%;
   bottom: 28px;
   transform: translateX(-50%) translateY(16px);
-  background: rgba(10, 14, 28, 0.95);
-  color: #F5F1E8;
-  border: 1px solid rgba(196, 150, 58, 0.14);
+  background: var(--toast-bg);
+  color: var(--toast-text);
+  border: 1px solid var(--toast-border);
   padding: 13px 18px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   box-shadow: var(--card-shadow);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.22s ease, transform 0.22s ease;
   z-index: 100;
+  /* Largura do texto, até a largura da tela (sem isto o left: 50% deixava
+     o aviso com só meia tela e o texto quebrava em várias linhas no celular) */
+  width: max-content;
   max-width: calc(100% - 32px);
   text-align: center;
   font-size: 0.9rem;
@@ -775,6 +786,17 @@ button:disabled,
   width: 100%;
 }
 
+/* Aba ativa (o JS troca a classe para .secondary-btn): dourado suave por dentro.
+   Aba inativa (.ghost-btn): texto mais apagado, para não competir com a ativa. */
+.auth-tabs .secondary-btn {
+  background: rgba(var(--primary-rgb), 0.12);
+  border-color: var(--primary);
+}
+
+.auth-tabs .ghost-btn {
+  color: var(--text-soft);
+}
+
 .auth-divider {
   display: flex;
   align-items: center;
@@ -789,7 +811,7 @@ button:disabled,
   content: "";
   flex: 1;
   height: 1px;
-  background: rgba(148, 141, 162, 0.2);
+  background: var(--border-medium);
 }
 
 /* Reserva a altura do widget do Turnstile para o formulário não pular ao carregar. */
@@ -800,9 +822,9 @@ button:disabled,
 /* Cores do botão padrão do Google (tema claro). */
 .google-btn {
   width: 100%;
-  background: #ffffff;
-  color: #1f1f1f;
-  border-color: #747775;
+  background: var(--google-btn-bg);
+  color: var(--google-btn-text);
+  border-color: var(--google-btn-border);
 }
 
 .auth-footer {
@@ -826,8 +848,8 @@ button:disabled,
   gap: 18px;
   padding: 18px;
   background: var(--surface-lowest);
-  border-radius: var(--radius-lg);
-  border: 1px solid rgba(148, 141, 162, 0.08);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-faint);
 }
 
 .profile-avatar-wrap {
@@ -844,11 +866,11 @@ button:disabled,
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  font-family: 'Manrope', sans-serif;
+  font-family: var(--font-heading);
   font-size: 1.8rem;
-  font-weight: 800;
-  color: #fff;
-  border: 2px solid rgba(196, 150, 58, 0.2);
+  font-weight: var(--heading-weight);
+  color: var(--on-primary);
+  border: 2px solid rgba(var(--primary-rgb), 0.2);
   flex-shrink: 0;
 }
 
@@ -886,7 +908,7 @@ button:disabled,
 
 .profile-avatar-label .material-symbols-outlined {
   font-size: 13px;
-  color: #fff;
+  color: var(--on-primary);
 }
 
 .profile-user-info {
@@ -894,8 +916,8 @@ button:disabled,
 }
 
 .profile-name-display {
-  font-family: 'Manrope', sans-serif;
-  font-weight: 700;
+  font-family: var(--font-heading);
+  font-weight: var(--heading-weight);
   font-size: 1.05rem;
   color: var(--text);
   margin-bottom: 3px;
@@ -914,7 +936,7 @@ button:disabled,
 
 .profile-divider {
   height: 1px;
-  background: rgba(148, 141, 162, 0.08);
+  background: var(--border-faint);
   margin: 4px 0;
 }
 
@@ -923,7 +945,7 @@ button:disabled,
   gap: 11px;
   flex-wrap: wrap;
   padding-top: 16px;
-  border-top: 1px solid rgba(148, 141, 162, 0.08);
+  border-top: 1px solid var(--border-faint);
 }
 
 /* ============================================================
@@ -942,8 +964,8 @@ button:disabled,
 
 .admin-card {
   background: transparent;
-  border: 1px solid rgba(138, 100, 32, 0.4);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius);
   padding: 16px;
   box-shadow: none;
 }
@@ -959,8 +981,8 @@ button:disabled,
   justify-content: space-between;
   align-items: center;
   padding: 9px 11px;
-  border-radius: 11px;
-  background: rgba(18, 18, 22, 0.35);
+  border-radius: var(--radius);
+  background: var(--comment-row-bg);
   margin-top: 9px;
 }
 
@@ -968,10 +990,10 @@ button:disabled,
 .comment-row div { margin-top: 5px; color: var(--text-muted); }
 
 .appointment-card {
-  background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.007));
-  border: 1px solid rgba(148,141,162,0.06);
+  background: var(--appointment-card-bg);
+  border: 1px solid var(--border-faint);
   padding: 15px;
-  border-radius: 13px;
+  border-radius: var(--radius);
   margin-bottom: 11px;
 }
 
@@ -980,13 +1002,13 @@ button:disabled,
 .client-avatar {
   width: 42px;
   height: 42px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
   background: linear-gradient(135deg, var(--primary), var(--primary-strong));
-  color: #fff;
+  color: var(--on-primary);
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -1001,8 +1023,8 @@ button:disabled,
 .card-details { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; margin-top: 11px; }
 .detail-item { display: flex; gap: 7px; align-items: center; color: var(--text-soft); }
 .card-actions { display: flex; gap: 7px; margin-top: 11px; }
-.action-btn { background: transparent; border: 1px solid rgba(148,141,162,0.08); padding: 7px 9px; border-radius: 9px; color: var(--text-muted); cursor: pointer; }
-.action-btn:hover { transform: translateY(-1px); color: var(--primary); border-color: rgba(206,176,255,0.15); }
+.action-btn { background: transparent; border: 1px solid var(--border-faint); padding: 7px 9px; border-radius: var(--radius); color: var(--text-muted); cursor: pointer; }
+.action-btn:hover { transform: translateY(-1px); color: var(--primary); border-color: var(--action-btn-hover-border); }
 
 @media (min-width: 900px) {
   .admin-grid { grid-template-columns: 1fr 1fr; }
@@ -1013,9 +1035,10 @@ button:disabled,
    FOCUS STATES
    ============================================================ */
 
-input:focus, textarea:focus, select:focus, button:focus-visible {
+/* O anel de foco dos botões e links fica no componentes.css */
+input:focus, textarea:focus, select:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(196, 150, 58, 0.08);
+  box-shadow: 0 0 0 1px var(--primary);
 }
 
 /* ============================================================
@@ -1098,9 +1121,9 @@ input:focus, textarea:focus, select:focus, button:focus-visible {
   }
 }
 
-/* Typography: headings Manrope, body Inter */
-h1, h2, h3, h4, h5, h6 { font-family: 'Manrope', sans-serif; }
-body, input, textarea, select, button { font-family: 'Inter', sans-serif; }
+/* Tipografia: títulos em Prata, textos em Lato */
+h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); font-weight: var(--heading-weight); }
+body, input, textarea, select, button { font-family: var(--font-body); }
 
 @media (min-width: 980px) {
   .auth-page-grid {
@@ -1112,10 +1135,14 @@ body, input, textarea, select, button { font-family: 'Inter', sans-serif; }
 /* Footer */
 .site-footer {
   text-align: center;
-  padding: 24px 16px;
-  border-top: 1px solid rgba(196, 150, 58, 0.1);
+  padding: 0 16px 24px;
   color: var(--text-muted);
   font-size: 0.85rem;
+}
+
+/* O divisor com tesoura abre o rodapé, separando-o do conteúdo */
+.site-footer .divisor-tesoura {
+  margin-block: 0 16px;
 }
 
 .site-footer strong {

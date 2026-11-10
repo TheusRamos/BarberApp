@@ -10,12 +10,13 @@ function esc(v = "") {
 const formatMoney = v =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v) || 0);
 
+// Os gradientes ficam em css/variaveis.css; aqui só escolhemos qual usar.
 const AVATAR_GRADIENTS = [
-  "linear-gradient(135deg,#C4963A,#8A6420)",
-  "linear-gradient(135deg,#5B8DB8,#2A5E8A)",
-  "linear-gradient(135deg,#ffc84d,#c07800)",
-  "linear-gradient(135deg,#7B68EE,#4B3BA8)",
-  "linear-gradient(135deg,#48BB78,#276749)"
+  "var(--avatar-gradient-1)",
+  "var(--avatar-gradient-2)",
+  "var(--avatar-gradient-3)",
+  "var(--avatar-gradient-4)",
+  "var(--avatar-gradient-5)"
 ];
 
 async function loadServicos() {

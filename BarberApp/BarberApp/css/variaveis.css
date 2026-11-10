@@ -1,0 +1,122 @@
+/* ============================================================
+   VARIÁVEIS DO BARBERAPP (tema "Dark Premium")
+   Único lugar com as cores e medidas do app. Todas as páginas
+   carregam este arquivo antes dos outros CSS.
+
+   Dois tipos de nome:
+   - "--algo-rgb" guarda só os três números da cor. Serve para
+     usar a mesma cor com transparências diferentes, assim:
+     rgba(var(--primary-rgb), 0.07)
+   - Os outros nomes dizem onde a cor é usada (--card-bg é o
+     fundo dos cards), para continuarem certos em qualquer tema.
+   ============================================================ */
+
+:root {
+  /* Avisa o navegador que o tema é escuro: calendário, selects e
+     barras de rolagem nativos também ficam escuros. */
+  color-scheme: dark;
+
+  /* --- Paleta base (os três números de cada cor, em RGB) --- */
+  --primary-rgb: 233, 190, 95;      /* dourado #E9BE5F: títulos, botões, ícones e bordas finas */
+  --cream-rgb: 245, 232, 182;       /* creme #F5E8B6: hover de botão e destaques suaves */
+  --olive-rgb: 89, 92, 86;          /* cinza oliva #595C56: bordas e elementos neutros */
+  --success-rgb: 125, 201, 150;     /* verde: confirmado, aprovar */
+  --warning-rgb: 240, 164, 92;      /* laranja: pendente (diferente do dourado, para não confundir) */
+  --danger-rgb: 242, 148, 140;      /* vermelho claro: cancelado, excluir, erros (claro para ser lido no escuro) */
+  --info-rgb: 169, 170, 161;        /* cinza claro: concluído */
+  --hero-overlay-rgb: 24, 21, 16;   /* véu quente e escuro sobre a foto do topo */
+
+  /* --- Cores sólidas feitas a partir da paleta --- */
+  --primary: rgb(var(--primary-rgb));
+  --primary-strong: #C99A3E;        /* dourado mais fechado: fim dos degradês dourados */
+  --cream: rgb(var(--cream-rgb));
+  --olive: rgb(var(--olive-rgb));
+  --success: rgb(var(--success-rgb));
+  --warning: rgb(var(--warning-rgb));
+  --danger: rgb(var(--danger-rgb));
+  --info: rgb(var(--info-rgb));
+
+  /* --- Fundos e superfícies (um pouco mais claras que o fundo) ---
+     Cards e painéis não têm fundo próprio: são só a borda dourada fina. */
+  --background: #282823;            /* fundo geral das páginas */
+  --surface-low: #2B2C27;           /* moldura da foto do topo */
+  --surface-lowest: #2B2C27;        /* área da foto de perfil (página de login/perfil) */
+  --dropdown-bg: #363731;           /* menu de status do agendamento */
+  --overlay-bg: rgba(0, 0, 0, 0.6); /* escurece a tela com o menu lateral aberto */
+  --comment-row-bg: rgba(0, 0, 0, 0.18);   /* linha de comentário */
+  --appointment-card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+
+  /* --- Texto ---
+     O oliva #595C56 é escuro demais para texto em cima do fundo
+     (contraste 2,2:1). Os cinzas abaixo são o mesmo oliva, clareado. */
+  --text: #F7F4EC;                  /* branco levemente quente */
+  --text-muted: #CFCCC1;            /* textos secundários */
+  --text-soft: #A9AAA1;             /* dicas, placeholders e textos de apoio */
+  --on-primary: #282823;            /* texto e ícones sobre fundo dourado */
+  --on-avatar: #282823;             /* inicial nos avatares da equipe */
+
+  /* --- Botões e marcações de status --- */
+  --delete-btn-bg: rgba(var(--danger-rgb), 0.12);    /* botão de excluir agendamento */
+  --status-btn-bg: rgba(var(--success-rgb), 0.12);   /* botão de mudar status */
+  --reserved-border: rgba(var(--warning-rgb), 0.35); /* linha de horário reservado */
+
+  /* --- Bordas e divisórias --- */
+  --border-gold: rgba(var(--primary-rgb), 0.45);       /* contorno de cards e painéis */
+  --border-gold-soft: rgba(var(--primary-rgb), 0.3);   /* contorno de campos e cards menores */
+  --border-faint: rgba(var(--olive-rgb), 0.45);        /* divisória bem discreta */
+  --border-subtle: rgba(var(--olive-rgb), 0.7);        /* borda neutra comum */
+  --border-medium: var(--olive);                       /* borda de campos e botões neutros */
+  --hover-neutral: rgba(var(--olive-rgb), 0.35);       /* fundo de item neutro no hover */
+  --input-border: #7E7F76;                             /* contorno dos campos: oliva clareado (3:1 com o fundo) */
+  --input-border-hover: rgba(var(--primary-rgb), 0.6); /* contorno do campo com o mouse em cima */
+  --input-border-error: rgba(var(--danger-rgb), 0.75); /* contorno do campo com erro: vermelho discreto */
+  --action-btn-hover-border: rgba(var(--primary-rgb), 0.45);
+
+  /* --- Sombras (no escuro precisam ser mais fortes para aparecer) --- */
+  --primary-glow: rgba(var(--primary-rgb), 0.2);       /* brilho dourado suave embaixo dos botões principais */
+  --card-shadow: 0 16px 36px rgba(0, 0, 0, 0.3);
+  --dropdown-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+
+  /* --- Barra lateral --- */
+  --sidebar-bg: #22221E;            /* um pouco mais escura que o fundo, para dar profundidade */
+  --sidebar-border: rgba(var(--olive-rgb), 0.55);
+  --sidebar-toggle-bg: rgba(47, 48, 43, 0.94);         /* botão de abrir o menu */
+  --sidebar-toggle-border: rgba(var(--olive-rgb), 0.8);
+  --sidebar-toggle-hover-bg: #3A3B35;
+
+  /* --- Avisos flutuantes (toast) --- */
+  --toast-bg: rgba(54, 55, 49, 0.97);
+  --toast-text: var(--text);
+  --toast-border: var(--border-gold);
+
+  /* --- Efeitos do fundo --- */
+  --app-glow: rgba(var(--primary-rgb), 0.06);   /* brilho dourado no canto superior direito */
+  --orb-glow: rgba(var(--cream-rgb), 0.03);     /* círculo desfocado no fundo */
+
+  /* --- Botão do Google: versão escura oficial do Google --- */
+  --google-btn-bg: #131314;
+  --google-btn-text: #E3E3E3;
+  --google-btn-border: #8E918F;
+
+  /* --- Avatares da equipe (css e js/sobre.js), todos com a inicial escura --- */
+  --avatar-gradient-1: linear-gradient(135deg, #F0CF85, var(--primary));  /* dourado */
+  --avatar-gradient-2: linear-gradient(135deg, #D8DACF, #A9AC9F);         /* oliva claro */
+  --avatar-gradient-3: linear-gradient(135deg, var(--cream), #E3CF8C);    /* creme */
+  --avatar-gradient-4: linear-gradient(135deg, #E8BF98, #C98E5C);         /* cobre */
+  --avatar-gradient-5: linear-gradient(135deg, #CFC8AE, #9E977B);         /* areia */
+
+  /* --- Medidas e tipografia --- */
+  --radius: 4px;  /* cantos quase retos, como no UI kit da referência (círculos usam 50%) */
+
+  --transition: 0.24s ease;
+
+  --font-heading: "Prata", Georgia, "Times New Roman", serif;  /* títulos */
+  --font-body: "Lato", "Helvetica Neue", Arial, sans-serif;     /* textos, botões e campos */
+  --font-base: 1rem;
+  --leading-tight: 1.1;
+  --leading-normal: 1.65;
+  --heading-weight: 400;  /* a Prata só existe neste peso */
+  --body-weight: 400;
+
+  --sidebar-w: 230px;
+}
