@@ -50,19 +50,19 @@
       .admin-stats-row { grid-template-columns: repeat(4, 1fr); }
     }
 
+    /* Card de número em destaque: só a borda dourada fina, sem fundo */
     .admin-stat-card {
-      background: var(--card-bg);
-      border: 1px solid var(--border-subtle);
+      background: transparent;
+      border: 1px solid var(--border-gold);
       border-radius: var(--radius);
       padding: 18px 20px;
-      box-shadow: var(--card-shadow);
       display: flex;
       flex-direction: column;
       gap: 6px;
       transition: border-color var(--transition);
     }
 
-    .admin-stat-card:hover { border-color: rgba(var(--primary-rgb), 0.18); }
+    .admin-stat-card:hover { border-color: var(--primary); }
 
     .admin-stat-card .stat-icon {
       font-size: 20px;
@@ -125,7 +125,7 @@
 
     /* Form panel inside admin card */
     .barbeiro-admin-form {
-      background: var(--form-bg-subtle);
+      background: transparent;
       border: 1px solid var(--border-faint);
       border-radius: var(--radius);
       padding: 20px 18px;

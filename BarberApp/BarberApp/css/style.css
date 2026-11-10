@@ -581,8 +581,9 @@ button:disabled,
   outline-offset: 2px;
 }
 
+/* Card de serviço: só contorno; fica dourado quando escolhido */
 .service-card {
-  background: var(--surface-lowest);
+  background: transparent;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius);
   padding: 22px 14px;
@@ -598,8 +599,8 @@ button:disabled,
 
 .service-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(var(--primary-rgb), 0.3);
-  background: var(--surface-high);
+  border-color: var(--input-border-hover);
+  background: rgba(var(--primary-rgb), 0.04);
 }
 
 .service-icon {
@@ -626,9 +627,8 @@ button:disabled,
 }
 
 .services-grid input[name="servico"]:checked + .service-card {
-  background: linear-gradient(180deg, rgba(var(--primary-rgb), 0.11), rgba(var(--primary-rgb), 0.05));
-  border-color: rgba(var(--primary-rgb), 0.38);
-  box-shadow: 0 12px 28px rgba(var(--primary-rgb), 0.14);
+  background: rgba(var(--primary-rgb), 0.08);
+  border-color: var(--primary);
 }
 
 .services-grid input[name="servico"]:checked + .service-card .service-title,
