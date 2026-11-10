@@ -1,42 +1,4 @@
-:root {
-  --background: #F5F1E8;
-  --surface: #ffffff;
-  --surface-low: #FFFCF5;
-  --surface-lowest: #F8F4EC;
-  --surface-high: #EDE7D8;
-  --surface-border: rgba(14, 10, 0, 0.06);
-
-  --text: #16120A;
-  --text-muted: #5A5040;
-  --text-soft: #7A6E58;
-
-  --primary: #8A6420;
-  --primary-strong: #5C4010;
-  --primary-dark: #3A2808;
-  --tertiary: #7A6E60;
-
-  --success: #55C48A;
-  --warning: #E8A020;
-  --danger: #E06060;
-
-  --success-shadow: rgba(138, 100, 32, 0.12);
-  --card-shadow: 0 16px 36px rgba(12, 10, 5, 0.06);
-
-  --radius-sm: 10px;
-  --radius-md: 16px;
-  --radius-lg: 22px;
-  --radius-xl: 28px;
-
-  --transition: 0.24s ease;
-
-  --font-base: 1rem;
-  --leading-tight: 1.1;
-  --leading-normal: 1.65;
-  --heading-weight: 800;
-  --body-weight: 400;
-
-  --sidebar-w: 230px;
-}
+/* As cores e medidas (variáveis) ficam em css/variaveis.css */
 
 * {
   margin: 0;

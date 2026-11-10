@@ -1,0 +1,131 @@
+/* ============================================================
+   VARIÁVEIS DO BARBERAPP
+   Único lugar com as cores e medidas do app. Todas as páginas
+   carregam este arquivo antes dos outros CSS.
+
+   Dois tipos de nome:
+   - "--algo-rgb" guarda só os três números da cor. Serve para
+     usar a mesma cor com transparências diferentes, assim:
+     rgba(var(--gold-rgb), 0.07)
+   - Os outros nomes dizem onde a cor é usada (--card-bg é o
+     fundo dos cards), para continuarem certos em qualquer tema.
+   ============================================================ */
+
+:root {
+  /* --- Canais RGB: mudar aqui muda a cor sólida e todos os tons transparentes --- */
+  --primary-rgb: 138, 100, 32;      /* dourado principal */
+  --primary-alt-rgb: 138, 97, 32;   /* quase igual ao principal; usado em sombras */
+  --gold-rgb: 196, 150, 58;         /* dourado claro: fundos suaves, hovers e bordas finas */
+  --neutral-rgb: 148, 141, 162;     /* cinza das bordas e divisórias */
+  --success-strong-rgb: 58, 158, 104;
+  --warning-strong-rgb: 184, 120, 24;
+  --danger-strong-rgb: 201, 64, 64;
+  --info-rgb: 122, 110, 96;
+  --approve-rgb: 34, 197, 94;       /* botão de aprovar comentário */
+  --reject-rgb: 239, 68, 68;        /* botão de reprovar comentário */
+  --hero-overlay-rgb: 9, 12, 24;    /* véu escuro sobre a foto do topo */
+
+  /* --- Fundos e superfícies --- */
+  --background: #F5F1E8;            /* fundo geral das páginas */
+  --surface: #ffffff;
+  --surface-low: #FFFCF5;
+  --surface-lowest: #F8F4EC;
+  --surface-high: #EDE7D8;          /* também é o fim do degradê do fundo */
+  --surface-border: rgba(14, 10, 0, 0.06);
+  --card-bg: rgba(255, 255, 255, 0.96);       /* fundo dos cards e painéis */
+  --dropdown-bg: rgba(255, 252, 245, 0.98);   /* menu de status do agendamento */
+  --overlay-bg: rgba(0, 0, 0, 0.5);           /* escurece a tela com o menu aberto */
+  --input-bg-subtle: rgba(0, 0, 0, 0.04);     /* fundo de campos no admin */
+  --form-bg-subtle: rgba(0, 0, 0, 0.02);      /* fundo do formulário de barbeiro */
+  --comment-row-bg: rgba(18, 18, 22, 0.35);   /* linha de comentário no painel */
+  --appointment-card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.015), rgba(255, 255, 255, 0.007));
+
+  /* --- Texto --- */
+  --text: #16120A;
+  --text-muted: #5A5040;
+  --text-soft: #7A6E58;
+  --on-primary: #fff;               /* texto e ícones sobre fundo dourado */
+  --on-avatar: #fff;                /* inicial nos avatares coloridos da equipe */
+
+  /* --- Marca --- */
+  --primary: rgb(var(--primary-rgb));
+  --primary-strong: #5C4010;
+  --primary-dark: #3A2808;
+  --gold: rgb(var(--gold-rgb));
+  --tertiary: #7A6E60;
+
+  /* --- Status ---
+     Os dois CSS antigos usavam tons diferentes. Enquanto o visual
+     não muda, cada grupo de páginas continua com o seu tom:
+     normal = index, auth e sobre | strong = agendamentos, comentários e admin */
+  --success: #55C48A;
+  --warning: #E8A020;
+  --danger: #E06060;
+  --success-strong: rgb(var(--success-strong-rgb));
+  --warning-strong: rgb(var(--warning-strong-rgb));
+  --danger-strong: rgb(var(--danger-strong-rgb));
+  --info: rgb(var(--info-rgb));
+  --approve: rgb(var(--approve-rgb));
+  --reject: rgb(var(--reject-rgb));
+  --delete-btn-bg: rgba(255, 96, 112, 0.1);   /* botão de excluir agendamento */
+  --status-btn-bg: rgba(85, 222, 162, 0.1);   /* botão de mudar status */
+  --reserved-border: rgba(255, 200, 77, 0.2); /* linha de horário reservado */
+
+  /* --- Bordas e divisórias --- */
+  --border-gold: rgba(var(--primary-rgb), 0.4);        /* contorno de cards e painéis */
+  --border-gold-soft: rgba(var(--primary-rgb), 0.35);  /* contorno de campos e cards menores */
+  --border-faint: rgba(var(--neutral-rgb), 0.08);      /* divisória bem clara */
+  --border-subtle: rgba(var(--neutral-rgb), 0.1);      /* borda neutra comum */
+  --border-medium: rgba(var(--neutral-rgb), 0.2);      /* borda de campos no admin */
+  --hover-neutral: rgba(var(--neutral-rgb), 0.1);      /* fundo de item neutro no hover */
+  --action-btn-hover-border: rgba(206, 176, 255, 0.15);
+
+  /* --- Sombras --- */
+  --success-shadow: rgba(var(--primary-rgb), 0.12);
+  --card-shadow: 0 16px 36px rgba(12, 10, 5, 0.06);
+  --dropdown-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+
+  /* --- Barra lateral --- */
+  --sidebar-bg: rgba(250, 246, 236, 0.98);
+  --sidebar-border: rgba(14, 10, 0, 0.08);
+  --sidebar-toggle-bg: rgba(248, 243, 232, 0.94);      /* botão de abrir o menu */
+  --sidebar-toggle-border: rgba(14, 10, 0, 0.1);
+  --sidebar-toggle-hover-bg: rgba(12, 16, 30, 0.96);
+
+  /* --- Avisos flutuantes (toast) --- */
+  --toast-bg: rgba(10, 14, 28, 0.95);
+  --toast-text: #F5F1E8;
+  --toast-border: rgba(var(--gold-rgb), 0.14);
+
+  /* --- Efeitos do fundo --- */
+  --app-glow: rgba(var(--primary-rgb), 0.05);   /* brilho no canto superior direito */
+  --orb-blue: rgba(91, 141, 184, 0.05);         /* círculo desfocado azul */
+
+  /* --- Botão do Google: segue o padrão visual do próprio Google --- */
+  --google-btn-bg: #ffffff;
+  --google-btn-text: #1f1f1f;
+  --google-btn-border: #747775;
+
+  /* --- Avatares da equipe (css e js/sobre.js) --- */
+  --avatar-gradient-1: linear-gradient(135deg, var(--gold), var(--primary));
+  --avatar-gradient-2: linear-gradient(135deg, #5B8DB8, #2A5E8A);
+  --avatar-gradient-3: linear-gradient(135deg, #ffc84d, #c07800);
+  --avatar-gradient-4: linear-gradient(135deg, #7B68EE, #4B3BA8);
+  --avatar-gradient-5: linear-gradient(135deg, #48BB78, #276749);
+
+  /* --- Medidas e tipografia --- */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+
+  --transition: 0.24s ease;
+
+  --font-base: 1rem;
+  --leading-tight: 1.1;
+  --leading-normal: 1.65;
+  --heading-weight: 800;
+  --body-weight: 400;
+
+  --sidebar-w: 230px;
+}

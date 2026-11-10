@@ -10,6 +10,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
 
+  <link rel="stylesheet" href="css/variaveis.css" />
+
+
   <link rel="stylesheet" href="css/agendamentos.css" />
 
   <style>
@@ -62,7 +65,7 @@
     .stars-display {
       display: inline-flex;
       gap: 2px;
-      color: var(--warning);
+      color: var(--warning-strong);
       font-size: 1rem;
       margin-bottom: 6px;
     }
@@ -108,7 +111,7 @@
     }
 
     .comment-meta .comment-stars {
-      color: var(--warning);
+      color: var(--warning-strong);
       font-size: 0.85rem;
       letter-spacing: 1px;
     }
@@ -188,7 +191,7 @@
     }
 
     .star-picker:hover label {
-      color: var(--warning);
+      color: var(--warning-strong);
     }
 
     .star-picker input[type="radio"]:checked ~ label {
@@ -197,7 +200,7 @@
 
     .star-picker label:has(~ input[type="radio"]:checked),
     .star-picker input[type="radio"]:checked + label {
-      color: var(--warning);
+      color: var(--warning-strong);
     }
 
     /* fallback: JS-driven star highlight via data-selected */
@@ -212,7 +215,7 @@
     .star-picker[data-selected="4"] label:nth-of-type(3),
     .star-picker[data-selected="4"] label:nth-of-type(4),
     .star-picker[data-selected="5"] label {
-      color: var(--warning);
+      color: var(--warning-strong);
     }
 
     /* Comments list */

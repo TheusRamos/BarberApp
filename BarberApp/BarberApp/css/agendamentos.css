@@ -1,31 +1,4 @@
-:root {
-  --background: #F5F1E8;
-  --surface: #ffffff;
-  --surface-low: #FFFCF5;
-  --surface-lowest: #F8F4EC;
-  --surface-high: #EDE7D8;
-
-  --text: #16120A;
-  --text-muted: #5A5040;
-  --text-soft: #7A6E58;
-
-  --primary: #8A6420;
-  --primary-strong: #5C4010;
-  --tertiary: #7A6E60;
-
-  --danger: #C94040;
-  --warning: #B87818;
-  --success: #3A9E68;
-  --info: #7A6E60;
-
-  --card-shadow: 0 16px 36px rgba(12, 10, 5, 0.06);
-  --radius-md: 16px;
-  --radius-lg: 22px;
-  --radius-xl: 28px;
-  --transition: 0.24s ease;
-
-  --sidebar-w: 230px;
-}
+/* As cores e medidas (variáveis) ficam em css/variaveis.css */
 
 * {
   margin: 0;
@@ -499,12 +472,12 @@ input[type="date"] { color-scheme: light; }
 
 .status-badge.confirmed {
   background: rgba(58, 158, 104, 0.1);
-  color: var(--success);
+  color: var(--success-strong);
 }
 
 .status-badge.pending {
   background: rgba(184, 120, 24, 0.1);
-  color: var(--warning);
+  color: var(--warning-strong);
 }
 
 .status-badge.completed {
@@ -514,7 +487,7 @@ input[type="date"] { color-scheme: light; }
 
 .status-badge.cancelled {
   background: rgba(201, 64, 64, 0.1);
-  color: var(--danger);
+  color: var(--danger-strong);
 }
 
 .card-details {
@@ -561,12 +534,12 @@ input[type="date"] { color-scheme: light; }
 
 .delete-btn {
   background: rgba(255, 96, 112, 0.1);
-  color: var(--danger);
+  color: var(--danger-strong);
 }
 
 .status-btn {
   background: rgba(85, 222, 162, 0.1);
-  color: var(--success);
+  color: var(--success-strong);
 }
 
 .action-btn:hover {
@@ -1062,10 +1035,10 @@ a.new-booking-btn {
 
 .status-picker-item .material-symbols-outlined { font-size: 20px; }
 
-.status-picker-item.pending   { color: var(--warning); }
-.status-picker-item.confirmed { color: var(--success); }
+.status-picker-item.pending   { color: var(--warning-strong); }
+.status-picker-item.confirmed { color: var(--success-strong); }
 .status-picker-item.completed { color: var(--info);    }
-.status-picker-item.cancelled { color: var(--danger);  }
+.status-picker-item.cancelled { color: var(--danger-strong);  }
 
 .status-picker-item:hover:not(:disabled) {
   background: rgba(148, 141, 162, 0.1);
