@@ -118,13 +118,13 @@ textarea::placeholder { color: var(--text-soft); }
   text-decoration: none;
   font-family: var(--font-heading);
   font-weight: var(--heading-weight);
-  font-size: 1rem;
+  font-size: 1.3rem;
   color: var(--primary);
-  letter-spacing: 0;
+  letter-spacing: 0.02em;
 }
 
 .sidebar-brand .material-symbols-outlined {
-  font-size: 20px;
+  font-size: 22px;
 }
 
 .sidebar-close {
@@ -163,7 +163,8 @@ textarea::placeholder { color: var(--text-soft); }
   color: var(--text-muted);
   font-weight: 600;
   font-size: 0.9rem;
-  transition: background var(--transition), color var(--transition);
+  border: 1px solid transparent;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
 }
 
 .sidebar-link .material-symbols-outlined {
@@ -172,12 +173,13 @@ textarea::placeholder { color: var(--text-soft); }
 }
 
 .sidebar-link:hover {
-  background: rgba(var(--primary-rgb), 0.07);
-  color: var(--text);
+  color: var(--primary);
 }
 
+/* Página atual: texto dourado e contorno dourado fino */
 .sidebar-link.active {
-  background: rgba(var(--primary-rgb), 0.11);
+  background: rgba(var(--primary-rgb), 0.06);
+  border-color: var(--border-gold);
   color: var(--primary);
 }
 
@@ -234,7 +236,6 @@ textarea::placeholder { color: var(--text-soft); }
   border-radius: var(--radius);
   background: transparent;
   border: 1px solid var(--border-gold);
-  backdrop-filter: blur(12px);
 }
 
 .welcome-dot {
@@ -262,11 +263,9 @@ textarea::placeholder { color: var(--text-soft); }
   letter-spacing: 0;
 }
 
+/* Palavra em destaque do título: dourado liso */
 .page-title span {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--primary);
 }
 
 .page-description {
