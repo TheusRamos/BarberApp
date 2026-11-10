@@ -137,6 +137,17 @@ function resetCaptcha(form) {
 // PANEL VISIBILITY
 // ============================================================
 
+// Texto do topo da página (acima do painel): muda quando a pessoa está logada.
+// As frases são fixas, sem dados do usuário, por isso podem ir no innerHTML.
+function setHeroText(logged) {
+  const heroTitle = $("auth-hero-title");
+  const heroText = $("auth-hero-text");
+  if (heroTitle) heroTitle.innerHTML = logged ? "Seu <span>perfil</span>" : "Acesse sua <span>conta</span>";
+  if (heroText) heroText.textContent = logged
+    ? "Atualize seus dados, troque a senha e acompanhe seus agendamentos."
+    : "Entre para agendar serviços, acompanhar horários marcados e acessar recursos de cliente ou administrador.";
+}
+
 function showLoggedPanel(user) {
   $("auth-panel")?.classList.add("hidden");
   $("logged-panel")?.classList.remove("hidden");
@@ -145,6 +156,7 @@ function showLoggedPanel(user) {
   const subtitle = $("auth-subtitle");
   if (title) title.textContent = "Meu Perfil";
   if (subtitle) subtitle.textContent = "Gerencie suas informações pessoais.";
+  setHeroText(true);
 
   document.querySelector(".auth-footer")?.classList.add("hidden");
 
@@ -159,6 +171,7 @@ function showAuthPanel() {
   const subtitle = $("auth-subtitle");
   if (title) title.textContent = "Acessar conta";
   if (subtitle) subtitle.textContent = "Faça login ou crie um novo cadastro.";
+  setHeroText(false);
 
   document.querySelector(".auth-footer")?.classList.remove("hidden");
 }
