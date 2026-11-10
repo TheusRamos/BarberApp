@@ -47,8 +47,8 @@ input[type="date"] { color-scheme: light; }
   min-height: 100vh;
   padding: 64px 0 50px;
   background:
-    radial-gradient(ellipse at top right, rgba(138, 100, 32, 0.05), transparent 40%),
-    linear-gradient(180deg, #F5F1E8 0%, #EDE7D8 100%);
+    radial-gradient(ellipse at top right, var(--app-glow), transparent 40%),
+    linear-gradient(180deg, var(--background) 0%, var(--surface-high) 100%);
 }
 
 .container {
@@ -63,7 +63,7 @@ input[type="date"] { color-scheme: light; }
 .sidebar-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--overlay-bg);
   backdrop-filter: blur(4px);
   z-index: 50;
   opacity: 0;
@@ -82,8 +82,8 @@ input[type="date"] { color-scheme: light; }
   top: 0;
   bottom: 0;
   width: var(--sidebar-w);
-  background: rgba(250, 246, 236, 0.98);
-  border-right: 1px solid rgba(14, 10, 0, 0.08);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
   backdrop-filter: blur(24px);
   z-index: 60;
   display: flex;
@@ -137,7 +137,7 @@ input[type="date"] { color-scheme: light; }
 }
 
 .sidebar-close:hover {
-  background: rgba(148, 141, 162, 0.1);
+  background: var(--hover-neutral);
   color: var(--text);
 }
 
@@ -167,12 +167,12 @@ input[type="date"] { color-scheme: light; }
 }
 
 .sidebar-link:hover {
-  background: rgba(196, 150, 58, 0.07);
+  background: rgba(var(--gold-rgb), 0.07);
   color: var(--text);
 }
 
 .sidebar-link.active {
-  background: rgba(196, 150, 58, 0.11);
+  background: rgba(var(--gold-rgb), 0.11);
   color: var(--primary);
 }
 
@@ -183,8 +183,8 @@ input[type="date"] { color-scheme: light; }
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  background: rgba(248, 243, 232, 0.94);
-  border: 1px solid rgba(14, 10, 0, 0.10);
+  background: var(--sidebar-toggle-bg);
+  border: 1px solid var(--sidebar-toggle-border);
   backdrop-filter: blur(12px);
   color: var(--text);
   cursor: pointer;
@@ -196,7 +196,7 @@ input[type="date"] { color-scheme: light; }
 }
 
 .sidebar-toggle:hover {
-  background: rgba(12, 16, 30, 0.96);
+  background: var(--sidebar-toggle-hover-bg);
 }
 
 .sidebar-toggle .material-symbols-outlined {
@@ -228,7 +228,7 @@ input[type="date"] { color-scheme: light; }
   padding: 9px 14px;
   border-radius: 999px;
   background: transparent;
-  border: 1px solid rgba(138, 100, 32, 0.4);
+  border: 1px solid var(--border-gold);
   backdrop-filter: blur(12px);
 }
 
@@ -237,7 +237,7 @@ input[type="date"] { color-scheme: light; }
   height: 7px;
   border-radius: 50%;
   background: var(--primary);
-  box-shadow: 0 0 8px rgba(196, 150, 58, 0.6);
+  box-shadow: 0 0 8px rgba(var(--gold-rgb), 0.6);
   animation: pulse 1.6s infinite;
 }
 
@@ -278,11 +278,11 @@ input[type="date"] { color-scheme: light; }
   gap: 9px;
   text-decoration: none;
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
-  color: #fff;
+  color: var(--on-primary);
   padding: 13px 20px;
   border-radius: 16px;
   font-weight: 700;
-  box-shadow: 0 18px 40px rgba(138, 97, 32, 0.24);
+  box-shadow: 0 18px 40px rgba(var(--primary-alt-rgb), 0.24);
   transition: transform var(--transition), filter var(--transition);
 }
 
@@ -307,7 +307,7 @@ input[type="date"] { color-scheme: light; }
   align-items: center;
   gap: 9px;
   background: transparent;
-  border: 1px solid rgba(138, 100, 32, 0.4);
+  border: 1px solid var(--border-gold);
   border-radius: 16px;
   padding: 13px 15px;
   box-shadow: none;
@@ -346,7 +346,7 @@ input[type="date"] { color-scheme: light; }
 
 .stat-item {
   background: transparent;
-  border: 1px solid rgba(138, 100, 32, 0.4);
+  border: 1px solid var(--border-gold);
   border-radius: 22px;
   padding: 20px 16px;
   box-shadow: none;
@@ -404,7 +404,7 @@ input[type="date"] { color-scheme: light; }
 
 .appointment-card {
   background: transparent;
-  border: 1px solid rgba(138, 100, 32, 0.35);
+  border: 1px solid var(--border-gold-soft);
   border-radius: 26px;
   padding: 20px;
   box-shadow: none;
@@ -429,13 +429,13 @@ input[type="date"] { color-scheme: light; }
   height: 50px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
-  color: #fff;
+  color: var(--on-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
   font-size: 1.05rem;
-  box-shadow: 0 10px 22px rgba(138, 97, 32, 0.22);
+  box-shadow: 0 10px 22px rgba(var(--primary-alt-rgb), 0.22);
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -471,22 +471,22 @@ input[type="date"] { color-scheme: light; }
 }
 
 .status-badge.confirmed {
-  background: rgba(58, 158, 104, 0.1);
+  background: rgba(var(--success-strong-rgb), 0.1);
   color: var(--success-strong);
 }
 
 .status-badge.pending {
-  background: rgba(184, 120, 24, 0.1);
+  background: rgba(var(--warning-strong-rgb), 0.1);
   color: var(--warning-strong);
 }
 
 .status-badge.completed {
-  background: rgba(122, 110, 96, 0.1);
+  background: rgba(var(--info-rgb), 0.1);
   color: var(--info);
 }
 
 .status-badge.cancelled {
-  background: rgba(201, 64, 64, 0.1);
+  background: rgba(var(--danger-strong-rgb), 0.1);
   color: var(--danger-strong);
 }
 
@@ -528,17 +528,17 @@ input[type="date"] { color-scheme: light; }
 }
 
 .edit-btn {
-  background: rgba(196, 150, 58, 0.1);
+  background: rgba(var(--gold-rgb), 0.1);
   color: var(--primary);
 }
 
 .delete-btn {
-  background: rgba(255, 96, 112, 0.1);
+  background: var(--delete-btn-bg);
   color: var(--danger-strong);
 }
 
 .status-btn {
-  background: rgba(85, 222, 162, 0.1);
+  background: var(--status-btn-bg);
   color: var(--success-strong);
 }
 
@@ -556,7 +556,7 @@ input[type="date"] { color-scheme: light; }
   min-height: 240px;
   border-radius: 26px;
   background: transparent;
-  border: 1px solid rgba(138, 100, 32, 0.35);
+  border: 1px solid var(--border-gold-soft);
   box-shadow: none;
   display: flex;
   flex-direction: column;
@@ -593,9 +593,9 @@ input[type="date"] { color-scheme: light; }
   left: 50%;
   bottom: 28px;
   transform: translateX(-50%) translateY(16px);
-  background: rgba(10, 14, 28, 0.95);
-  color: #F5F1E8;
-  border: 1px solid rgba(196, 150, 58, 0.14);
+  background: var(--toast-bg);
+  color: var(--toast-text);
+  border: 1px solid var(--toast-border);
   padding: 13px 18px;
   border-radius: 14px;
   box-shadow: var(--card-shadow);
@@ -630,7 +630,7 @@ input[type="date"] { color-scheme: light; }
   left: -100px;
   width: 260px;
   height: 260px;
-  background: rgba(196, 150, 58, 0.06);
+  background: rgba(var(--gold-rgb), 0.06);
 }
 
 .orb-bottom {
@@ -638,7 +638,7 @@ input[type="date"] { color-scheme: light; }
   bottom: 100px;
   width: 300px;
   height: 300px;
-  background: rgba(91, 141, 184, 0.05);
+  background: var(--orb-blue);
 }
 
 @keyframes pulse {
@@ -682,23 +682,23 @@ a.new-booking-btn {
 .ghost-btn {
   background: transparent;
   color: var(--text-muted);
-  border: 1px solid rgba(148, 141, 162, 0.15);
+  border: 1px solid rgba(var(--neutral-rgb), 0.15);
 }
 
 .secondary-btn {
-  background: rgba(196, 150, 58, 0.1);
+  background: rgba(var(--gold-rgb), 0.1);
   color: var(--primary);
-  border: 1px solid rgba(196, 150, 58, 0.18);
+  border: 1px solid rgba(var(--gold-rgb), 0.18);
 }
 
 .submit-btn {
   width: 100%;
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
-  color: #fff;
+  color: var(--on-primary);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   font-weight: 800;
-  box-shadow: 0 18px 40px rgba(138, 97, 32, 0.24);
+  box-shadow: 0 18px 40px rgba(var(--primary-alt-rgb), 0.24);
 }
 
 .ghost-btn:hover,
@@ -727,7 +727,7 @@ a.new-booking-btn {
 .admin-card,
 .comment-form {
   background: transparent;
-  border: 1px solid rgba(138, 100, 32, 0.4);
+  border: 1px solid var(--border-gold);
   border-radius: 26px;
   padding: 20px;
   box-shadow: none;
@@ -774,7 +774,7 @@ a.new-booking-btn {
   width: 100%;
   background: var(--surface-lowest);
   color: var(--text);
-  border: 1px solid rgba(148, 141, 162, 0.1);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 13px 15px;
   transition: border-color var(--transition), box-shadow var(--transition);
@@ -783,8 +783,8 @@ a.new-booking-btn {
 .form-group input:focus,
 .form-group textarea:focus,
 .form-group select:focus {
-  border-color: rgba(196, 150, 58, 0.3);
-  box-shadow: 0 0 0 3px rgba(196, 150, 58, 0.07);
+  border-color: rgba(var(--gold-rgb), 0.3);
+  box-shadow: 0 0 0 3px rgba(var(--gold-rgb), 0.07);
 }
 
 .form-group textarea {
@@ -809,7 +809,7 @@ a.new-booking-btn {
 .comment-row,
 .empty-row {
   background: transparent;
-  border: 1px solid rgba(138, 100, 32, 0.35);
+  border: 1px solid var(--border-gold-soft);
   border-radius: 16px;
   padding: 13px;
 }
@@ -849,7 +849,7 @@ a.new-booking-btn {
 }
 
 .reserved-row {
-  border-color: rgba(255, 200, 77, 0.2);
+  border-color: var(--reserved-border);
 }
 
 .comments-layout {
@@ -999,11 +999,11 @@ a.new-booking-btn {
 .status-picker-dropdown {
   position: fixed;
   z-index: 200;
-  background: rgba(255, 252, 245, 0.98);
-  border: 1px solid rgba(138, 97, 32, 0.16);
+  background: var(--dropdown-bg);
+  border: 1px solid rgba(var(--primary-alt-rgb), 0.16);
   border-radius: 18px;
   padding: 8px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--dropdown-shadow);
   backdrop-filter: blur(20px);
   display: flex;
   flex-direction: row;
@@ -1041,7 +1041,7 @@ a.new-booking-btn {
 .status-picker-item.cancelled { color: var(--danger-strong);  }
 
 .status-picker-item:hover:not(:disabled) {
-  background: rgba(148, 141, 162, 0.1);
+  background: var(--hover-neutral);
 }
 
 .status-picker-item.current,
