@@ -547,12 +547,16 @@ textarea::placeholder { color: var(--text-soft); }
   transition: transform var(--transition), filter var(--transition), background var(--transition);
 }
 
-.edit-btn {
+/* Editar (agendamento ou barbeiro): dourado */
+.edit-btn,
+.edit-barbeiro-btn {
   background: rgba(var(--primary-rgb), 0.1);
   color: var(--primary);
 }
 
-.delete-btn {
+/* Excluir e remover (agendamento, comentário ou cliente): vermelho */
+.delete-btn,
+.delete-client {
   background: var(--delete-btn-bg);
   color: var(--danger);
 }
@@ -562,12 +566,10 @@ textarea::placeholder { color: var(--text-soft); }
   color: var(--success);
 }
 
-/* Botões neutros (Ocultar comentário, Cancelar agendamento, Remover cliente,
-   Editar barbeiro): sem isto eles usavam o cinza padrão do navegador */
+/* Botões neutros (Ocultar comentário, Cancelar agendamento): sem isto eles
+   usavam o cinza padrão do navegador */
 .hide-comment,
-.cancel-btn,
-.delete-client,
-.edit-barbeiro-btn {
+.cancel-btn {
   background: var(--hover-neutral);
   color: var(--text-muted);
 }
