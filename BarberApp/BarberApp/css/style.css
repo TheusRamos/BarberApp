@@ -786,6 +786,17 @@ button:disabled,
   width: 100%;
 }
 
+/* Aba ativa (o JS troca a classe para .secondary-btn): dourado suave por dentro.
+   Aba inativa (.ghost-btn): texto mais apagado, para não competir com a ativa. */
+.auth-tabs .secondary-btn {
+  background: rgba(var(--primary-rgb), 0.12);
+  border-color: var(--primary);
+}
+
+.auth-tabs .ghost-btn {
+  color: var(--text-soft);
+}
+
 .auth-divider {
   display: flex;
   align-items: center;
