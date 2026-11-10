@@ -54,14 +54,40 @@
 import { apiBaseUrl } from './config.js';
 const API_BASE_URL = ((typeof window !== "undefined" && window.API_BASE_URL) || apiBaseUrl).replace(/\/$/, '');
 const TOKEN_KEY = "barber_auth_token";
+const OFFLINE_KEY = "barber_agendamentos_offline";
 
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
 
 export function setToken(token) {
+  // Entrar, sair ou trocar de conta apaga os agendamentos guardados para ver sem internet
+  localStorage.removeItem(OFFLINE_KEY);
   if (token) localStorage.setItem(TOKEN_KEY, token);
   else localStorage.removeItem(TOKEN_KEY);
+}
+
+// Cópia dos agendamentos do cliente no aparelho, para o app mostrar quando estiver sem internet.
+// Do usuário guarda só o necessário para a tela (sem foto e sem telefone).
+export function saveOfflineCopy(user, appointments) {
+  const copy = {
+    user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    savedAt: new Date().toISOString(),
+    appointments
+  };
+  try {
+    localStorage.setItem(OFFLINE_KEY, JSON.stringify(copy));
+  } catch {
+    // aparelho sem espaço: segue sem a cópia
+  }
+}
+
+export function getOfflineCopy() {
+  try {
+    return JSON.parse(localStorage.getItem(OFFLINE_KEY));
+  } catch {
+    return null;
+  }
 }
 
 class ApiError extends Error {

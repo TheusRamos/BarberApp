@@ -141,6 +141,38 @@ a:focus-visible {
   color: var(--text);
 }
 
+/* Aviso "Você está sem internet" no Início e em Agendamentos.
+   Quem decide quando aparece é o js/app.js. */
+.offline-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 22px;
+  padding: 16px;
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius);
+}
+
+.offline-notice > .material-symbols-outlined {
+  color: var(--primary);
+  font-size: 26px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.offline-notice strong {
+  display: block;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+
+.offline-notice p {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
 /* Lista aberta dos selects (barbeiro, horário, filtro de serviço).
    O campo tem fundo transparente, então o navegador desenhava a lista
    com fundo branco e o texto claro do tema: ficava ilegível. Aqui as

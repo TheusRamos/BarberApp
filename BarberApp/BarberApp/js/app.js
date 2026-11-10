@@ -1,4 +1,4 @@
-import { api, getToken } from "./api.js";
+import { api, getToken, saveOfflineCopy, getOfflineCopy } from "./api.js";
 import { appTimeZone } from "./config.js";
 
 const EDIT_KEY = "barber_agendamento_editando";
@@ -28,6 +28,9 @@ let selectedBarbeiroId = null;
 let pendingEditAppointment = null;
 let statusPickerEl = null;
 let lastFailedPayload = null;
+// Sem internet (app no celular): mostra a cópia salva e trava agendar e cancelar
+let isOffline = false;
+let startedOffline = false;
 
 const $ = id => document.getElementById(id);
 
@@ -532,13 +535,14 @@ function resetFormState() {
 
 // Página inicial: quem não entrou na conta já vê o aviso no topo do formulário,
 // com os campos travados. Antes só descobria ao clicar em Confirmar, depois de preencher tudo.
+// Sem internet os campos também ficam travados, e o aviso de login dá lugar ao de sem internet.
 function updateBookingAccess() {
   const notice = $("login-required");
   const fieldset = $("booking-fieldset");
   if (!notice || !fieldset) return;
 
-  notice.classList.toggle("hidden", Boolean(currentUser));
-  fieldset.disabled = !currentUser;
+  notice.classList.toggle("hidden", Boolean(currentUser) || isOffline);
+  fieldset.disabled = !currentUser || isOffline;
 }
 
 function prefillUserData() {
@@ -755,7 +759,7 @@ function createAppointmentCard(appointment) {
   article.className = "appointment-card anim-fade-up";
 
   const observationsText = appointment.observacoes?.trim() ? appointment.observacoes : "Sem observações.";
-  const canClientCancel = currentUser && appointment.userId === currentUser.id && !isAdmin &&
+  const canClientCancel = currentUser && appointment.userId === currentUser.id && !isAdmin && !isOffline &&
     !["Cancelado", "Concluído"].includes(appointment.status) && isUpcoming(appointment);
 
   article.innerHTML = `
@@ -778,7 +782,7 @@ function createAppointmentCard(appointment) {
     </div>
 
     <div class="card-actions">
-      ${isAdmin ? `
+      ${isAdmin && !isOffline ? `
         <button class="action-btn edit-btn" type="button" data-id="${escapeHTML(appointment.id)}"><span class="material-symbols-outlined">edit</span>Editar</button>
         <button class="action-btn status-btn" type="button" data-id="${escapeHTML(appointment.id)}"><span class="material-symbols-outlined">edit_note</span>Status</button>
         <button class="action-btn delete-btn" type="button" data-id="${escapeHTML(appointment.id)}"><span class="material-symbols-outlined">delete</span>Excluir</button>
@@ -1009,13 +1013,24 @@ function loadAppointmentsPage() {
 async function loadAppointments() {
   if ((!$("appointments-list") && !$("admin-stat-pending")) || !currentUser) return;
 
+  if (isOffline) return showOfflineAppointments();
+
   try {
     const data = await api.agendamentos.list();
     appointmentsCache = sortByDateTime(data || []);
+    // Guarda uma cópia no aparelho para o cliente ver sem internet.
+    // A lista do admin tem os dados de todos os clientes: essa não é guardada.
+    if (!isAdmin) saveOfflineCopy(currentUser, appointmentsCache);
     applyFilters();
     renderCommentsEligibility();
     updateAdminStats();
   } catch (error) {
+    // A internet caiu no caminho: mostra a cópia salva
+    if (error.code === "NETWORK_ERROR" && !isAdmin) {
+      isOffline = true;
+      updateOfflineState();
+      return showOfflineAppointments();
+    }
     console.error("Erro ao carregar agendamentos:", error);
     showToast(apiErrorMessage(error, "Erro ao carregar agendamentos."));
   }
@@ -1027,6 +1042,8 @@ async function loadServices() {
   } catch (error) {
     console.error("Erro ao carregar serviços:", error);
     servicesCache = [];
+    // Servidor fora de alcance: vale também para o visitante, que não tem login para conferir
+    if (error.code === "NETWORK_ERROR") isOffline = true;
   }
 
   renderServiceOptions();
@@ -1391,6 +1408,7 @@ function renderUsersList() {
 async function initAuth() {
   currentUser = null;
   isAdmin = false;
+  if (!navigator.onLine) isOffline = true;
 
   if (getToken()) {
     try {
@@ -1398,19 +1416,26 @@ async function initAuth() {
       currentUser = user;
       isAdmin = user?.role === "admin";
     } catch (error) {
-      console.warn("Sessão inválida ou expirada.", error);
+      if (error.code === "NETWORK_ERROR") isOffline = true;
+      else console.warn("Sessão inválida ou expirada.", error);
     }
+
+    // Sem internet não dá para confirmar a sessão: usa o cliente da cópia salva no aparelho
+    if (isOffline && !currentUser) currentUser = getOfflineCopy()?.user || null;
   }
+  startedOffline = isOffline;
 
   updateAuthLink();
   updateAdminVisibility();
-  updateBookingAccess();
+  updateOfflineState();
   prefillUserData();
   renderCommentsList(commentsCache);
   renderAdminCommentReview();
 
   const currentPage = window.location.pathname.split("/").pop() || "index.html";
   if (currentPage === "agendamentos.html" && !currentUser) {
+    // Sem internet também não dá para entrar na conta: fica na página e explica no aviso
+    if (isOffline) return showOfflineAppointments();
     window.location.href = "auth.html";
     return;
   }
@@ -1431,6 +1456,51 @@ async function initAuth() {
   if (editId && $("booking-form")) {
     await fillFormForEdit(editId);
   }
+}
+
+// ============================================================
+// SEM INTERNET (app no celular)
+// ============================================================
+
+// Mostra ou esconde o aviso "Você está sem internet" (Início e Agendamentos)
+// e trava o formulário de agendamento.
+function updateOfflineState() {
+  $("offline-notice")?.classList.toggle("hidden", !isOffline);
+  updateBookingAccess();
+}
+
+// Agendamentos guardados no aparelho na última vez em que o cliente esteve online. Só leitura.
+function showOfflineAppointments() {
+  const copy = getOfflineCopy();
+  appointmentsCache = copy?.appointments || [];
+
+  const text = $("offline-notice-text");
+  if (text) {
+    const savedAt = copy && new Date(copy.savedAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+    text.textContent = copy
+      ? `Mostrando seus agendamentos salvos em ${savedAt}. Para agendar ou cancelar, conecte-se à internet.`
+      : "Nenhum agendamento salvo neste aparelho. Conecte-se à internet para ver seus horários.";
+  }
+  applyFilters();
+}
+
+// A internet caiu com o app aberto: trava na hora. Quando volta:
+// - se o app abriu sem internet, recarrega para buscar os dados (os campos estavam travados, nada se perde);
+// - se caiu no meio do uso, só destrava, sem perder o que já foi digitado.
+function watchConnection() {
+  window.addEventListener("offline", () => {
+    isOffline = true;
+    updateOfflineState();
+    if ($("appointments-list")) applyFilters(); // redesenha os cartões sem o botão Cancelar
+  });
+
+  window.addEventListener("online", () => {
+    if (!isOffline) return;
+    if (startedOffline && $("offline-notice")) return window.location.reload();
+    isOffline = false;
+    updateOfflineState();
+    if ($("appointments-list")) applyFilters();
+  });
 }
 
 // ============================================================
@@ -1726,6 +1796,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   await Promise.all([loadServices(), loadSlots(), loadBarbeiros(), loadComments()]);
   await initAuth();
+  watchConnection();
 
   loadBarberAdminSection();
 

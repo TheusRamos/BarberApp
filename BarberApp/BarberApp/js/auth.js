@@ -516,6 +516,11 @@ async function loadCurrentUser() {
     const { user } = await api.auth.me();
     return user;
   } catch (error) {
+    // Sem internet a sessão continua valendo: não sai da conta (nem apaga os agendamentos salvos)
+    if (error.code === "NETWORK_ERROR") {
+      showToast("Você está sem internet. Conecte-se para ver seu perfil.");
+      return null;
+    }
     console.warn("Sessão inválida ou expirada.", error);
     setToken(null);
     return null;

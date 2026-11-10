@@ -1,8 +1,17 @@
-// App no celular (PWA): botão "Baixe nosso aplicativo" no pé do menu lateral.
-// - Android (e Chrome/Edge no computador): o clique abre a janela de instalação do navegador.
-// - iPhone, e navegadores sem instalação por botão: o clique mostra o passo a passo.
-// - Com o app já instalado (aberto pelo ícone da tela inicial), o botão não aparece.
+// App no celular (PWA)
+// 1. Liga o service worker (sw.js), que guarda o site no aparelho para o app
+//    abrir sem internet e se atualizar sozinho.
+// 2. Botão "Baixe nosso aplicativo" no pé do menu lateral:
+//    - Android (e Chrome/Edge no computador): o clique abre a janela de instalação do navegador.
+//    - iPhone, e navegadores sem instalação por botão: o clique mostra o passo a passo.
+//    - Com o app já instalado (aberto pelo ícone da tela inicial), o botão não aparece.
 (function () {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(erro => console.warn('Service worker não registrado.', erro));
+    });
+  }
+
   const botao = document.getElementById('install-app-btn');
   if (!botao) return;
 

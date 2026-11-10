@@ -171,6 +171,15 @@
           <p id="form-subtitle">Preencha os dados para reservar um horário.</p>
         </div>
 
+        <!-- Aviso sem internet (app no celular): o app.js mostra e trava os campos abaixo -->
+        <div id="offline-notice" class="offline-notice hidden" role="status">
+          <span class="material-symbols-outlined">wifi_off</span>
+          <div>
+            <strong>Você está sem internet</strong>
+            <p>Para agendar um horário, conecte-se à internet.</p>
+          </div>
+        </div>
+
         <!-- Aviso para quem não entrou na conta: o app.js mostra e trava os campos abaixo -->
         <div id="login-required" class="login-required hidden" role="status">
           <div class="login-required-body">
