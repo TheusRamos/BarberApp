@@ -13,3 +13,37 @@ a:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
+
+/* ============================================================
+   DIVISOR COM TESOURA   ○○○ ✂ ○○○
+   Separa as seções principais de uma página. No HTML:
+
+   <div class="container divisor-tesoura" aria-hidden="true">
+     <span class="material-symbols-outlined">content_cut</span>
+   </div>
+
+   aria-hidden="true" porque é só enfeite: o leitor de tela pula.
+   ============================================================ */
+
+.divisor-tesoura {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-block: 48px;
+  color: var(--primary);
+}
+
+/* A tesoura é o ícone "content_cut" do Material Symbols */
+.divisor-tesoura .material-symbols-outlined {
+  font-size: 22px;
+}
+
+/* As três bolinhas de cada lado: um anel de 12px que se repete 3 vezes (36px) */
+.divisor-tesoura::before,
+.divisor-tesoura::after {
+  content: "";
+  width: 36px;
+  height: 12px;
+  background: radial-gradient(circle, transparent 3px, var(--border-gold) 3.5px, var(--border-gold) 4.5px, transparent 5px) left center / 12px 12px repeat-x;
+}

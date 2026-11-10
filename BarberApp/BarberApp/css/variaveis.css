@@ -38,7 +38,6 @@
 
   /* --- Fundos e superfícies (cada nível um pouco mais claro que o fundo) --- */
   --background: #282823;            /* fundo geral das páginas */
-  --background-end: #22221E;        /* fim do degradê do fundo, no pé da página */
   --surface: #2F302B;               /* cards */
   --surface-low: #2B2C27;           /* moldura da foto do topo */
   --surface-lowest: #2B2C27;        /* cards de serviço e campo de filtro */

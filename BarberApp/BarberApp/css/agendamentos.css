@@ -50,9 +50,10 @@ textarea::placeholder { color: var(--text-soft); }
   overflow: hidden;
   min-height: 100vh;
   padding: 64px 0 50px;
+  /* Fundo liso, só com um brilho dourado suave no canto superior direito */
   background:
     radial-gradient(ellipse at top right, var(--app-glow), transparent 40%),
-    linear-gradient(180deg, var(--background) 0%, var(--background-end) 100%);
+    var(--background);
 }
 
 .container {

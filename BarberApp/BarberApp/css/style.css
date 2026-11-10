@@ -54,9 +54,10 @@ input, textarea, button {
   overflow: hidden;
   min-height: 100vh;
   padding: 64px 0 50px;
+  /* Fundo liso, só com um brilho dourado suave no canto superior direito */
   background:
     radial-gradient(ellipse at top right, var(--app-glow), transparent 40%),
-    linear-gradient(180deg, var(--background) 0%, var(--background-end) 100%);
+    var(--background);
 }
 
 .container {
@@ -1091,8 +1092,7 @@ body, input, textarea, select, button { font-family: var(--font-body); }
 /* Footer */
 .site-footer {
   text-align: center;
-  padding: 24px 16px;
-  border-top: 1px solid rgba(var(--primary-rgb), 0.1);
+  padding: 0 16px 24px;  /* a separação do conteúdo é o .divisor-tesoura logo acima */
   color: var(--text-muted);
   font-size: 0.85rem;
 }
