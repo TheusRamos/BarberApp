@@ -530,6 +530,17 @@ function resetFormState() {
   clearError("barbeiro");
 }
 
+// Página inicial: quem não entrou na conta já vê o aviso no topo do formulário,
+// com os campos travados. Antes só descobria ao clicar em Confirmar, depois de preencher tudo.
+function updateBookingAccess() {
+  const notice = $("login-required");
+  const fieldset = $("booking-fieldset");
+  if (!notice || !fieldset) return;
+
+  notice.classList.toggle("hidden", Boolean(currentUser));
+  fieldset.disabled = !currentUser;
+}
+
 function prefillUserData() {
   if (!currentUser) return;
 
@@ -1393,6 +1404,7 @@ async function initAuth() {
 
   updateAuthLink();
   updateAdminVisibility();
+  updateBookingAccess();
   prefillUserData();
   renderCommentsList(commentsCache);
   renderAdminCommentReview();

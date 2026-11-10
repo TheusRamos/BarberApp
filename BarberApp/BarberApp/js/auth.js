@@ -6,6 +6,8 @@ const shouldLogout = params.get("logout") === "1";
 
 let pendingPhotoBase64 = null;
 let currentUser = null;
+// Primeiro login com Google (conta sem telefone): depois de salvar o telefone, volta para o Início.
+let returnHomeAfterSave = false;
 let captchaSiteKey = null;
 const captcha = { login: { widget: null, token: "" }, register: { widget: null, token: "" } };
 
@@ -307,6 +309,7 @@ async function handleProfileSave(event) {
 
     pendingPhotoBase64 = null;
     showToast("Perfil atualizado com sucesso!");
+    if (returnHomeAfterSave) setTimeout(() => (window.location.href = "index.html"), 700);
   } catch (error) {
     console.error("Erro ao salvar perfil:", error);
     showToast(translateApiError(error));
@@ -557,9 +560,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (googleLogin) {
       showToast("Conta conectada. Informe seu telefone para poder agendar.");
       $("profile-phone")?.focus();
+      returnHomeAfterSave = true;
     }
   } else {
     showAuthPanel();
+    // O botão "Criar conta" da página inicial abre direto a aba de cadastro
+    if (location.hash === "#cadastro") showRegister();
     loadAuthOptions();
   }
 });

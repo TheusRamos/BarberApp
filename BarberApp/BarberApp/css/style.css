@@ -458,6 +458,26 @@ button:disabled,
   z-index: 1;
 }
 
+/* Agrupa os campos do agendamento. Quando está desabilitado (visitante sem
+   login), todos os campos de dentro ficam travados e esmaecidos. */
+.booking-fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.booking-fieldset:disabled {
+  opacity: 0.55;
+}
+
+.booking-fieldset:disabled .service-card {
+  pointer-events: none;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: 1fr;

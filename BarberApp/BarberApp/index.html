@@ -17,7 +17,9 @@
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/componentes.css" />
   <style>
-    .waitlist-offer {
+    /* Avisos dentro do formulário: fila de espera e "entre na sua conta" */
+    .waitlist-offer,
+    .login-required {
       margin-top: 14px;
       background: transparent;
       border: 1px solid var(--border-gold);
@@ -27,29 +29,37 @@
       flex-direction: column;
       gap: 14px;
     }
-    .waitlist-offer-body {
+    .login-required {
+      margin: 0 0 22px;
+    }
+    .waitlist-offer-body,
+    .login-required-body {
       display: flex;
       align-items: flex-start;
       gap: 12px;
     }
-    .waitlist-offer-body > .material-symbols-outlined {
+    .waitlist-offer-body > .material-symbols-outlined,
+    .login-required-body > .material-symbols-outlined {
       color: var(--primary);
       font-size: 26px;
       flex-shrink: 0;
       margin-top: 2px;
     }
-    .waitlist-offer-body strong {
+    .waitlist-offer-body strong,
+    .login-required-body strong {
       display: block;
       font-size: 0.95rem;
       margin-bottom: 4px;
     }
-    .waitlist-offer-body p {
+    .waitlist-offer-body p,
+    .login-required-body p {
       font-size: 0.88rem;
       color: var(--text-muted);
       line-height: 1.6;
       margin: 0;
     }
-    .waitlist-offer-actions {
+    .waitlist-offer-actions,
+    .login-required-actions {
       display: flex;
       gap: 8px;
       justify-content: flex-end;
@@ -140,7 +150,26 @@
           <p id="form-subtitle">Preencha os dados para reservar um horário.</p>
         </div>
 
+        <!-- Aviso para quem não entrou na conta: o app.js mostra e trava os campos abaixo -->
+        <div id="login-required" class="login-required hidden" role="status">
+          <div class="login-required-body">
+            <span class="material-symbols-outlined">lock</span>
+            <div>
+              <strong>Entre na sua conta para agendar</strong>
+              <p>Você pode ver os serviços e preços, mas para reservar um horário é preciso estar logado.</p>
+            </div>
+          </div>
+          <div class="login-required-actions">
+            <a href="auth.html#cadastro" class="ghost-btn">Criar conta</a>
+            <a href="auth.html" class="secondary-btn">
+              <span class="material-symbols-outlined">login</span>
+              Entrar
+            </a>
+          </div>
+        </div>
+
         <form class="booking-form" id="booking-form" novalidate>
+          <fieldset class="booking-fieldset" id="booking-fieldset">
           <div class="form-grid">
             <div class="form-group">
               <label for="nome">Seu nome</label>
@@ -220,6 +249,7 @@
               </button>
             </div>
           </div>
+          </fieldset>
         </form>
       </div>
     </section>
