@@ -36,17 +36,13 @@
   --danger: rgb(var(--danger-rgb));
   --info: rgb(var(--info-rgb));
 
-  /* --- Fundos e superfícies (cada nível um pouco mais claro que o fundo) --- */
+  /* --- Fundos e superfícies (um pouco mais claras que o fundo) ---
+     Cards e painéis não têm fundo próprio: são só a borda dourada fina. */
   --background: #282823;            /* fundo geral das páginas */
-  --surface: #2F302B;               /* cards */
   --surface-low: #2B2C27;           /* moldura da foto do topo */
-  --surface-lowest: #2B2C27;        /* cards de serviço e campo de filtro */
-  --surface-high: #363731;          /* card de serviço no hover */
-  --card-bg: var(--surface);        /* fundo dos cards e painéis */
+  --surface-lowest: #2B2C27;        /* área da foto de perfil (página de login/perfil) */
   --dropdown-bg: #363731;           /* menu de status do agendamento */
   --overlay-bg: rgba(0, 0, 0, 0.6); /* escurece a tela com o menu lateral aberto */
-  --input-bg-subtle: rgba(0, 0, 0, 0.18);  /* fundo de campos no admin */
-  --form-bg-subtle: rgba(0, 0, 0, 0.12);   /* fundo do formulário de barbeiro */
   --comment-row-bg: rgba(0, 0, 0, 0.18);   /* linha de comentário */
   --appointment-card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
 
