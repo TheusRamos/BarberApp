@@ -41,11 +41,6 @@ input, textarea, button {
   outline: none;
 }
 
-input[type="date"],
-input[type="time"] {
-  color-scheme: light;
-}
-
 .hidden {
   display: none !important;
 }
@@ -61,7 +56,7 @@ input[type="time"] {
   padding: 64px 0 50px;
   background:
     radial-gradient(ellipse at top right, var(--app-glow), transparent 40%),
-    linear-gradient(180deg, var(--background) 0%, var(--surface-high) 100%);
+    linear-gradient(180deg, var(--background) 0%, var(--background-end) 100%);
 }
 
 .container {
@@ -180,12 +175,12 @@ input[type="time"] {
 }
 
 .sidebar-link:hover {
-  background: rgba(var(--gold-rgb), 0.07);
+  background: rgba(var(--primary-rgb), 0.07);
   color: var(--text);
 }
 
 .sidebar-link.active {
-  background: rgba(var(--gold-rgb), 0.11);
+  background: rgba(var(--primary-rgb), 0.11);
   color: var(--primary);
 }
 
@@ -250,7 +245,7 @@ input[type="time"] {
   height: 7px;
   border-radius: 50%;
   background: var(--primary);
-  box-shadow: 0 0 8px rgba(var(--gold-rgb), 0.6);
+  box-shadow: 0 0 8px rgba(var(--primary-rgb), 0.6);
   animation: pulse 1.6s infinite;
 }
 
@@ -310,9 +305,9 @@ input[type="time"] {
 }
 
 .secondary-btn {
-  background: rgba(var(--gold-rgb), 0.1);
+  background: rgba(var(--primary-rgb), 0.1);
   color: var(--primary);
-  border: 1px solid rgba(var(--gold-rgb), 0.18);
+  border: 1px solid rgba(var(--primary-rgb), 0.18);
 }
 
 .secondary-btn:hover,
@@ -324,7 +319,7 @@ input[type="time"] {
 .ghost-btn {
   background: transparent;
   color: var(--text-muted);
-  border: 1px solid rgba(var(--neutral-rgb), 0.15);
+  border: 1px solid var(--border-medium);
 }
 
 a.ghost-btn,
@@ -422,7 +417,7 @@ button:disabled,
   right: -40px;
   width: 160px;
   height: 160px;
-  background: radial-gradient(circle, rgba(var(--gold-rgb), 0.14), transparent 70%);
+  background: radial-gradient(circle, rgba(var(--primary-rgb), 0.14), transparent 70%);
   pointer-events: none;
 }
 
@@ -520,10 +515,6 @@ button:disabled,
   min-height: 112px;
 }
 
-.form-group select {
-  color-scheme: light;
-}
-
 .field-error {
   min-height: 15px;
   margin-left: 3px;
@@ -584,7 +575,7 @@ button:disabled,
 
 .service-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(var(--gold-rgb), 0.3);
+  border-color: rgba(var(--primary-rgb), 0.3);
   background: var(--surface-high);
 }
 
@@ -612,9 +603,9 @@ button:disabled,
 }
 
 .services-grid input[name="servico"]:checked + .service-card {
-  background: linear-gradient(180deg, rgba(var(--gold-rgb), 0.11), rgba(var(--gold-rgb), 0.05));
-  border-color: rgba(var(--gold-rgb), 0.38);
-  box-shadow: 0 12px 28px rgba(var(--primary-alt-rgb), 0.14);
+  background: linear-gradient(180deg, rgba(var(--primary-rgb), 0.11), rgba(var(--primary-rgb), 0.05));
+  border-color: rgba(var(--primary-rgb), 0.38);
+  box-shadow: 0 12px 28px rgba(var(--primary-rgb), 0.14);
 }
 
 .services-grid input[name="servico"]:checked + .service-card .service-title,
@@ -676,7 +667,7 @@ button:disabled,
   left: -100px;
   width: 260px;
   height: 260px;
-  background: rgba(var(--gold-rgb), 0.06);
+  background: rgba(var(--primary-rgb), 0.06);
 }
 
 .orb-bottom {
@@ -684,7 +675,7 @@ button:disabled,
   bottom: 100px;
   width: 300px;
   height: 300px;
-  background: var(--orb-blue);
+  background: var(--orb-glow);
 }
 
 /* ============================================================
@@ -812,7 +803,7 @@ button:disabled,
   font-size: 1.8rem;
   font-weight: var(--heading-weight);
   color: var(--on-primary);
-  border: 2px solid rgba(var(--gold-rgb), 0.2);
+  border: 2px solid rgba(var(--primary-rgb), 0.2);
   flex-shrink: 0;
 }
 
@@ -933,7 +924,7 @@ button:disabled,
 
 .appointment-card {
   background: var(--appointment-card-bg);
-  border: 1px solid rgba(var(--neutral-rgb), 0.06);
+  border: 1px solid var(--border-faint);
   padding: 15px;
   border-radius: 13px;
   margin-bottom: 11px;
@@ -979,7 +970,7 @@ button:disabled,
 
 input:focus, textarea:focus, select:focus, button:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(var(--gold-rgb), 0.08);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.08);
 }
 
 /* ============================================================
@@ -1077,7 +1068,7 @@ body, input, textarea, select, button { font-family: var(--font-body); }
 .site-footer {
   text-align: center;
   padding: 24px 16px;
-  border-top: 1px solid rgba(var(--gold-rgb), 0.1);
+  border-top: 1px solid rgba(var(--primary-rgb), 0.1);
   color: var(--text-muted);
   font-size: 0.85rem;
 }

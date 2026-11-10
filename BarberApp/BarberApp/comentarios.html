@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#282823" />
   <title>BarberApp | Avaliações</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -39,7 +40,7 @@
       padding: 16px 20px;
       border-radius: 16px;
       background: transparent;
-      border: 1px solid rgba(var(--primary-alt-rgb), 0.35);
+      border: 1px solid rgba(var(--primary-rgb), 0.35);
       margin-bottom: 28px;
     }
 
@@ -63,7 +64,7 @@
     .stars-display {
       display: inline-flex;
       gap: 2px;
-      color: var(--warning-strong);
+      color: var(--primary);
       font-size: 1rem;
       margin-bottom: 6px;
     }
@@ -109,7 +110,7 @@
     }
 
     .comment-meta .comment-stars {
-      color: var(--warning-strong);
+      color: var(--primary);
       font-size: 0.85rem;
       letter-spacing: 1px;
     }
@@ -189,7 +190,7 @@
     }
 
     .star-picker:hover label {
-      color: var(--warning-strong);
+      color: var(--primary);
     }
 
     .star-picker input[type="radio"]:checked ~ label {
@@ -198,7 +199,7 @@
 
     .star-picker label:has(~ input[type="radio"]:checked),
     .star-picker input[type="radio"]:checked + label {
-      color: var(--warning-strong);
+      color: var(--primary);
     }
 
     /* fallback: JS-driven star highlight via data-selected */
@@ -213,7 +214,7 @@
     .star-picker[data-selected="4"] label:nth-of-type(3),
     .star-picker[data-selected="4"] label:nth-of-type(4),
     .star-picker[data-selected="5"] label {
-      color: var(--warning-strong);
+      color: var(--primary);
     }
 
     /* Comments list */
@@ -236,7 +237,7 @@
     }
 
     .comment-card:hover {
-      border-color: rgba(var(--gold-rgb), 0.18);
+      border-color: rgba(var(--primary-rgb), 0.18);
     }
 
     .empty-comments {
@@ -338,7 +339,7 @@
     }
 
     .review-item:hover {
-      border-color: rgba(var(--gold-rgb), 0.18);
+      border-color: rgba(var(--primary-rgb), 0.18);
     }
 
     .review-item-header {
@@ -354,23 +355,23 @@
     }
 
     .approve-btn {
-      background: rgba(var(--approve-rgb), 0.12);
-      color: var(--approve);
-      border: 1px solid rgba(var(--approve-rgb), 0.22);
+      background: rgba(var(--success-rgb), 0.12);
+      color: var(--success);
+      border: 1px solid rgba(var(--success-rgb), 0.22);
     }
 
     .approve-btn:hover {
-      background: rgba(var(--approve-rgb), 0.22);
+      background: rgba(var(--success-rgb), 0.22);
     }
 
     .reject-btn {
-      background: rgba(var(--reject-rgb), 0.1);
-      color: var(--reject);
-      border: 1px solid rgba(var(--reject-rgb), 0.2);
+      background: rgba(var(--danger-rgb), 0.1);
+      color: var(--danger);
+      border: 1px solid rgba(var(--danger-rgb), 0.2);
     }
 
     .reject-btn:hover {
-      background: rgba(var(--reject-rgb), 0.2);
+      background: rgba(var(--danger-rgb), 0.2);
     }
 
     .empty-review {
@@ -381,7 +382,7 @@
 
     .empty-review .material-symbols-outlined {
       font-size: 36px;
-      color: var(--approve);
+      color: var(--success);
       margin-bottom: 8px;
       display: block;
     }
