@@ -125,6 +125,8 @@
     .comment-actions {
       display: flex;
       justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 8px;  /* sem isto Ocultar e Remover ficavam colados */
     }
 
     /* Layout: form on left (wide screens), list on right */
@@ -237,8 +239,9 @@
       transition: border-color var(--transition);
     }
 
+    /* No hover a borda fica mais forte (antes ficava mais fraca que o normal) */
     .comment-card:hover {
-      border-color: rgba(var(--primary-rgb), 0.18);
+      border-color: var(--primary);
     }
 
     .empty-comments {
@@ -340,7 +343,7 @@
     }
 
     .review-item:hover {
-      border-color: rgba(var(--primary-rgb), 0.18);
+      border-color: var(--primary);
     }
 
     .review-item-header {
