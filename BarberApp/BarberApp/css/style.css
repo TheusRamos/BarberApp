@@ -487,9 +487,10 @@ button:disabled,
 .form-group textarea,
 .form-group select {
   width: 100%;
+  /* Campo só com contorno, sem fundo */
   background: transparent;
   color: var(--text);
-  border: 1px solid var(--border-gold-soft);
+  border: 1px solid var(--input-border);
   border-radius: var(--radius);
   padding: 13px 15px;
   transition: border-color var(--transition), box-shadow var(--transition);
@@ -500,11 +501,31 @@ button:disabled,
   color: var(--text-soft);
 }
 
+.form-group input:hover:not(:focus),
+.form-group textarea:hover:not(:focus),
+.form-group select:hover:not(:focus) {
+  border-color: var(--input-border-hover);
+}
+
 .form-group input:focus,
 .form-group textarea:focus,
 .form-group select:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+/* Campo com erro: quando o <small class="field-error"> do mesmo grupo tem
+   texto, a borda do campo fica vermelha (discreta), mesmo com o foco nele */
+.form-group:has(.field-error:not(:empty)) input,
+.form-group:has(.field-error:not(:empty)) textarea,
+.form-group:has(.field-error:not(:empty)) select {
+  border-color: var(--input-border-error);
+}
+
+.form-group:has(.field-error:not(:empty)) input:focus,
+.form-group:has(.field-error:not(:empty)) textarea:focus,
+.form-group:has(.field-error:not(:empty)) select:focus {
+  box-shadow: 0 0 0 1px var(--input-border-error);
 }
 
 .form-group input:disabled {

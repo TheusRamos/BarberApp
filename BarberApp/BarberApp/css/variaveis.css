@@ -72,6 +72,9 @@
   --border-subtle: rgba(var(--olive-rgb), 0.7);        /* borda neutra comum */
   --border-medium: var(--olive);                       /* borda de campos e botões neutros */
   --hover-neutral: rgba(var(--olive-rgb), 0.35);       /* fundo de item neutro no hover */
+  --input-border: #7E7F76;                             /* contorno dos campos: oliva clareado (3:1 com o fundo) */
+  --input-border-hover: rgba(var(--primary-rgb), 0.6); /* contorno do campo com o mouse em cima */
+  --input-border-error: rgba(var(--danger-rgb), 0.75); /* contorno do campo com erro: vermelho discreto */
   --action-btn-hover-border: rgba(var(--primary-rgb), 0.45);
 
   /* --- Sombras (no escuro precisam ser mais fortes para aparecer) --- */

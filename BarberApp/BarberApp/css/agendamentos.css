@@ -787,24 +787,31 @@ a.new-booking-btn {
   margin-left: 3px;
 }
 
+/* Campo só com contorno, sem fundo (o select do filtro já fica dentro
+   da caixa dourada do .filter-group, então não ganha contorno próprio) */
 .form-group input,
 .form-group textarea,
-.form-group select,
-.filter-group select {
+.form-group select {
   width: 100%;
-  background: var(--surface-lowest);
+  background: transparent;
   color: var(--text);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--input-border);
   border-radius: var(--radius);
   padding: 13px 15px;
   transition: border-color var(--transition), box-shadow var(--transition);
 }
 
+.form-group input:hover:not(:focus),
+.form-group textarea:hover:not(:focus),
+.form-group select:hover:not(:focus) {
+  border-color: var(--input-border-hover);
+}
+
 .form-group input:focus,
 .form-group textarea:focus,
 .form-group select:focus {
-  border-color: rgba(var(--primary-rgb), 0.3);
-  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.07);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
 }
 
 .form-group textarea {
