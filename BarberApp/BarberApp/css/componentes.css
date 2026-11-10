@@ -14,6 +14,30 @@ a:focus-visible {
   outline-offset: 2px;
 }
 
+/* ============================================================
+   LOGO NA BARRA LATERAL
+   O emblema dourado (resources/logo-dourado.png) fica centralizado
+   no topo; o botão de fechar, que só aparece no celular, vai para o
+   canto direito.
+   ============================================================ */
+
+.sidebar-header {
+  justify-content: center;
+  position: relative;
+}
+
+.sidebar-header .sidebar-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.sidebar-logo {
+  display: block;
+  width: 120px;
+  height: auto;
+}
+
 /* Lista aberta dos selects (barbeiro, horário, filtro de serviço).
    O campo tem fundo transparente, então o navegador desenhava a lista
    com fundo branco e o texto claro do tema: ficava ilegível. Aqui as

@@ -775,6 +775,29 @@ button:disabled,
   min-height: auto;
 }
 
+/* Emblema grande acima do título "Acesse sua conta" */
+.auth-logo {
+  display: block;
+  width: 200px;
+  height: auto;
+}
+
+/* Com uma coluna só (celular e tablet), o topo do login fica centralizado:
+   emblema, selo, título e texto */
+@media (max-width: 979px) {
+  .auth-copy {
+    align-items: center;
+    text-align: center;
+  }
+}
+
+/* No celular o emblema fica menor, para não empurrar o formulário para baixo */
+@media (max-width: 767px) {
+  .auth-logo {
+    width: 110px;
+  }
+}
+
 .auth-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
