@@ -76,6 +76,14 @@
       align-content: start;
     }
 
+    /* No celular, um card por linha: em duas colunas o texto quebrava quase
+       palavra por palavra */
+    @media (max-width: 559px) {
+      .sobre-historia-highlight {
+        grid-template-columns: 1fr;
+      }
+    }
+
     .highlight-item {
       display: flex;
       flex-direction: row;
