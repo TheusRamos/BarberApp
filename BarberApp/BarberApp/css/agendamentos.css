@@ -392,6 +392,20 @@ textarea::placeholder { color: var(--text-soft); }
   border-color: var(--primary);
 }
 
+/* "Confirmados" e "Pendentes" são botões que filtram a lista */
+button.stat-link {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Card do status que está filtrando a lista */
+.stat-link[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: rgba(var(--primary-rgb), 0.1);
+}
+
 .stat-item span {
   font-size: 10px;
   font-weight: 800;
@@ -424,6 +438,15 @@ textarea::placeholder { color: var(--text-soft); }
   color: var(--text-muted);
   line-height: 1.7;
   font-size: 0.93rem;
+}
+
+/* "Mostrando só os agendamentos pendentes. Mostrar todos" */
+.section-top .status-filter-note {
+  margin-top: 8px;
+}
+
+.status-filter-note strong {
+  color: var(--primary);
 }
 
 .appointments-grid {

@@ -94,7 +94,7 @@ Os problemas abaixo foram relatados e ainda precisam ser investigados. As causas
 
 ### 010 — Dashboard de agendamentos pendentes parado em zero
 
-- **Estado:** Pendente
+- **Estado:** Concluído em 17/11/2026 — não reproduzido no sistema atual. Conferido no navegador com um banco descartável: o card "Pendentes" do painel do administrador mostrou a mesma quantidade de reservas pendentes que a API, e os cards de Agendamentos também contam corretamente (item 020).
 - **Relato:** O indicador de agendamentos pendentes permanece em 0.
 - **Objetivo:** Investigar e corrigir a contagem e a atualização do indicador.
 - **Comportamento esperado:** Exibir a quantidade de agendamentos pendentes correspondente ao período e aos filtros aplicáveis, atualizando após mudanças relevantes.
@@ -115,9 +115,22 @@ Os problemas abaixo foram relatados e ainda precisam ser investigados. As causas
 
 ## Outras ideias pendentes
 
-Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **020**.
+Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **021**.
 
 ## Atualizações concluídas
+
+### 020 — Cards de status clicáveis e horários do barbeiro em 24 h
+
+- **Estado:** Concluído
+- **Registrado em:** 17/11/2026
+- **Objetivo:** Completar os ajustes das fases 1 e 2 da lista `alterações.md`: filtrar a lista pelos cards de Agendamentos e acabar com o formato "09:00 AM" no painel do administrador.
+- **Concluído em:** 17/11/2026
+- **Resumo da entrega:**
+  - Página de agendamentos: os cards "Confirmados" e "Pendentes" mostram só os agendamentos daquele status e descem até a lista. O card ativo fica destacado, e a lista avisa "Mostrando só os agendamentos pendentes. Mostrar todos". Clicar de novo no card, em "Mostrar todos" ou no card "Agendamentos" volta a mostrar todos.
+  - Os números dos cards contam sem o filtro de status (escolher "Pendentes" não zera "Confirmados"), mas respeitam os outros filtros.
+  - Painel do administrador: início e fim do expediente do barbeiro passam a ser listas de 15 em 15 minutos, sempre no formato 24 h. Um horário salvo antes fora dessa lista (ex.: 09:10) continua aparecendo e não se perde ao editar.
+  - Item 010 conferido e fechado.
+  - Conferido no navegador (Chrome) com um banco descartável, como cliente (celular) e como administrador (computador).
 
 ### 019 — Calendário em português e filtro de data a partir de hoje (fase 2 da lista `alterações.md`)
 
@@ -131,7 +144,7 @@ Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo ident
   - Filtro do cliente: começa em hoje e mostra os agendamentos de hoje em diante ("A partir de 17/11/2026"); "Todas as datas" mostra também os que já passaram. O administrador continua com o filtro vazio e, ao escolher uma data, vê só aquele dia.
   - Quando os filtros escondem todos os agendamentos, a página avisa e oferece "Ver todos os agendamentos".
   - Conferido no navegador (Chrome) com um banco descartável: 23 verificações, como cliente e como administrador, no celular e no computador, incluindo um agendamento feito pelo calendário.
-- **Pendências:** os campos de horário do barbeiro, no painel do administrador (`type="time"`), também seguem o idioma do aparelho e aparecem como "09:00 AM" num celular em inglês.
+- **Pendências:** nenhuma. Os campos de horário do barbeiro, no painel do administrador, que apareciam como "09:00 AM" num celular em inglês, foram resolvidos no item 020.
 
 ### 018 — Ajustes de login e da página de agendamentos (fase 1 da lista `alterações.md`)
 

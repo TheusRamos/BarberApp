@@ -143,10 +143,11 @@
 
     <!-- Previsão e Faturado são números da barbearia: só o administrador vê (o app.js mostra) -->
     <section class="container stats-section" id="stats-section">
-      <!-- O card "Agendamentos" leva até a lista, mais abaixo -->
-      <a href="#lista-agendamentos" class="stat-item stat-link anim-fade-up" title="Ver a lista de agendamentos"><strong id="stat-total">0</strong><span>Agendamentos</span></a>
-      <div class="stat-item anim-fade-up anim-d1"><strong id="stat-confirmed">0</strong><span>Confirmados</span></div>
-      <div class="stat-item anim-fade-up anim-d2"><strong id="stat-pending">0</strong><span>Pendentes</span></div>
+      <!-- Os cards levam até a lista, mais abaixo: "Agendamentos" mostra todos;
+           "Confirmados" e "Pendentes" mostram só os daquele status (clicar de novo desfaz) -->
+      <a href="#lista-agendamentos" class="stat-item stat-link anim-fade-up" id="stat-all" title="Ver todos os agendamentos"><strong id="stat-total">0</strong><span>Agendamentos</span></a>
+      <button type="button" class="stat-item stat-link anim-fade-up anim-d1" data-status="Confirmado" aria-pressed="false" aria-controls="appointments-list" title="Ver só os confirmados"><strong id="stat-confirmed">0</strong><span>Confirmados</span></button>
+      <button type="button" class="stat-item stat-link anim-fade-up anim-d2" data-status="Pendente" aria-pressed="false" aria-controls="appointments-list" title="Ver só os pendentes"><strong id="stat-pending">0</strong><span>Pendentes</span></button>
       <div class="stat-item anim-fade-up anim-d3 admin-only hidden"><strong id="stat-revenue">R$ 0</strong><span>Previsão</span></div>
       <div class="stat-item anim-fade-up anim-d4 admin-only hidden"><strong id="stat-billed">R$ 0</strong><span>Faturado</span></div>
     </section>
@@ -157,6 +158,11 @@
       <div class="section-top anim-fade-up">
         <h2>Lista de agendamentos</h2>
         <p>Visualize, acompanhe e gerencie os horários marcados.</p>
+        <!-- Aparece depois de clicar em "Confirmados" ou "Pendentes", nos cards acima -->
+        <p class="status-filter-note hidden" id="status-filter-note" role="status">
+          Mostrando só os agendamentos <strong id="status-filter-label"></strong>.
+          <button type="button" class="text-btn" id="status-filter-clear">Mostrar todos</button>
+        </p>
       </div>
 
       <div class="appointments-grid" id="appointments-list"></div>

@@ -391,15 +391,17 @@
             <!-- Working hours -->
             <div class="form-group">
               <label>Horário de atendimento</label>
+              <!-- Listas de 15 em 15 minutos, sempre em 24 h (o campo de hora do navegador
+                   mostrava "09:00 AM" em aparelhos em inglês). As opções vêm do app.js. -->
               <div class="horario-config-row">
                 <div class="horario-config-field">
                   <span>Início</span>
-                  <input type="time" id="barbeiro-inicio" value="09:00" />
+                  <select id="barbeiro-inicio" aria-label="Início do atendimento"></select>
                 </div>
                 <div class="horario-config-sep">—</div>
                 <div class="horario-config-field">
                   <span>Fim</span>
-                  <input type="time" id="barbeiro-fim" value="20:00" />
+                  <select id="barbeiro-fim" aria-label="Fim do atendimento"></select>
                 </div>
               </div>
             </div>

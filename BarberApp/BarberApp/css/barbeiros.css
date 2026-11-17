@@ -299,7 +299,7 @@
   letter-spacing: 0.06em;
 }
 
-.horario-config-field input[type="time"] {
+.horario-config-field select {
   padding: 10px 12px;
   border-radius: var(--radius);
   border: 1px solid var(--input-border);
@@ -310,7 +310,7 @@
   width: 100%;
 }
 
-.horario-config-field input[type="time"]:focus {
+.horario-config-field select:focus {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 1px var(--primary);
@@ -346,7 +346,7 @@
 
 /* Hover dos campos do admin: contorno dourado suave */
 .svc-duration-input:hover:not(:focus),
-.horario-config-field input[type="time"]:hover:not(:focus),
+.horario-config-field select:hover:not(:focus),
 .barbeiro-bio-textarea:hover:not(:focus) {
   border-color: var(--input-border-hover);
 }

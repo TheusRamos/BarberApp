@@ -26,6 +26,9 @@ let slotsCache = [];
 // Calendários em português (js/calendario.js): data do agendamento e filtro de Agendamentos
 let bookingDatePicker = null;
 let filterDatePicker = null;
+// Status escolhido nos cards "Confirmados" / "Pendentes" de Agendamentos ("" = todos)
+let statusFilter = "";
+const STATUS_PLURAL = { Confirmado: "confirmados", Pendente: "pendentes" };
 let usersCache = [];
 let barbeirosCache = [];
 let selectedBarbeiroId = null;
@@ -994,11 +997,14 @@ function renderAppointments(filteredAppointments = null) {
   if (!appointments.length) {
     // Há agendamentos, mas os filtros esconderam todos (ex.: o cliente só tem reservas que já passaram)
     const hiddenByFilters = filteredAppointments !== null && appointmentsCache.length > 0;
+    const hint = statusFilter
+      ? `Não há agendamentos ${STATUS_PLURAL[statusFilter]} com os filtros atuais.`
+      : !isAdmin && $("filter-date")?.value ? "Você não tem agendamentos a partir desta data." : "Tente outra data ou outro serviço.";
     container.innerHTML = hiddenByFilters ? `
       <div class="empty-state">
         <span class="material-symbols-outlined">filter_alt_off</span>
         <h3>Nenhum agendamento com estes filtros</h3>
-        <p>${!isAdmin && $("filter-date")?.value ? "Você não tem agendamentos a partir desta data." : "Tente outra data ou outro serviço."}</p>
+        <p>${hint}</p>
         <button type="button" class="secondary-btn empty-state-btn" id="clear-filters">Ver todos os agendamentos</button>
       </div>
     ` : `
@@ -1009,7 +1015,6 @@ function renderAppointments(filteredAppointments = null) {
       </div>
     `;
     $("clear-filters")?.addEventListener("click", clearFilters);
-    updateStats([]);
     return;
   }
 
@@ -1018,7 +1023,6 @@ function renderAppointments(filteredAppointments = null) {
     if (idx > 0 && idx <= 5) card.classList.add(`anim-d${idx}`);
     container.appendChild(card);
   });
-  updateStats(appointments);
   bindCardActions();
 }
 
@@ -1035,14 +1039,31 @@ function applyFilters() {
     return matchName && matchService && matchDate;
   });
 
-  renderAppointments(filtered);
+  // Os cards contam sem o filtro de status: escolher "Pendentes" não zera "Confirmados"
+  updateStats(filtered);
+  renderAppointments(statusFilter ? filtered.filter(item => item.status === statusFilter) : filtered);
+  updateStatusFilterUI();
+}
+
+// Card do status ativo destacado e o aviso "Mostrando só os agendamentos pendentes" na lista
+function updateStatusFilterUI() {
+  document.querySelectorAll(".stat-link[data-status]").forEach(card => {
+    card.setAttribute("aria-pressed", String(card.dataset.status === statusFilter));
+  });
+  $("status-filter-note")?.classList.toggle("hidden", !statusFilter);
+  if ($("status-filter-label")) $("status-filter-label").textContent = STATUS_PLURAL[statusFilter] || "";
+}
+
+function setStatusFilter(status) {
+  statusFilter = status;
+  applyFilters();
 }
 
 function clearFilters() {
   if ($("search-client")) $("search-client").value = "";
   if ($("filter-service")) $("filter-service").value = "Todos os serviços";
   filterDatePicker?.setValue("", { silent: true });
-  applyFilters();
+  setStatusFilter("");
 }
 
 function loadAppointmentsPage() {
@@ -1052,6 +1073,18 @@ function loadAppointmentsPage() {
   const searchInput = $("search-client");
   const serviceFilter = $("filter-service");
   const dateFilter = $("filter-date");
+
+  // Cards "Confirmados" e "Pendentes": mostram só aquele status e descem até a lista.
+  // Clicar de novo no card ativo volta a mostrar todos.
+  document.querySelectorAll(".stat-link[data-status]").forEach(card => {
+    card.addEventListener("click", () => {
+      setStatusFilter(statusFilter === card.dataset.status ? "" : card.dataset.status);
+      $("lista-agendamentos")?.scrollIntoView();
+    });
+  });
+  // "Agendamentos" (o link já desce até a lista) e "Mostrar todos": todos os status
+  $("stat-all")?.addEventListener("click", () => setStatusFilter(""));
+  $("status-filter-clear")?.addEventListener("click", () => setStatusFilter(""));
 
   const filterPicker = $("filter-date-picker");
   if (filterPicker) {
@@ -1735,14 +1768,31 @@ function getCheckedBarbeiroDias() {
     .map(cb => Number(cb.value));
 }
 
+// Horário do expediente (admin): lista de 15 em 15 minutos, no formato 24 h.
+// Um horário fora da lista (ex.: 09:10, salvo antes) entra como opção, para não se perder.
+function setTimeSelect(select, value) {
+  if (!select) return;
+  if (!select.options.length) {
+    for (let minutes = 0; minutes < 24 * 60; minutes += 15) {
+      const time = `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+      select.add(new Option(time, time));
+    }
+  }
+  if (!select.querySelector(`option[value="${value}"]`)) {
+    const next = [...select.options].find(option => option.value > value);
+    select.add(new Option(value, value), next || null);
+  }
+  select.value = value;
+}
+
 function openAddBarbeiroForm() {
   editingBarbeiroId = null;
   pendingPhoto      = null;
 
   if ($("barbeiro-name"))           $("barbeiro-name").value = "";
   if ($("barbeiro-bio"))            $("barbeiro-bio").value  = "";
-  if ($("barbeiro-inicio"))         $("barbeiro-inicio").value = "09:00";
-  if ($("barbeiro-fim"))            $("barbeiro-fim").value   = "20:00";
+  setTimeSelect($("barbeiro-inicio"), "09:00");
+  setTimeSelect($("barbeiro-fim"), "20:00");
   if ($("barbeiro-avatar-img"))     { $("barbeiro-avatar-img").src = ""; $("barbeiro-avatar-img").classList.remove("visible"); }
   if ($("barbeiro-avatar-initial")) { $("barbeiro-avatar-initial").textContent = "B"; $("barbeiro-avatar-initial").style.display = ""; }
   if ($("barbeiro-photo-upload"))   $("barbeiro-photo-upload").value = "";
@@ -1759,8 +1809,8 @@ function openEditBarbeiroForm(b) {
 
   if ($("barbeiro-name"))      $("barbeiro-name").value    = b.name || "";
   if ($("barbeiro-bio"))       $("barbeiro-bio").value     = b.bio  || "";
-  if ($("barbeiro-inicio"))    $("barbeiro-inicio").value  = b.horarioInicio || "09:00";
-  if ($("barbeiro-fim"))       $("barbeiro-fim").value     = b.horarioFim    || "20:00";
+  setTimeSelect($("barbeiro-inicio"), b.horarioInicio || "09:00");
+  setTimeSelect($("barbeiro-fim"), b.horarioFim || "20:00");
   if ($("barbeiro-form-title")) $("barbeiro-form-title").textContent = "Editar barbeiro";
   if ($("barbeiro-cancel-btn")) $("barbeiro-cancel-btn").classList.remove("hidden");
 
