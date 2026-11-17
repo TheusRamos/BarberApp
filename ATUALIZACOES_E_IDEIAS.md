@@ -115,9 +115,21 @@ Os problemas abaixo foram relatados e ainda precisam ser investigados. As causas
 
 ## Outras ideias pendentes
 
-Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **018**.
+Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **019**.
 
 ## Atualizações concluídas
+
+### 018 — Ajustes de login e da página de agendamentos (fase 1 da lista `alterações.md`)
+
+- **Estado:** Concluído
+- **Registrado em:** 17/11/2026
+- **Objetivo:** Resolver os itens 1, 5, 6 e 7 da lista de alterações. As fases seguintes são: datas em PT-BR e filtro de data (itens 4 e 8), confirmação de e-mail (item 2) e recuperação de senha (item 3).
+- **Concluído em:** 17/11/2026
+- **Resumo da entrega:**
+  - Botão de olho ("Mostrar senha") em todos os campos de senha: login, cadastro e "Alterar senha" do Perfil. Com o mouse, o foco continua no campo; ao enviar o formulário, a senha volta a ficar escondida.
+  - Login recusado: a mensagem continua "Email ou senha incorretos." (dizer que a conta não existe revelaria quem é cliente) e, logo abaixo, "Ainda não tem conta? Criar conta", que abre a aba de cadastro com o e-mail já preenchido, sem sair da página.
+  - Página de agendamentos: o card "Agendamentos" leva até a lista, com rolagem suave (instantânea para quem pediu menos movimento no aparelho); a busca por nome do cliente só aparece para o administrador.
+  - Conferido no navegador (Chrome) com um banco descartável: 18 verificações, como cliente e como administrador, no celular e no computador.
 
 ### 017 — Correções da auditoria de segurança
 

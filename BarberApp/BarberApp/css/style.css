@@ -576,6 +576,73 @@ button:disabled,
   color: var(--text-soft);
 }
 
+/* Campo de senha com o botão de olho ("Mostrar senha") à direita, dentro do campo.
+   O auth.js cria o .password-field em volta de cada campo de senha. */
+.password-field {
+  position: relative;
+}
+
+.form-group .password-field input {
+  padding-right: 50px;
+}
+
+/* O Edge tem um olho próprio: escondido, para não aparecerem dois */
+.password-field input::-ms-reveal {
+  display: none;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  background: none;
+  color: var(--text-soft);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: color var(--transition);
+}
+
+.password-toggle:hover,
+.password-toggle[aria-pressed="true"] {
+  color: var(--primary);
+}
+
+.password-toggle:focus-visible {
+  outline-offset: -2px;
+}
+
+.password-toggle .material-symbols-outlined {
+  font-size: 20px;
+}
+
+/* "Ainda não tem conta? Criar conta", logo abaixo do erro de login */
+.auth-hint {
+  margin: -10px 0 0 3px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Botão com cara de link, no meio de um texto */
+.text-btn {
+  background: none;
+  padding: 0;
+  color: var(--primary);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: color var(--transition);
+}
+
+.text-btn:hover {
+  color: var(--cream);
+}
+
 .form-actions {
   display: flex;
   gap: 11px;

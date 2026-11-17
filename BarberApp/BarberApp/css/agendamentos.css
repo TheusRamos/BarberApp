@@ -382,6 +382,16 @@ textarea::placeholder { color: var(--text-soft); }
   }
 }
 
+/* Card "Agendamentos": é um link que desce até a lista */
+.stat-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.stat-link:hover {
+  border-color: var(--primary);
+}
+
 .stat-item span {
   font-size: 10px;
   font-weight: 800;
@@ -396,6 +406,8 @@ textarea::placeholder { color: var(--text-soft); }
 
 .appointments-section {
   margin-top: 8px;
+  /* Ao chegar pelo card "Agendamentos", o título não fica embaixo do botão do menu */
+  scroll-margin-top: 70px;
 }
 
 .section-top {
@@ -925,6 +937,11 @@ a.new-booking-btn {
     grid-template-columns: 1.4fr 1fr 1fr;
   }
 
+  /* Cliente: sem a busca por nome, ficam só serviço e data */
+  .filters-section:has(.search-group.hidden) {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .stats-section {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -1109,6 +1126,11 @@ a.new-booking-btn {
    ============================================================ */
 
 html { scroll-behavior: smooth; }
+
+/* Quem pediu menos animação no aparelho vai direto, sem rolagem suave */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
 
 @keyframes pageFadeIn {
   from { opacity: 0; transform: translateY(6px); }

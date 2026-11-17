@@ -221,6 +221,12 @@
               <small class="field-error" id="error-login-password"></small>
             </div>
 
+            <!-- Depois de um login recusado: sugere o cadastro, sem sair da página. -->
+            <p class="auth-hint hidden" id="login-register-hint">
+              Ainda não tem conta?
+              <button type="button" class="text-btn" id="login-register-link">Criar conta</button>
+            </p>
+
             <!-- Verificação anti-robô, pedida pelo servidor depois de muitas tentativas nesta conta. -->
             <div class="form-group">
               <div id="login-captcha" class="captcha-box hidden"></div>

@@ -40,6 +40,50 @@ function clearError(fieldName) {
 
 function clearAllErrors() {
   document.querySelectorAll(".field-error").forEach(el => (el.textContent = ""));
+  $("login-register-hint")?.classList.add("hidden");
+}
+
+// ============================================================
+// MOSTRAR SENHA (botão de olho)
+// ============================================================
+
+// Coloca um botão de olho dentro de cada campo de senha da página.
+function setupPasswordToggles() {
+  document.querySelectorAll('input[type="password"]').forEach(input => {
+    const field = document.createElement("div");
+    field.className = "password-field";
+    input.before(field);
+    field.append(input);
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "password-toggle";
+    button.title = "Mostrar senha";
+    button.setAttribute("aria-label", "Mostrar senha");
+    button.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">visibility</span>';
+    field.append(button);
+
+    const show = visible => {
+      input.type = visible ? "text" : "password";
+      button.setAttribute("aria-pressed", String(visible));
+      button.firstChild.textContent = visible ? "visibility_off" : "visibility";
+    };
+    show(false);
+
+    // Com o mouse, o foco (e o cursor) continua no campo
+    button.addEventListener("mousedown", event => event.preventDefault());
+    button.addEventListener("click", () => show(input.type === "password"));
+    // Ao enviar, a senha volta a ficar escondida, para o navegador tratá-la como senha
+    input.form?.addEventListener("submit", () => show(false));
+  });
+}
+
+// "Criar conta" depois de um login recusado: abre o cadastro com o email já digitado.
+function goToRegisterFromLogin() {
+  const email = ($("login-email")?.value || "").trim();
+  showRegister();
+  if (email && $("register-email")) $("register-email").value = email;
+  $("register-name")?.focus();
 }
 
 // ============================================================
@@ -389,6 +433,10 @@ async function handleLogin(event) {
     if (error.code === "CAPTCHA_REQUIRED") {
       await showCaptcha("login");
       setError("login-captcha", "Muitas tentativas nesta conta. Confirme que você não é um robô e entre de novo.");
+    } else if (error.code === "INVALID_CREDENTIALS") {
+      // A mensagem não diz se o email tem conta (isso revelaria quem é cliente); só sugere o cadastro.
+      setError("login-password", translateApiError(error));
+      $("login-register-hint")?.classList.remove("hidden");
     } else {
       showToast(translateApiError(error));
     }
@@ -528,8 +576,10 @@ async function loadCurrentUser() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+  setupPasswordToggles();
   $("tab-login")?.addEventListener("click", showLogin);
   $("tab-register")?.addEventListener("click", showRegister);
+  $("login-register-link")?.addEventListener("click", goToRegisterFromLogin);
   $("login-form")?.addEventListener("submit", handleLogin);
   $("register-form")?.addEventListener("submit", handleRegister);
   $("logout-btn")?.addEventListener("click", handleLogout);

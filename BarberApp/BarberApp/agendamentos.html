@@ -118,7 +118,8 @@
     </div>
 
     <section class="container filters-section">
-      <div class="filter-group search-group">
+      <!-- Busca por cliente: só o administrador vê (o cliente só tem os próprios agendamentos) -->
+      <div class="filter-group search-group admin-only hidden">
         <span class="material-symbols-outlined">search</span>
         <input type="text" id="search-client" placeholder="Buscar por nome do cliente..." />
       </div>
@@ -138,7 +139,8 @@
 
     <!-- Previsão e Faturado são números da barbearia: só o administrador vê (o app.js mostra) -->
     <section class="container stats-section" id="stats-section">
-      <div class="stat-item anim-fade-up"><strong id="stat-total">0</strong><span>Agendamentos</span></div>
+      <!-- O card "Agendamentos" leva até a lista, mais abaixo -->
+      <a href="#lista-agendamentos" class="stat-item stat-link anim-fade-up" title="Ver a lista de agendamentos"><strong id="stat-total">0</strong><span>Agendamentos</span></a>
       <div class="stat-item anim-fade-up anim-d1"><strong id="stat-confirmed">0</strong><span>Confirmados</span></div>
       <div class="stat-item anim-fade-up anim-d2"><strong id="stat-pending">0</strong><span>Pendentes</span></div>
       <div class="stat-item anim-fade-up anim-d3 admin-only hidden"><strong id="stat-revenue">R$ 0</strong><span>Previsão</span></div>
@@ -147,7 +149,7 @@
 
     <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined">content_cut</span></div>
 
-    <section class="container appointments-section">
+    <section class="container appointments-section" id="lista-agendamentos">
       <div class="section-top anim-fade-up">
         <h2>Lista de agendamentos</h2>
         <p>Visualize, acompanhe e gerencie os horários marcados.</p>
