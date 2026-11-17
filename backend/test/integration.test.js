@@ -85,6 +85,11 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
     const blockA=(await call('/agendamentos','POST',{barbeiroId:barber.id,servico:'Barba',data:date2,hora:'09:45'},admin)).body;
     const blockB=(await call('/agendamentos','POST',{barbeiroId:barber.id,servico:'Barba',data:date2,hora:'10:15'},admin)).body;
     assert.equal((await call('/agendamentos','POST',{...combo,hora:'09:45'},d.token)).body.code,'SLOT_TAKEN');
+    // Fora do admin, reservas encostadas viram um bloco só: ninguém conta quantas reservas a barbearia tem.
+    const day2=list=>list.filter(s=>s.data===date2).map(s=>[s.hora,s.duracao]);
+    assert.deepEqual(day2((await call('/slots')).body),[['09:00',60],['10:15',15]]);
+    assert.deepEqual(day2((await call('/slots','GET',undefined,d.token)).body),[['09:00',60],['10:15',15]]);
+    assert.deepEqual(day2((await call('/slots','GET',undefined,admin)).body),[['09:00',45],['09:45',15],['10:15',15]]);
     assert.equal((await call('/waitlist','POST',{...combo,hora:'09:45'},d.token)).status,201);
     await call(`/agendamentos/${blockA.id}/cancel`,'POST',{},admin);
     assert.equal((await call('/agendamentos','GET',undefined,d.token)).body.length,1,'30 minutos livres não comportam 45');

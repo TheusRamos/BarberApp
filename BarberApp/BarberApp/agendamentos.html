@@ -136,12 +136,13 @@
       </div>
     </section>
 
-    <section class="container stats-section">
+    <!-- Previsão e Faturado são números da barbearia: só o administrador vê (o app.js mostra) -->
+    <section class="container stats-section" id="stats-section">
       <div class="stat-item anim-fade-up"><strong id="stat-total">0</strong><span>Agendamentos</span></div>
       <div class="stat-item anim-fade-up anim-d1"><strong id="stat-confirmed">0</strong><span>Confirmados</span></div>
       <div class="stat-item anim-fade-up anim-d2"><strong id="stat-pending">0</strong><span>Pendentes</span></div>
-      <div class="stat-item anim-fade-up anim-d3"><strong id="stat-revenue">R$ 0</strong><span>Previsão</span></div>
-      <div class="stat-item anim-fade-up anim-d4"><strong id="stat-billed">R$ 0</strong><span>Faturado</span></div>
+      <div class="stat-item anim-fade-up anim-d3 admin-only hidden"><strong id="stat-revenue">R$ 0</strong><span>Previsão</span></div>
+      <div class="stat-item anim-fade-up anim-d4 admin-only hidden"><strong id="stat-billed">R$ 0</strong><span>Faturado</span></div>
     </section>
 
     <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined">content_cut</span></div>

@@ -245,6 +245,10 @@ function updateAdminVisibility() {
   const adminNavLink = $("admin-nav-link");
   if (adminNavLink) adminNavLink.classList.toggle("hidden", !isAdmin);
 
+  // Previsão e Faturado: só o administrador vê
+  document.querySelectorAll(".admin-only").forEach(el => el.classList.toggle("hidden", !isAdmin));
+  $("stats-section")?.classList.toggle("with-revenue", isAdmin);
+
   const description = $("appointments-description");
   if (description) {
     description.textContent = isAdmin
@@ -734,10 +738,17 @@ function updateStats(appointments) {
   const revenueElement   = $("stat-revenue");
   const billedElement    = $("stat-billed");
 
-  if (!totalElement || !confirmedElement || !pendingElement || !revenueElement) return;
+  if (!totalElement || !confirmedElement || !pendingElement) return;
 
   const confirmed = appointments.filter(item => item.status === "Confirmado").length;
   const pending   = appointments.filter(item => item.status === "Pendente").length;
+
+  totalElement.textContent     = String(appointments.length);
+  confirmedElement.textContent = String(confirmed);
+  pendingElement.textContent   = String(pending);
+
+  // Valores em dinheiro são da barbearia: o cliente não vê esses cards
+  if (!isAdmin) return;
 
   const forecast = appointments
     .filter(item => ["Pendente", "Confirmado"].includes(item.status))
@@ -747,11 +758,8 @@ function updateStats(appointments) {
     .filter(item => item.status === "Concluído")
     .reduce((sum, item) => sum + Number(item.valor ?? getServicePrice(item.servico)), 0);
 
-  totalElement.textContent     = String(appointments.length);
-  confirmedElement.textContent = String(confirmed);
-  pendingElement.textContent   = String(pending);
-  revenueElement.textContent   = formatMoney(forecast);
-  if (billedElement) billedElement.textContent = formatMoney(billed);
+  if (revenueElement) revenueElement.textContent = formatMoney(forecast);
+  if (billedElement)  billedElement.textContent  = formatMoney(billed);
 }
 
 function createAppointmentCard(appointment) {

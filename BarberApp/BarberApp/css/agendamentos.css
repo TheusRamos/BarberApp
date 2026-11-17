@@ -373,9 +373,11 @@ textarea::placeholder { color: var(--text-soft); }
   margin-bottom: 7px;
 }
 
-/* No celular (2 colunas), o último card sozinho ocupa a linha inteira */
+/* No celular (2 colunas), o último card sozinho ocupa a linha inteira.
+   Cliente: 3 cards (o 3º é o último visível). Admin: 5 cards, com Previsão e Faturado. */
 @media (max-width: 767px) {
-  .stat-item:last-child:nth-child(odd) {
+  .stats-section:not(.with-revenue) .stat-item:nth-child(3),
+  .stats-section.with-revenue .stat-item:last-child:nth-child(odd) {
     grid-column: 1 / -1;
   }
 }
@@ -924,6 +926,10 @@ a.new-booking-btn {
   }
 
   .stats-section {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .stats-section.with-revenue {
     grid-template-columns: repeat(5, 1fr);
   }
 

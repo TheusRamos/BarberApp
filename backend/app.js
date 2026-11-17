@@ -213,13 +213,23 @@ app.delete('/api/barbeiros/:id',auth,admin,async(req,res)=>{
     await db.query('DELETE FROM fila_espera WHERE horario_id IN (SELECT id FROM horarios WHERE cabeleireiro_id=$1)',[key]);
     await db.query('UPDATE cabeleireiros SET ativo=false WHERE id=$1',[key]);});res.json({});
 });
-// Ocupações públicas sem ids sequenciais, que revelariam o volume de reservas da barbearia;
-// o administrador recebe o id da reserva para ignorá-la ao editar.
+// Horários ocupados. Em público, só blocos: reservas encostadas ou sobrepostas do mesmo profissional
+// viram um intervalo, sem ids. Assim a agenda mostra o que está livre sem revelar quantas reservas
+// a barbearia tem. O administrador recebe cada reserva, com o id, para ignorá-la ao editar.
+const clock=minutes=>`${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}`;
 app.get('/api/slots',async(req,res)=>{
-  const isAdmin=req.user?.tipo==='administrador';
-  res.json((await pool.query(`SELECT a.id,a.cabeleireiro_id,a.duracao,h.data,h.hora
-    FROM agendamentos a JOIN horarios h ON h.id=a.horario_id WHERE a.status IN ('agendado','confirmado') AND h.data>=current_date`)).rows
-    .map(a=>({barbeiroId:String(a.cabeleireiro_id),data:a.data,hora:a.hora.slice(0,5),duracao:a.duracao,...(isAdmin?{appointmentId:String(a.id)}:{})})));
+  const rows=(await pool.query(`SELECT a.id,a.cabeleireiro_id,a.duracao,h.data,h.hora
+    FROM agendamentos a JOIN horarios h ON h.id=a.horario_id WHERE a.status IN ('agendado','confirmado') AND h.data>=current_date
+    ORDER BY a.cabeleireiro_id,h.data,h.hora`)).rows;
+  if(req.user?.tipo==='administrador')
+    return res.json(rows.map(a=>({barbeiroId:String(a.cabeleireiro_id),data:a.data,hora:a.hora.slice(0,5),duracao:a.duracao,appointmentId:String(a.id)})));
+  const blocks=[];
+  for(const a of rows) {
+    const start=Number(a.hora.slice(0,2))*60+Number(a.hora.slice(3,5)),end=start+a.duracao,last=blocks.at(-1);
+    if(last && last.barber===a.cabeleireiro_id && last.data===a.data && start<=last.end) last.end=Math.max(last.end,end);
+    else blocks.push({barber:a.cabeleireiro_id,data:a.data,start,end});
+  }
+  res.json(blocks.map(b=>({barbeiroId:String(b.barber),data:b.data,hora:clock(b.start),duracao:b.end-b.start})));
 });
 app.get('/api/agendamentos',auth,async(req,res)=>res.json((await pool.query(`${bookingSelect}${req.user.tipo==='administrador'?'':' WHERE a.cliente_id=$1'} ORDER BY h.data,h.hora`,req.user.tipo==='administrador'?[]:[req.user.id])).rows.map(bookingDTO)));
 app.get('/api/agendamentos/:id',auth,async(req,res)=>res.json(bookingDTO(await getBooking(pool,req.params.id,req.user))));
