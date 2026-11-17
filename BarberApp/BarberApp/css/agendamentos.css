@@ -623,6 +623,11 @@ textarea::placeholder { color: var(--text-soft); }
   margin-bottom: 7px;
 }
 
+/* "Ver todos os agendamentos", quando os filtros escondem tudo */
+.empty-state .empty-state-btn {
+  margin-top: 18px;
+}
+
 .empty-state p {
   color: var(--text-muted);
   max-width: 380px;

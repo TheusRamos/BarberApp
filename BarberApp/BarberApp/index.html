@@ -231,8 +231,15 @@
 
           <div class="form-grid">
             <div class="form-group">
-              <label for="data">Data preferida</label>
-              <input type="date" id="data" name="data" required />
+              <label for="data-botao">Data preferida</label>
+              <!-- Calendário em português (js/calendario.js): a data escolhida fica no campo escondido -->
+              <div class="date-picker" id="data-picker">
+                <input type="hidden" id="data" name="data" />
+                <button type="button" class="date-picker-trigger" id="data-botao">
+                  <span class="date-picker-text">Selecione a data</span>
+                  <span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>
+                </button>
+              </div>
               <small class="field-error" id="error-data"></small>
             </div>
 

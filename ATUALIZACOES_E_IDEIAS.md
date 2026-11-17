@@ -115,9 +115,23 @@ Os problemas abaixo foram relatados e ainda precisam ser investigados. As causas
 
 ## Outras ideias pendentes
 
-Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **019**.
+Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **020**.
 
 ## Atualizações concluídas
+
+### 019 — Calendário em português e filtro de data a partir de hoje (fase 2 da lista `alterações.md`)
+
+- **Estado:** Concluído
+- **Registrado em:** 17/11/2026
+- **Objetivo:** Resolver os itens 4 e 8 da lista de alterações. No celular, o campo de data do navegador seguia o idioma do aparelho e aparecia no formato inglês (mm/dd/yyyy).
+- **Concluído em:** 17/11/2026
+- **Resumo da entrega:**
+  - Calendário próprio (`js/calendario.js`) no lugar do `<input type="date">`, no agendamento e no filtro de Agendamentos: sempre em português, semana começando no domingo, dia de hoje marcado, uso pelo teclado (setas, PageUp/PageDown, Enter e Esc). O painel fica no `<body>`, para não ser cortado pelo formulário, e abre em cima do campo quando não cabe embaixo.
+  - No agendamento, a data aparece como "Quarta-feira, 19/11/2026"; dias passados e dias em que o barbeiro escolhido não atende ficam bloqueados.
+  - Filtro do cliente: começa em hoje e mostra os agendamentos de hoje em diante ("A partir de 17/11/2026"); "Todas as datas" mostra também os que já passaram. O administrador continua com o filtro vazio e, ao escolher uma data, vê só aquele dia.
+  - Quando os filtros escondem todos os agendamentos, a página avisa e oferece "Ver todos os agendamentos".
+  - Conferido no navegador (Chrome) com um banco descartável: 23 verificações, como cliente e como administrador, no celular e no computador, incluindo um agendamento feito pelo calendário.
+- **Pendências:** os campos de horário do barbeiro, no painel do administrador (`type="time"`), também seguem o idioma do aparelho e aparecem como "09:00 AM" num celular em inglês.
 
 ### 018 — Ajustes de login e da página de agendamentos (fase 1 da lista `alterações.md`)
 

@@ -1,5 +1,6 @@
 import { api, getToken, saveOfflineCopy, getOfflineCopy } from "./api.js";
 import { appTimeZone } from "./config.js";
+import { createDatePicker, weekdayOf, weekdayName } from "./calendario.js";
 
 const EDIT_KEY = "barber_agendamento_editando";
 const STATUS_SEQUENCE = ["Pendente", "Confirmado", "Concluído", "Cancelado"];
@@ -22,6 +23,9 @@ let appointmentsCache = [];
 let servicesCache = [];
 let commentsCache = [];
 let slotsCache = [];
+// Calendários em português (js/calendario.js): data do agendamento e filtro de Agendamentos
+let bookingDatePicker = null;
+let filterDatePicker = null;
 let usersCache = [];
 let barbeirosCache = [];
 let selectedBarbeiroId = null;
@@ -290,6 +294,14 @@ function populateBarbeiroSelect() {
   if (barbeirosCache.some(b => b.id === current)) select.value = current;
 }
 
+// No calendário do agendamento, os dias em que o barbeiro escolhido não atende ficam bloqueados
+function isBarberDayOff(iso) {
+  const barbeiro = barbeirosCache.find(b => b.id === selectedBarbeiroId);
+  if (!barbeiro) return false;
+  const dias = Array.isArray(barbeiro.diasDisponiveis) ? barbeiro.diasDisponiveis : [1, 2, 3, 4, 5, 6];
+  return !dias.includes(weekdayOf(iso));
+}
+
 function onBarbeiroChange() {
   selectedBarbeiroId = $("barbeiro")?.value || null;
   clearError("barbeiro");
@@ -514,9 +526,8 @@ function resetFormState() {
 
   const form = $("booking-form");
   if (form) form.reset();
-
-  const dataInput = $("data");
-  if (dataInput) dataInput.min = getTodayISO();
+  // O form.reset() não limpa o campo escondido do calendário
+  bookingDatePicker?.setValue("", { silent: true });
 
   renderServiceOptions();
   updateAvailableTimes();
@@ -580,7 +591,7 @@ async function fillFormForEdit(docId) {
 
     if ($("nome")) $("nome").value = appointment.nome || "";
     if ($("email")) $("email").value = appointment.email || "";
-    if ($("data")) $("data").value = appointment.data || "";
+    bookingDatePicker?.setValue(appointment.data || "", { silent: true });
     if ($("observacoes")) $("observacoes").value = appointment.observacoes || "";
 
     if ($("barbeiro") && appointment.barbeiroId) {
@@ -646,9 +657,20 @@ function loadFormPage() {
   const form = $("booking-form");
   if (!form) return;
 
+  const dataPicker = $("data-picker");
+  if (dataPicker) {
+    bookingDatePicker = createDatePicker(dataPicker, {
+      label: "Data preferida",
+      // Ex.: "Quarta-feira, 19/11/2026"
+      text: iso => `${weekdayName(iso).replace(/^./, c => c.toUpperCase())}, ${formatDateBR(iso)}`,
+      today: getTodayISO,
+      min: getTodayISO,
+      isDisabled: isBarberDayOff
+    });
+  }
+
   const dataInput = $("data");
   if (dataInput) {
-    dataInput.min = getTodayISO();
     dataInput.addEventListener("change", () => {
       clearError("data");
       clearError("hora");
@@ -970,13 +992,23 @@ function renderAppointments(filteredAppointments = null) {
   container.innerHTML = "";
 
   if (!appointments.length) {
-    container.innerHTML = `
+    // Há agendamentos, mas os filtros esconderam todos (ex.: o cliente só tem reservas que já passaram)
+    const hiddenByFilters = filteredAppointments !== null && appointmentsCache.length > 0;
+    container.innerHTML = hiddenByFilters ? `
+      <div class="empty-state">
+        <span class="material-symbols-outlined">filter_alt_off</span>
+        <h3>Nenhum agendamento com estes filtros</h3>
+        <p>${!isAdmin && $("filter-date")?.value ? "Você não tem agendamentos a partir desta data." : "Tente outra data ou outro serviço."}</p>
+        <button type="button" class="secondary-btn empty-state-btn" id="clear-filters">Ver todos os agendamentos</button>
+      </div>
+    ` : `
       <div class="empty-state">
         <span class="material-symbols-outlined">event_busy</span>
         <h3>Nenhum agendamento encontrado</h3>
         <p>${isAdmin ? "Cadastre horários e aguarde novos agendamentos." : "Faça um novo agendamento para começar."}</p>
       </div>
     `;
+    $("clear-filters")?.addEventListener("click", clearFilters);
     updateStats([]);
     return;
   }
@@ -998,11 +1030,19 @@ function applyFilters() {
   const filtered = appointmentsCache.filter(item => {
     const matchName = (item.nome || "").toLowerCase().includes(searchValue);
     const matchService = serviceValue === "Todos os serviços" || (item.servicos || [item.servico]).includes(serviceValue);
-    const matchDate = !dateValue || item.data === dateValue;
+    // Cliente: agendamentos a partir da data escolhida. Admin: só os do dia escolhido (agenda do dia).
+    const matchDate = !dateValue || (isAdmin ? item.data === dateValue : item.data >= dateValue);
     return matchName && matchService && matchDate;
   });
 
   renderAppointments(filtered);
+}
+
+function clearFilters() {
+  if ($("search-client")) $("search-client").value = "";
+  if ($("filter-service")) $("filter-service").value = "Todos os serviços";
+  filterDatePicker?.setValue("", { silent: true });
+  applyFilters();
 }
 
 function loadAppointmentsPage() {
@@ -1012,6 +1052,18 @@ function loadAppointmentsPage() {
   const searchInput = $("search-client");
   const serviceFilter = $("filter-service");
   const dateFilter = $("filter-date");
+
+  const filterPicker = $("filter-date-picker");
+  if (filterPicker) {
+    filterDatePicker = createDatePicker(filterPicker, {
+      label: "Filtrar por data",
+      placeholder: "Todas as datas",
+      text: iso => (isAdmin ? formatDateBR(iso) : `A partir de ${formatDateBR(iso)}`),
+      today: getTodayISO,
+      clearable: true,
+      clearLabel: "Todas as datas"
+    });
+  }
 
   if (searchInput) searchInput.addEventListener("input", applyFilters);
   if (serviceFilter) serviceFilter.addEventListener("change", applyFilters);
@@ -1435,6 +1487,8 @@ async function initAuth() {
 
   updateAuthLink();
   updateAdminVisibility();
+  // Cliente: o filtro de data já começa em hoje (mostra os agendamentos de hoje em diante)
+  filterDatePicker?.setValue(isAdmin ? "" : getTodayISO(), { silent: true });
   updateOfflineState();
   prefillUserData();
   renderCommentsList(commentsCache);

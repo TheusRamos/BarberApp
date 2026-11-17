@@ -184,6 +184,219 @@ select optgroup {
 }
 
 /* ============================================================
+   CALENDÁRIO (js/calendario.js)
+   O campo de data é um botão que abre um painel com os dias do mês,
+   sempre em português. O painel fica no <body>, por cima de tudo.
+   ============================================================ */
+
+.date-picker-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Sem data escolhida: o texto fica apagado, como um placeholder */
+.date-picker-trigger.is-empty .date-picker-text {
+  color: var(--text-soft);
+}
+
+.date-picker-trigger .material-symbols-outlined {
+  font-size: 20px;
+  color: var(--primary);
+}
+
+/* No formulário de agendamento: igual aos outros campos */
+.form-group .date-picker-trigger {
+  background: transparent;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius);
+  padding: 13px 15px;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.form-group .date-picker-trigger:hover:not(:disabled) {
+  border-color: var(--input-border-hover);
+}
+
+.form-group .date-picker-trigger:focus-visible,
+.form-group .date-picker-trigger[aria-expanded="true"] {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.form-group:has(.field-error:not(:empty)) .date-picker-trigger {
+  border-color: var(--input-border-error);
+}
+
+.form-group .date-picker-trigger:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* No filtro de Agendamentos: a caixa (.filter-group) já tem a borda e o contorno de foco */
+.filter-group .date-picker-trigger {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+.filter-group .date-picker-trigger:focus-visible {
+  outline: none;
+}
+
+.filter-group .date-picker-text {
+  font-size: inherit;
+  color: var(--text);
+}
+
+/* --- Painel com os dias --- */
+.date-picker-popup {
+  position: absolute;
+  z-index: 125;
+  width: 304px;
+  max-width: calc(100vw - 16px);
+  padding: 14px;
+  background: var(--dropdown-bg);
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius);
+  box-shadow: var(--dropdown-shadow);
+  color: var(--text);
+  font-family: var(--font-body);
+}
+
+.dp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.dp-title {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  color: var(--primary);
+}
+
+.dp-nav {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.dp-nav:hover:not(:disabled) {
+  border-color: var(--border-gold);
+}
+
+.dp-nav:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.dp-weekdays,
+.dp-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.dp-weekdays abbr {
+  padding: 4px 0;
+  text-align: center;
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-soft);
+}
+
+.dp-day {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  min-height: 36px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.dp-day:hover:not([aria-disabled="true"]):not(.is-selected) {
+  border-color: var(--border-gold);
+}
+
+/* Hoje: contorno dourado. Dia escolhido: fundo dourado. */
+.dp-day.is-today {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.dp-day.is-selected {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
+  font-weight: 700;
+}
+
+/* Dia passado ou em que o barbeiro não atende */
+.dp-day[aria-disabled="true"] {
+  opacity: 0.32;
+  cursor: default;
+}
+
+.dp-empty {
+  aspect-ratio: 1;
+}
+
+.dp-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-faint);
+}
+
+.dp-action {
+  padding: 8px 10px;
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+  color: var(--primary);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dp-action:hover:not(:disabled) {
+  background: rgba(var(--primary-rgb), 0.1);
+}
+
+.dp-action:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ============================================================
    DIVISOR COM TESOURA   ○○○ ✂ ○○○
    Separa as seções principais de uma página. No HTML:
 

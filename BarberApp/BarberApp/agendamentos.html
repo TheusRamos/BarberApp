@@ -131,9 +131,13 @@
         </select>
       </div>
 
-      <div class="filter-group">
-        <span class="material-symbols-outlined">event</span>
-        <input type="date" id="filter-date" />
+      <!-- Calendário em português (js/calendario.js). Cliente: de hoje em diante; admin: o dia escolhido -->
+      <div class="filter-group date-picker" id="filter-date-picker">
+        <span class="material-symbols-outlined" aria-hidden="true">event</span>
+        <input type="hidden" id="filter-date" />
+        <button type="button" class="date-picker-trigger">
+          <span class="date-picker-text">Todas as datas</span>
+        </button>
       </div>
     </section>
 
