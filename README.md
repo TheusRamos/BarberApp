@@ -306,7 +306,7 @@ Ao sair de um status ativo, a reserva libera o intervalo e o backend processa a 
 | --- | --- |
 | `usuarios` | Identidade, contato, senha ou id do Google, perfil, foto e confirmação do e-mail |
 | `sessoes` | Hash do token, usuário e validade |
-| `tokens_email` | Links enviados por e-mail (confirmação): hash do token, usuário, tipo e validade; uso único |
+| `tokens_email` | Links enviados por e-mail (confirmação de e-mail e nova senha): hash do token, usuário, tipo e validade; uso único |
 | `servicos` | Nome, preço, duração padrão e ícone |
 | `cabeleireiros` | Profissionais, expediente, dias, foto e situação |
 | `cabeleireiro_servicos` | Serviços e duração por profissional |
@@ -357,6 +357,8 @@ Todas as rotas abaixo são relativas a `/api`.
 | POST | `/auth/logout` | Autenticado; revoga a sessão enviada |
 | POST | `/auth/logout-all` | Autenticado; revoga todas as sessões do usuário, inclusive a enviada |
 | POST | `/auth/password` | Autenticado; troca a senha e revoga as outras sessões do usuário |
+| POST | `/auth/password/forgot` | Público; `{ email }`. Responde sempre `{}` e, depois, envia o link `auth.html#redefinir=...` (1 hora, uso único) se a conta existir; conta só do Google recebe um e-mail explicando que entra pelo Google |
+| POST | `/auth/password/reset` | Público; `{ token, newPassword }`. Troca a senha, encerra todas as sessões, confirma o e-mail, libera o bloqueio de login e retorna `{ email }` |
 | GET | `/auth/options` | Público; `{ "google": true/false, "captcha": "<chave do site>" ou null, "emailVerification": true/false }`, conforme o login com Google, o Turnstile e o envio de e-mails estejam configurados |
 | POST | `/auth/verify-email` | Público; `{ token }` do link `auth.html#verificar=...` (24 horas, uso único) confirma o e-mail |
 | POST | `/auth/verify-email/resend` | Autenticado; envia um novo link de confirmação (3 por hora) |
@@ -393,6 +395,8 @@ A disponibilidade é calculada pela interface a partir de `GET /slots` e da conf
 | Cadastro | `name`, `email`, `phone`, `password`; `captchaToken` quando o Turnstile está ativo |
 | Login | `email`, `password`; `captchaToken` quando a resposta anterior foi `CAPTCHA_REQUIRED` |
 | Troca de senha | `currentPassword`, `newPassword` (8 a 128 caracteres, diferente da atual) |
+| Esqueci minha senha | `email` |
+| Nova senha pelo link | `token` (de `auth.html#redefinir=...`), `newPassword` (8 a 128 caracteres) |
 | Sessão do Google | `code` (recebido em `auth.html#google_code=...`) |
 | Atualização de perfil | `name`, `phone`, `photoURL` (campos opcionais) |
 | Serviço | `name`, `price`, `duration` (padrão 60), `icon` (padrão `content_cut`) |
@@ -430,15 +434,15 @@ Invoke-RestMethod http://127.0.0.1:3000/api/health
 
 | HTTP | Exemplos de código / motivo |
 | --- | --- |
-| 400 | `VALIDATION_ERROR`, `WEAK_PASSWORD`, `WRONG_PASSWORD` (senha atual incorreta na troca), `VERIFY_INVALID` (link de confirmação usado, vencido ou inválido), `PHONE_REQUIRED` (reserva ou fila sem telefone cadastrado), `GOOGLE_FAILED` (código do Google inválido ou expirado), `CAPTCHA_REQUIRED` (verificação anti-robô ausente ou recusada), `BAD_REQUEST` (JSON malformado); campos ou regras inválidos |
+| 400 | `VALIDATION_ERROR`, `WEAK_PASSWORD`, `WRONG_PASSWORD` (senha atual incorreta na troca), `VERIFY_INVALID` (link de confirmação usado, vencido ou inválido), `RESET_INVALID` (link de nova senha usado, vencido ou inválido), `PHONE_REQUIRED` (reserva ou fila sem telefone cadastrado), `GOOGLE_FAILED` (código do Google inválido ou expirado), `CAPTCHA_REQUIRED` (verificação anti-robô ausente ou recusada), `BAD_REQUEST` (JSON malformado); campos ou regras inválidos |
 | 401 | `UNAUTHORIZED`, `INVALID_CREDENTIALS`; sessão ausente/expirada ou login inválido |
 | 403 | `FORBIDDEN`; perfil ou titularidade sem permissão. `EMAIL_NOT_VERIFIED`: com a confirmação de e-mail ativa, cliente sem e-mail confirmado tentou agendar, entrar na fila ou avaliar |
 | 404 | `NOT_FOUND`; recurso ou rota inexistente |
 | 409 | `SLOT_TAKEN`, `SLOT_AVAILABLE`, `ALREADY_ON_WAITLIST`, `BOOKING_LIMIT`, `COMMENT_PENDING`, `EMAIL_IN_USE`, `DUPLICATE`, `IN_USE`, `ALREADY_VERIFIED` |
 | 413 | `PAYLOAD_TOO_LARGE`; corpo JSON excede o limite |
-| 429 | `RATE_LIMIT`; limite de login (por IP, ou por conta quando o Turnstile está desligado), de cadastro ou de troca de senha atingido |
+| 429 | `RATE_LIMIT`; limite de login (por IP, ou por conta quando o Turnstile está desligado), de cadastro, de troca de senha, de reenvio de confirmação (3 por hora), de pedidos de nova senha (10 por hora por IP) ou de uso de links (30 a cada 15 minutos por IP) atingido |
 | 500 | Falha interna; mensagem genérica ao cliente |
-| 502 / 503 | `EMAIL_FAILED` (o Brevo recusou ou não respondeu), `EMAIL_DISABLED` (envio de e-mails não configurado) |
+| 502 / 503 | `EMAIL_FAILED` (o Brevo recusou ou não respondeu), `EMAIL_DISABLED` (envio de e-mails não configurado: sem confirmação nem recuperação de senha) |
 
 `NETWORK_ERROR` é produzido pelo cliente JavaScript quando `fetch` falha; não é um status HTTP. O retorno do Google não tem corpo JSON: os erros chegam em `auth.html#google_error=` como `GOOGLE_EMAIL_IN_USE` (e-mail já cadastrado com senha), `GOOGLE_CANCELLED`, `GOOGLE_DISABLED` ou `GOOGLE_FAILED`, e o motivo técnico fica no log do servidor. Consulte `message` e `code`, pois nem toda falha interna tem o mesmo código.
 
@@ -527,6 +531,8 @@ Os e-mails saem pela API HTTP do Brevo, porque o Render bloqueia o envio por SMT
 1. No [Brevo](https://www.brevo.com/), em **Senders, Domains & Dedicated IPs → Senders**, verifique o e-mail remetente.
 2. Em **SMTP & API → API Keys**, gere uma chave.
 3. No Render, em **Environment**, defina `BREVO_API_KEY` e `EMAIL_FROM` antes de publicar a versão com a migração 4, para que nenhuma conta nova fique sem o e-mail de confirmação. `PUBLIC_URL` já está no `render.yaml`.
+
+O mesmo envio atende a **recuperação de senha**: o link **Esqueci minha senha**, no login, pede o e-mail e sempre mostra a mesma mensagem, exista ou não a conta. O e-mail sai depois da resposta, para que nem o texto nem o tempo revelem quem tem cadastro. O link (`auth.html#redefinir=...`) vale por 1 hora e uma única vez; a nova senha encerra todas as sessões, confirma o e-mail e libera o bloqueio de login. Limites: 3 e-mails por conta e 10 pedidos por IP a cada hora. Sem o envio configurado, o link **Esqueci minha senha** não aparece.
 
 Sem um domínio próprio, o remetente é um e-mail grátis (Gmail etc.), que o Brevo não consegue autenticar: ele troca o remetente por um endereço dele, e as mensagens tendem a cair no spam. Por isso os avisos pedem para conferir a caixa de spam. Um domínio próprio, autenticado no Brevo, resolve. Sem `BREVO_API_KEY` e `EMAIL_FROM`, nada é enviado e a confirmação não é exigida.
 

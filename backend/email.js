@@ -58,15 +58,34 @@ ${paragraphs}
 </div></body></html>`;
 }
 
+// Monta e envia um e-mail com um botão: versão HTML e versão em texto puro.
+function sendLinkEmail(user,{subject,lines,button,url,footer}) {
+  const firstName=String(user.nome).trim().split(/\s+/)[0];
+  return sendEmail({to:user.email,name:user.nome,subject,
+    html:layout({greeting:`Olá, ${escapeHTML(firstName)}!`,lines,button,url,footer}),
+    text:`Olá, ${firstName}!\n\n${lines.join('\n')}\n\n${button}: ${url}\n\n${footer}\n`});
+}
+
 // Confirmação de e-mail: link válido por 24 horas, para auth.html#verificar=TOKEN.
 export async function sendVerification(db,user) {
   const token=await createEmailToken(db,user.id,'verificacao',24*3600);
-  const url=siteUrl(`auth.html#verificar=${token}`);
-  const firstName=String(user.nome).trim().split(/\s+/)[0];
-  const footer='Se você não criou uma conta na Barber, ignore este e-mail.';
-  await sendEmail({to:user.email,name:user.nome,subject:'Confirme seu e-mail na Barber',
-    html:layout({greeting:`Olá, ${escapeHTML(firstName)}!`,button:'Confirmar e-mail',url,footer,
-      lines:['Falta só confirmar seu e-mail para você agendar na Barber.','O link vale por 24 horas.']}),
-    text:`Olá, ${firstName}!\n\nFalta só confirmar seu e-mail para você agendar na Barber.\n`+
-      `Abra este link (vale por 24 horas):\n${url}\n\n${footer}\n`});
+  await sendLinkEmail(user,{subject:'Confirme seu e-mail na Barber',button:'Confirmar e-mail',
+    url:siteUrl(`auth.html#verificar=${token}`),
+    lines:['Falta só confirmar seu e-mail para você agendar na Barber.','O link vale por 24 horas.'],
+    footer:'Se você não criou uma conta na Barber, ignore este e-mail.'});
+}
+
+// Recuperação de senha: link válido por 1 hora, para auth.html#redefinir=TOKEN.
+// Conta só do Google (sem senha): o e-mail explica que ela entra pelo Google, sem link de redefinição.
+export async function sendPasswordReset(db,user) {
+  if(!user.senha) return sendLinkEmail(user,{subject:'Sua conta na Barber usa o Google',button:'Ir para o login',
+    url:siteUrl('auth.html'),
+    lines:['Recebemos um pedido para redefinir a senha, mas a sua conta entra pelo Google e não tem senha.',
+      'Para entrar, use o botão "Continuar com o Google" na página de login.'],
+    footer:'Se você não fez esse pedido, ignore este e-mail.'});
+  const token=await createEmailToken(db,user.id,'senha',3600);
+  await sendLinkEmail(user,{subject:'Redefina sua senha na Barber',button:'Criar nova senha',
+    url:siteUrl(`auth.html#redefinir=${token}`),
+    lines:['Recebemos um pedido para redefinir a senha da sua conta.','O link vale por 1 hora e só pode ser usado uma vez.'],
+    footer:'Se você não fez esse pedido, ignore este e-mail: sua senha continua a mesma.'});
 }

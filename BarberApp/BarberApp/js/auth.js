@@ -9,6 +9,8 @@ let currentUser = null;
 // Primeiro login com Google (conta sem telefone): depois de salvar o telefone, volta para o Início.
 let returnHomeAfterSave = false;
 let captchaSiteKey = null;
+// Token do link "redefinir senha" (fica só na memória: sai da barra de endereço ao abrir a página)
+let resetToken = null;
 const captcha = { login: { widget: null, token: "" }, register: { widget: null, token: "" } };
 
 // ============================================================
@@ -128,6 +130,80 @@ async function handleVerifyReturn() {
   }
 }
 
+// ============================================================
+// RECUPERAÇÃO DE SENHA
+// ============================================================
+
+async function handleForgot(event) {
+  event.preventDefault();
+  clearAllErrors();
+  const email = ($("forgot-email")?.value || "").trim();
+  if (!isValidEmail(email)) return setError("forgot-email", "Informe um email válido.");
+
+  const submitBtn = submitButton(event);
+  if (submitBtn) submitBtn.disabled = true;
+  try {
+    // A resposta é a mesma exista ou não a conta: a tela não revela quem tem cadastro
+    await api.auth.forgotPassword(email);
+    $("forgot-sent")?.classList.remove("hidden");
+  } catch (error) {
+    console.error("Erro ao pedir a recuperação de senha:", error);
+    showToast(translateApiError(error));
+  } finally {
+    // Alguns segundos antes de liberar o botão, contra cliques repetidos
+    setTimeout(() => { if (submitBtn) submitBtn.disabled = false; }, 5000);
+  }
+}
+
+// Link do e-mail de recuperação (auth.html#redefinir=TOKEN): guarda o token e o tira da barra de endereço
+function readResetLink() {
+  const token = new URLSearchParams(location.hash.slice(1)).get("redefinir");
+  if (!token) return false;
+  history.replaceState(null, "", location.pathname + location.search);
+  resetToken = token;
+  return true;
+}
+
+async function handleReset(event) {
+  event.preventDefault();
+  clearAllErrors();
+  const password = $("reset-password")?.value || "";
+  const confirmPassword = $("reset-password-confirm")?.value || "";
+
+  let valid = true;
+  if (password.length < 8)          { setError("reset-password", "A senha precisa ter pelo menos 8 caracteres."); valid = false; }
+  if (password !== confirmPassword) { setError("reset-password-confirm", "As senhas não coincidem."); valid = false; }
+  if (!valid) return;
+
+  const submitBtn = submitButton(event);
+  if (submitBtn) submitBtn.disabled = true;
+  try {
+    const { email } = await api.auth.resetPassword(resetToken, password);
+    resetToken = null;
+    // A troca encerrou todas as sessões da conta: a deste aparelho também sai
+    setToken(null);
+    $("reset-form")?.reset();
+    showLogin();
+    if ($("login-email")) $("login-email").value = email || "";
+    $("login-password")?.focus();
+    showToast("Senha alterada! Entre com a nova senha.");
+  } catch (error) {
+    console.error("Erro ao redefinir a senha:", error);
+    if (error.code === "WEAK_PASSWORD") {
+      setError("reset-password", translateApiError(error));
+    } else {
+      showToast(translateApiError(error));
+      // Link usado ou vencido: já mostra onde pedir um novo
+      if (error.code === "RESET_INVALID") {
+        resetToken = null;
+        showForgot();
+      }
+    }
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
+}
+
 // "Criar conta" depois de um login recusado: abre o cadastro com o email já digitado.
 function goToRegisterFromLogin() {
   const email = ($("login-email")?.value || "").trim();
@@ -166,8 +242,45 @@ function translateApiError(error) {
 // AUTH PANEL TABS
 // ============================================================
 
+// Modo do painel: login, cadastro, "Recuperar senha" (forgot) ou "Nova senha" (reset).
+// O CSS esconde as abas e o botão do Google nos dois últimos.
+function setAuthMode(mode) {
+  const panel = $("auth-panel");
+  if (panel) panel.dataset.mode = mode;
+  $("forgot-form")?.classList.toggle("hidden", mode !== "forgot");
+  $("reset-form")?.classList.toggle("hidden", mode !== "reset");
+  if (mode === "forgot" || mode === "reset") {
+    $("login-form")?.classList.add("hidden");
+    $("register-form")?.classList.add("hidden");
+  }
+  const titles = {
+    forgot: ["Recuperar senha", "Receba por e-mail um link para criar uma nova senha."],
+    reset: ["Nova senha", "Use pelo menos 8 caracteres."]
+  };
+  const [title, subtitle] = titles[mode] || ["Acessar conta", "Faça login ou crie um novo cadastro."];
+  if ($("auth-title")) $("auth-title").textContent = title;
+  if ($("auth-subtitle")) $("auth-subtitle").textContent = subtitle;
+}
+
+function showForgot() {
+  clearAllErrors();
+  setAuthMode("forgot");
+  $("forgot-sent")?.classList.add("hidden");
+  // Aproveita o email já digitado no login
+  const typed = ($("login-email")?.value || "").trim();
+  if (typed && $("forgot-email")) $("forgot-email").value = typed;
+  $("forgot-email")?.focus();
+}
+
+function showReset() {
+  clearAllErrors();
+  setAuthMode("reset");
+  $("reset-password")?.focus();
+}
+
 function showLogin() {
   clearAllErrors();
+  setAuthMode("login");
   $("login-form")?.classList.remove("hidden");
   $("register-form")?.classList.add("hidden");
   $("tab-login")?.classList.replace("ghost-btn", "secondary-btn");
@@ -176,6 +289,7 @@ function showLogin() {
 
 function showRegister() {
   clearAllErrors();
+  setAuthMode("register");
   $("register-form")?.classList.remove("hidden");
   $("login-form")?.classList.add("hidden");
   $("tab-register")?.classList.replace("ghost-btn", "secondary-btn");
@@ -605,6 +719,8 @@ async function loadAuthOptions() {
   try {
     const options = await api.auth.options();
     $("google-login")?.classList.toggle("hidden", !options.google);
+    // "Esqueci minha senha" só aparece quando o servidor consegue enviar e-mails
+    $("forgot-link")?.classList.toggle("hidden", !options.emailVerification);
     captchaSiteKey = options.captcha || null;
     if (!$("register-form")?.classList.contains("hidden")) showCaptcha("register");
   } catch (error) {
@@ -642,6 +758,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("profile-form")?.addEventListener("submit", handleProfileSave);
   $("password-form")?.addEventListener("submit", handlePasswordChange);
   $("photo-upload")?.addEventListener("change", handlePhotoUpload);
+  $("forgot-link")?.addEventListener("click", showForgot);
+  $("forgot-form")?.addEventListener("submit", handleForgot);
+  $("reset-form")?.addEventListener("submit", handleReset);
+  document.querySelectorAll("[data-back-to-login]").forEach(button => button.addEventListener("click", showLogin));
 
   document.querySelectorAll("input").forEach(input => {
     input.addEventListener("input", () => {
@@ -650,8 +770,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
-  // Link de confirmação colado com esta página já aberta: só o # muda, sem recarregar
+  // Link do e-mail colado com esta página já aberta: só o # muda, sem recarregar
   window.addEventListener("hashchange", async () => {
+    if (readResetLink()) {
+      showAuthPanel();
+      showReset();
+      return;
+    }
     if (!location.hash.includes("verificar=")) return;
     await handleVerifyReturn();
     currentUser = await loadCurrentUser();
@@ -660,6 +785,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       updateVerifyNotice(currentUser);
     }
   });
+
+  // Link "redefinir senha": mostra direto o formulário de nova senha, mesmo com alguém logado no aparelho
+  if (readResetLink()) {
+    showAuthPanel();
+    showReset();
+    loadAuthOptions();
+    return;
+  }
 
   await handleVerifyReturn();
   const googleLogin = await handleGoogleReturn();

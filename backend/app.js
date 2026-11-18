@@ -5,7 +5,7 @@ import { fail,text,id,email,phone,photo,hashPassword,verifyPassword,tokenHash,us
 import { bookingSelect,bookingDTO,getBooking,lockAgenda,prepare,conflict,insertBooking,insertWaitlist,saveBookingServices,promote,statusDB,active,checkQuota } from './bookings.js';
 import { googleEnabled,start,finish,googleUser,issueCode,redeemCode } from './google.js';
 import { turnstile,captchaEnabled,requireCaptcha } from './captcha.js';
-import { emailEnabled,sendVerification,useEmailToken } from './email.js';
+import { emailEnabled,sendVerification,sendPasswordReset,useEmailToken } from './email.js';
 
 export const app=express();
 app.disable('x-powered-by');
@@ -65,8 +65,9 @@ function admin(req,res,next) {if(req.user?.tipo!=='administrador') fail(403,'Ace
 const loginByIp=limiter(30,900000),loginByAccount=limiter(10,900000),registerByIp=limiter(10,3600000);
 // Troca de senha: limite por usuário para que um token roubado não sirva para testar a senha atual.
 const passwordByAccount=limiter(5,900000);
-// Confirmação de e-mail: poucos reenvios por conta (cada um é um e-mail de verdade) e tentativas de link por IP.
-const resendByAccount=limiter(3,3600000),verifyByIp=limiter(30,900000);
+// Links por e-mail: poucos envios por conta (cada um é um e-mail de verdade, inclusive para quem não pediu)
+// e tentativas de usar um link (confirmação ou nova senha) por IP.
+const resendByAccount=limiter(3,3600000),forgotByAccount=limiter(3,3600000),forgotByIp=limiter(10,3600000),linkByIp=limiter(30,900000);
 // Com o envio de e-mails ligado, o cliente só agenda, entra na fila e avalia depois de confirmar o e-mail.
 function emailConfirmed(req,res,next) {
   if(emailEnabled() && req.user.tipo==='cliente' && !req.user.email_verificado)
@@ -90,7 +91,7 @@ app.post('/api/auth/register',async(req,res)=>{
 });
 // Link do e-mail (auth.html#verificar=TOKEN): o token basta, sem login, porque o link pode abrir em outro aparelho.
 app.post('/api/auth/verify-email',async(req,res)=>{
-  if(!verifyByIp.hit(clientIp(req))) fail(429,'Muitas tentativas. Aguarde 15 minutos.','RATE_LIMIT');
+  if(!linkByIp.hit(clientIp(req))) fail(429,'Muitas tentativas. Aguarde 15 minutos.','RATE_LIMIT');
   const userId=await useEmailToken(pool,req.body.token,'verificacao');
   if(!userId) fail(400,'Este link de confirmação é inválido ou expirou. Peça um novo no Perfil.','VERIFY_INVALID');
   await pool.query('UPDATE usuarios SET email_verificado=true WHERE id=$1',[userId]);
@@ -107,6 +108,35 @@ app.post('/api/auth/verify-email/resend',auth,async(req,res)=>{
     fail(502,'Não foi possível enviar o e-mail agora. Tente de novo em alguns minutos.','EMAIL_FAILED');
   }
   res.json({});
+});
+// Esqueci minha senha: a resposta é sempre a mesma e sai antes de procurar a conta e enviar o e-mail,
+// para que nem a mensagem nem o tempo de resposta revelem quem tem cadastro.
+app.post('/api/auth/password/forgot',async(req,res)=>{
+  if(!forgotByIp.hit(clientIp(req))) fail(429,'Muitos pedidos a partir desta conexão. Aguarde uma hora.','RATE_LIMIT');
+  if(!emailEnabled()) fail(503,'A recuperação de senha está indisponível no momento.','EMAIL_DISABLED');
+  const address=email(req.body.email);
+  res.json({});
+  if(!forgotByAccount.hit(address)) return;
+  try {
+    const u=(await pool.query('SELECT * FROM usuarios WHERE lower(email)=$1',[address])).rows[0];
+    if(u) await sendPasswordReset(pool,u);
+  } catch(error) { console.error('Falha ao enviar a recuperação de senha:',error.message); }
+});
+// Link do e-mail (auth.html#redefinir=TOKEN): troca a senha, encerra todas as sessões, confirma o e-mail
+// (quem abriu o link tem acesso à caixa) e libera o bloqueio de login da conta.
+app.post('/api/auth/password/reset',async(req,res)=>{
+  if(!linkByIp.hit(clientIp(req))) fail(429,'Muitas tentativas. Aguarde 15 minutos.','RATE_LIMIT');
+  // A senha é validada antes de usar o link: uma senha curta não gasta o link.
+  const hash=await hashPassword(req.body.newPassword);
+  const u=await transaction(async db=>{
+    const userId=await useEmailToken(db,req.body.token,'senha');
+    if(!userId) fail(400,'Este link de redefinição é inválido ou expirou. Peça um novo em "Esqueci minha senha".','RESET_INVALID');
+    await db.query("DELETE FROM tokens_email WHERE usuario_id=$1 AND tipo='senha'",[userId]);
+    await db.query('DELETE FROM sessoes WHERE usuario_id=$1',[userId]);
+    return (await db.query('UPDATE usuarios SET senha=$1,email_verificado=true WHERE id=$2 RETURNING *',[hash,userId])).rows[0];
+  });
+  loginByAccount.reset(u.email.toLowerCase());
+  res.json({email:u.email});
 });
 app.post('/api/auth/login',async(req,res)=>{
   if(!loginByIp.hit(clientIp(req))) fail(429,'Muitas tentativas. Aguarde 15 minutos.','RATE_LIMIT');

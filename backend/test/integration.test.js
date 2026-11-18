@@ -259,8 +259,50 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
     assert.equal(failed.status,201);assert.equal(failed.body.emailSent,false);
     const resendFailed=(await call('/auth/verify-email/resend','POST',{},failed.body.token)).body;
     assert.equal(resendFailed.code,'EMAIL_FAILED');assert.match(resendFailed.message,/enviar o e-mail/);
+    // Recuperação de senha: a resposta é igual exista ou não a conta, e o e-mail sai depois da resposta.
+    const waitMails=async count=>{for(let i=0;i<100 && mails.length<count;i++) await new Promise(r=>setTimeout(r,20));};
+    const resetToken=message=>/#redefinir=([a-f0-9]{64})/.exec(message.htmlContent)?.[1];
+    const forgot=(address,ip='192.0.2.50')=>post('/auth/password/forgot',{email:address},ip);
+    const sentBefore=mails.length;
+    assert.deepEqual(await forgot('ninguem@test.com'),{status:200,body:{}});
+    assert.deepEqual(await forgot('NOVO@test.com'),{status:200,body:{}});
+    await waitMails(sentBefore+1);
+    assert.equal(mails.length,sentBefore+1,'só a conta existente recebe e-mail');
+    const resetMail=mails.at(-1);
+    assert.deepEqual([resetMail.to[0].email,resetMail.subject],['novo@test.com','Redefina sua senha na Barber']);
+    // Conta só do Google: o e-mail explica que ela entra pelo Google, sem link de redefinição
+    await forgot('g@test.com');await waitMails(sentBefore+2);
+    assert.equal(mails.at(-1).subject,'Sua conta na Barber usa o Google');assert.equal(resetToken(mails.at(-1)),undefined);
+    // Conta travada por 10 senhas erradas: a redefinição libera o login
+    for(let i=0;i<10;i++) await post('/auth/login',{email:'novo@test.com',password:'errada123'},`192.0.2.${60+i}`);
+    assert.equal((await post('/auth/login',{email:'novo@test.com',password:'senha123'},'192.0.2.70')).body.code,'RATE_LIMIT');
+    // Senha curta não gasta o link; depois de usado, o link não serve mais; as sessões antigas caem
+    const token=resetToken(resetMail);
+    assert.equal((await call('/auth/password/reset','POST',{token,newPassword:'curta'})).body.code,'WEAK_PASSWORD');
+    assert.deepEqual(await call('/auth/password/reset','POST',{token,newPassword:'novasenha123'}),{status:200,body:{email:'novo@test.com'}});
+    assert.equal((await call('/auth/password/reset','POST',{token,newPassword:'outra12345'})).body.code,'RESET_INVALID');
+    assert.equal((await call('/auth/password/reset','POST',{token:'x',newPassword:'outra12345'})).body.code,'RESET_INVALID');
+    assert.equal((await call('/auth/me','GET',undefined,newbie.body.token)).status,401,'a redefinição encerra as sessões');
+    assert.equal((await post('/auth/login',{email:'novo@test.com',password:'senha123'},'192.0.2.71')).status,401);
+    assert.equal((await post('/auth/login',{email:'novo@test.com',password:'novasenha123'},'192.0.2.72')).status,200);
+    // Link vencido não serve; a redefinição confirma o e-mail de quem ainda não tinha confirmado (Ana)
+    await forgot('ana@test.com');await waitMails(sentBefore+3);
+    const expired=resetToken(mails.at(-1));
+    await pool.query("UPDATE tokens_email SET expira_em=now()-interval '1 minute' WHERE token_hash=$1",[createHash('sha256').update(expired).digest('hex')]);
+    assert.equal((await call('/auth/password/reset','POST',{token:expired,newPassword:'novasenha123'})).body.code,'RESET_INVALID');
+    await forgot('ana@test.com');await waitMails(sentBefore+4);
+    assert.equal((await call('/auth/password/reset','POST',{token:resetToken(mails.at(-1)),newPassword:'novasenha123'})).status,200);
+    assert.equal((await post('/auth/login',{email:'ana@test.com',password:'novasenha123'},'192.0.2.73')).body.user.emailVerified,true);
+    // Limites: 3 e-mails por conta por hora (o 4º pedido responde igual, mas não envia) e 10 pedidos por IP por hora
+    await forgot('ana@test.com');await waitMails(sentBefore+5);assert.equal(mails.length,sentBefore+5);
+    assert.deepEqual(await forgot('ana@test.com'),{status:200,body:{}});
+    await new Promise(r=>setTimeout(r,200));
+    assert.equal(mails.length,sentBefore+5,'o 4º pedido da mesma conta na hora não envia');
+    for(let i=0;i<10;i++) assert.equal((await forgot(`pessoa${i}@test.com`,'192.0.2.99')).status,200);
+    assert.equal((await forgot('outra@test.com','192.0.2.99')).body.code,'RATE_LIMIT');
     Object.assign(brevo,{apiKey:undefined,from:undefined});
     assert.equal((await call('/auth/verify-email/resend','POST',{},failed.body.token)).body.code,'EMAIL_DISABLED');
+    assert.equal((await forgot('novo@test.com','192.0.2.98')).body.code,'EMAIL_DISABLED');
     const malformed=await fetch(base+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:'{'});
     assert.equal(malformed.status,400);assert.equal((await malformed.json()).message,'Requisição inválida.');
     const page=await fetch(base.replace(/\/api$/,'/'));

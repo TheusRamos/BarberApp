@@ -11,6 +11,8 @@
 //   POST   /auth/logout          -                                       -> {}
 //   POST   /auth/logout-all      -                                       -> {}                (encerra todas as sessões)
 //   POST   /auth/password        { currentPassword, newPassword }        -> {}                (encerra as outras sessões)
+//   POST   /auth/password/forgot { email }                               -> {}                (resposta sempre igual; o link chega por e-mail)
+//   POST   /auth/password/reset  { token, newPassword }                  -> { email }         (link do e-mail; RESET_INVALID se usado ou vencido; encerra as sessões)
 //   GET    /auth/me              -                                       -> { user }
 //   GET    /auth/options         -                                       -> { google, captcha, emailVerification } (Google ativo; chave do Turnstile ou null; confirmação de e-mail exigida)
 //   POST   /auth/verify-email    { token }                               -> {}                (link do e-mail; VERIFY_INVALID se usado ou vencido)
@@ -145,7 +147,9 @@ export const api = {
     options: () => request("/auth/options", { auth: false }),
     googleSession: code => request("/auth/google/session", { method: "POST", body: { code }, auth: false }),
     verifyEmail: token => request("/auth/verify-email", { method: "POST", body: { token }, auth: false }),
-    resendVerification: () => request("/auth/verify-email/resend", { method: "POST" })
+    resendVerification: () => request("/auth/verify-email/resend", { method: "POST" }),
+    forgotPassword: email => request("/auth/password/forgot", { method: "POST", body: { email }, auth: false }),
+    resetPassword: (token, newPassword) => request("/auth/password/reset", { method: "POST", body: { token, newPassword }, auth: false })
   },
 
   users: {

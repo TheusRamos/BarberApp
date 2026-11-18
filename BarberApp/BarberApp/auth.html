@@ -231,6 +231,9 @@
               <small class="field-error" id="error-login-password"></small>
             </div>
 
+            <!-- Aparece quando o servidor envia e-mails (o auth.js decide) -->
+            <button type="button" class="text-btn forgot-link hidden" id="forgot-link">Esqueci minha senha</button>
+
             <!-- Depois de um login recusado: sugere o cadastro, sem sair da página. -->
             <p class="auth-hint hidden" id="login-register-hint">
               Ainda não tem conta?
@@ -288,6 +291,49 @@
             <div class="form-actions">
               <button type="submit" class="submit-btn">Criar conta</button>
             </div>
+          </form>
+
+          <!-- Esqueci minha senha: pede o e-mail e manda o link para criar uma nova senha -->
+          <form id="forgot-form" class="booking-form hidden" novalidate>
+            <p class="auth-intro">Informe o e-mail da sua conta. Se ele estiver cadastrado, o link vai para lá.</p>
+
+            <div class="form-group">
+              <label for="forgot-email">Email</label>
+              <input type="email" id="forgot-email" required autocomplete="email" />
+              <small class="field-error" id="error-forgot-email"></small>
+            </div>
+
+            <p class="auth-status hidden" id="forgot-sent" role="status">
+              Pronto! Se existir uma conta com esse e-mail, o link chega em alguns minutos.
+              Confira também a caixa de spam. O link vale por 1 hora.
+            </p>
+
+            <div class="form-actions">
+              <button type="submit" class="submit-btn">Enviar link</button>
+            </div>
+            <button type="button" class="text-btn auth-back" data-back-to-login>Voltar para o login</button>
+          </form>
+
+          <!-- Nova senha: aberto pelo link do e-mail (auth.html#redefinir=...) -->
+          <form id="reset-form" class="booking-form hidden" novalidate>
+            <p class="auth-intro">Crie uma nova senha para a sua conta. Ao salvar, todos os aparelhos conectados a ela serão desconectados.</p>
+
+            <div class="form-group">
+              <label for="reset-password">Nova senha</label>
+              <input type="password" id="reset-password" required autocomplete="new-password" />
+              <small class="field-error" id="error-reset-password"></small>
+            </div>
+
+            <div class="form-group">
+              <label for="reset-password-confirm">Confirmar nova senha</label>
+              <input type="password" id="reset-password-confirm" required autocomplete="new-password" />
+              <small class="field-error" id="error-reset-password-confirm"></small>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="submit-btn">Salvar nova senha</button>
+            </div>
+            <button type="button" class="text-btn auth-back" data-back-to-login>Voltar para o login</button>
           </form>
 
           <!-- Exibido só quando o servidor tem o login com Google configurado. -->

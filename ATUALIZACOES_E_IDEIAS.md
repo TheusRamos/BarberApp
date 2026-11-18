@@ -115,13 +115,27 @@ Os problemas abaixo foram relatados e ainda precisam ser investigados. As causas
 
 ## Outras ideias pendentes
 
-Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **022**.
+Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **023**.
 
 ## Atualizações concluídas
 
+### 022 — Recuperação de senha por e-mail (fase 4 da lista `alterações.md`)
+
+- **Estado:** Concluído
+- **Registrado em:** 17/11/2026
+- **Objetivo:** Resolver o item 3 da lista de alterações e a pendência "recuperação de senha por e-mail" da revisão de segurança (item 013), reaproveitando o envio pelo Brevo e a tabela `tokens_email` do item 021 (sem migração nova).
+- **Concluído em:** 17/11/2026
+- **Resumo da entrega:**
+  - Login com o link **Esqueci minha senha** (só aparece com o envio de e-mails configurado): pede o e-mail e mostra sempre a mesma mensagem, com o aviso de conferir o spam. O e-mail sai depois da resposta, para que nem o texto nem o tempo revelem quem tem cadastro.
+  - Link `auth.html#redefinir=...`, válido por 1 hora e uma única vez, que abre o formulário **Nova senha** (com o botão de olho), mesmo com outra pessoa logada no aparelho.
+  - Ao salvar: senha trocada, todas as sessões encerradas, e-mail confirmado e bloqueio de login (10 senhas erradas) liberado; a tela volta ao login com o e-mail preenchido. Link usado ou vencido leva de volta a **Recuperar senha**.
+  - Conta só do Google recebe um e-mail explicando que entra pelo Google, sem link de redefinição.
+  - Limites: 3 e-mails por conta e 10 pedidos por IP a cada hora; 30 usos de link por IP a cada 15 minutos.
+  - Testes: o de integração cobre o fluxo contra o Brevo falso (conta existente, inexistente e do Google, senha curta sem gastar o link, sessões encerradas, bloqueio liberado, link usado, vencido e inválido, e-mail confirmado e limites). Conferido no navegador com um banco descartável (9 verificações).
+
 ### 021 — Confirmação de e-mail com o Brevo (fase 3 da lista `alterações.md`)
 
-- **Estado:** Concluído — migração 4 aplicada no Neon em 17/11/2026 (as 5 contas existentes ficaram confirmadas); a confirmação passa a valer quando `BREVO_API_KEY` e `EMAIL_FROM` estiverem no Render
+- **Estado:** Concluído — no ar desde 17/11/2026 (commit c5e1ad9), com a migração 4 aplicada no Neon (as 5 contas existentes ficaram confirmadas) e `BREVO_API_KEY` e `EMAIL_FROM` no Render
 - **Teste real (17/11/2026):** o Brevo entregou o e-mail em 4 segundos, e o link confirmou a conta. A mensagem caiu no **spam**, com o remetente trocado pelo Brevo (`…@…k1.brevosend.com`), porque o remetente (e-mail institucional) não pode ser autenticado. O bloqueio por IP do Brevo foi desativado, para o Render conseguir enviar. Um domínio próprio, autenticado no Brevo, melhoraria a entrega.
 - **Registrado em:** 17/11/2026
 - **Objetivo:** Resolver o item 2 da lista de alterações e a pendência "verificação de e-mail" da revisão de segurança (item 013).
@@ -242,7 +256,7 @@ Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo ident
   - Login sem diferença de tempo para e-mail inexistente; senha mínima de 8 caracteres; limpeza periódica de sessões expiradas.
   - Lista pública de avaliações sem identificador do autor; erros de JSON malformado sem mensagem interna.
   - Bloqueio de cliques repetidos em login, cadastro, reserva, fila, serviços, profissionais e moderação.
-- **Pendências da revisão:** recuperação de senha por e-mail, verificação de e-mail e revisão do histórico do git para o item 008. A revalidação da fila foi entregue com o item 001; troca de senha e "sair de todos os dispositivos", no item 014; publicação do backend com testes no CI, no item 015.
+- **Pendências da revisão:** revisão do histórico do git para o item 008. A verificação de e-mail foi entregue no item 021, e a recuperação de senha por e-mail, no item 022. A revalidação da fila foi entregue com o item 001; troca de senha e "sair de todos os dispositivos", no item 014; publicação do backend com testes no CI, no item 015.
 
 ## Modelo para novos registros
 
