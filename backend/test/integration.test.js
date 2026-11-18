@@ -19,7 +19,7 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
   const {runMigrations}=await import('../migrations/index.js');
   const {google}=await import('../google.js');
   const {turnstile}=await import('../captcha.js');
-  const {brevo,mailDns}=await import('../email.js');
+  const {brevo,mailDns,purgeUnconfirmedAccounts}=await import('../email.js');
   let server,fakeGoogle,fakeTurnstile,fakeBrevo;
   // DNS falso, sem depender da internet: ".invalid" não existe; "semcorreio.test" existe, mas sem MX nem IP;
   // "nulo.test" declara que não recebe e-mail (MX nulo); "so-ip.test" não tem MX, mas tem IP (recebe).
@@ -305,6 +305,31 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
     assert.equal((await call('/auth/verify-email','POST',{token:linkToken(typoMail)})).body.code,'VERIFY_INVALID','o link do e-mail antigo deixa de valer');
     assert.equal((await call('/auth/verify-email','POST',{token:linkToken(mails.at(-1))})).status,200);
     assert.equal((await fix({email:'mais-um@test.com'})).body.code,'EMAIL_LOCKED','depois de confirmar, o e-mail não muda');
+    // Limpeza de contas sem confirmação: e-mail que voltou há mais de 24 h ou 7 dias sem confirmar.
+    // Ficam: e-mail que voltou há pouco, quem corrigiu o e-mail (prazo recomeça), conta com agendamento e conta confirmada.
+    const pending=async(name,address,phone,ip)=>{
+      const body=(await post('/auth/register',{name,email:address,phone,password:'senha123'},ip)).body;
+      return {id:Number(body.user.id),token:body.token};
+    };
+    const oldBounce=await pending('Voltou Antes','voltou.antes@test.com','11940000001','192.0.2.21');
+    const newBounce=await pending('Voltou Agora','voltou.agora@test.com','11940000002','192.0.2.22');
+    const oldPending=await pending('Pendente Antiga','pendente.antiga@test.com','11940000003','192.0.2.23');
+    const corrected=await pending('Corrigiu Hoje','corrigiu.antes@test.com','11940000004','192.0.2.24');
+    const withBooking=await pending('Tem Reserva','tem.reserva@test.com','11940000005','192.0.2.25');
+    await pool.query("UPDATE usuarios SET email_recusado_em=now()-interval '25 hours' WHERE id=$1",[oldBounce.id]);
+    await pool.query("UPDATE usuarios SET email_recusado_em=now()-interval '1 hour' WHERE id=$1",[newBounce.id]);
+    await pool.query("UPDATE usuarios SET email_definido_em=now()-interval '8 days' WHERE id=ANY($1::int[]) OR lower(email)='novo@test.com'",
+      [[oldPending.id,corrected.id,withBooking.id]]);
+    assert.equal((await call(`/users/${corrected.id}`,'PATCH',{email:'corrigiu.hoje@test.com'},corrected.token)).status,200);
+    const oldSlot=(await pool.query("INSERT INTO horarios(data,hora,cabeleireiro_id) VALUES(current_date-2,'11:00',$1) RETURNING id",[barber.id])).rows[0].id;
+    await pool.query('INSERT INTO agendamentos(cliente_id,servico_id,cabeleireiro_id,horario_id,duracao,valor) VALUES($1,$2,$3,$4,30,45)',
+      [withBooking.id,service.body.id,barber.id,oldSlot]);
+    assert.equal(await purgeUnconfirmedAccounts(pool),2);
+    const kept=(await pool.query('SELECT id FROM usuarios WHERE id=ANY($1::int[]) ORDER BY id',
+      [[oldBounce.id,newBounce.id,oldPending.id,corrected.id,withBooking.id]])).rows.map(r=>r.id);
+    assert.deepEqual(kept,[newBounce.id,corrected.id,withBooking.id],'só somem o e-mail que voltou há 25 h e a pendente de 8 dias');
+    assert.equal((await call('/auth/me','GET',undefined,oldBounce.token)).status,401,'sessões da conta apagada caem junto');
+    assert.equal((await pool.query("SELECT 1 FROM usuarios WHERE lower(email)='novo@test.com'")).rowCount,1,'conta confirmada nunca é apagada');
     // Recuperação de senha: a resposta é igual exista ou não a conta, e o e-mail sai depois da resposta.
     const waitMails=async count=>{for(let i=0;i<100 && mails.length<count;i++) await new Promise(r=>setTimeout(r,20));};
     const resetToken=message=>/#redefinir=([a-f0-9]{64})/.exec(message.htmlContent)?.[1];
@@ -347,6 +372,9 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
     for(let i=0;i<10;i++) assert.equal((await forgot(`pessoa${i}@test.com`,'192.0.2.99')).status,200);
     assert.equal((await forgot('outra@test.com','192.0.2.99')).body.code,'RATE_LIMIT');
     Object.assign(brevo,{apiKey:undefined,from:undefined});
+    // Com o envio desligado, ninguém consegue confirmar: a limpeza não apaga nada
+    await pool.query("UPDATE usuarios SET email_recusado_em=now()-interval '25 hours' WHERE id=$1",[newBounce.id]);
+    assert.equal(await purgeUnconfirmedAccounts(pool),0);
     assert.equal((await call('/auth/verify-email/resend','POST',{},failed.body.token)).body.code,'EMAIL_DISABLED');
     assert.equal((await forgot('novo@test.com','192.0.2.98')).body.code,'EMAIL_DISABLED');
     const malformed=await fetch(base+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:'{'});

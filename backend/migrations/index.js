@@ -5,7 +5,8 @@ export const migrations=[
   {version:2,file:'./002_varios_servicos.sql'},
   {version:3,file:'./003_login_google.sql'},
   {version:4,file:'./004_confirmacao_email.sql'},
-  {version:5,file:'./005_email_recusado.sql'}
+  {version:5,file:'./005_email_recusado.sql'},
+  {version:6,file:'./006_email_definido_em.sql'}
 ];
 export const latestVersion=migrations.at(-1).version;
 // Executar dentro de transação: aplica apenas as versões ainda não registradas.

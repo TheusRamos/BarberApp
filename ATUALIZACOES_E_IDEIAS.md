@@ -115,9 +115,20 @@ Os problemas abaixo foram relatados e ainda precisam ser investigados. As causas
 
 ## Outras ideias pendentes
 
-Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **024**.
+Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **025**.
 
 ## Atualizações concluídas
+
+### 024 — Limpeza de contas que nunca confirmam o e-mail
+
+- **Estado:** Concluído no código — falta aplicar a migração 6 no Neon e publicar
+- **Registrado em:** 17/11/2026
+- **Objetivo:** Não deixar no banco contas com e-mail inexistente (criadas porque o domínio existe, mas a caixa não), que ocupam o e-mail e o telefone.
+- **Resumo da entrega:**
+  - A limpeza que já rodava ao iniciar o servidor e de hora em hora (enquanto ele está acordado) passa a apagar contas de cliente não confirmadas quando o e-mail voltou como inexistente e não foi corrigido em 24 horas, ou depois de 7 dias sem confirmação.
+  - Migração 6: `usuarios.email_definido_em`, desde quando o e-mail atual está na conta. Ao corrigir o e-mail, o prazo de 7 dias recomeça.
+  - Garantias: só com o envio de e-mails configurado (sem ele, ninguém tem como confirmar) e só contas sem agendamentos, fila ou avaliações. Contas confirmadas, do Google e o administrador nunca são apagadas. Sessões e links da conta apagada saem junto.
+  - O teste de integração cobre os casos que somem (e-mail que voltou há 25 horas, pendente há 8 dias) e os que ficam (e-mail que voltou há 1 hora, quem corrigiu o e-mail, conta com agendamento, conta confirmada, envio desligado).
 
 ### 023 — Cadastro com e-mail inexistente
 

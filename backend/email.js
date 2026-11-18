@@ -45,6 +45,20 @@ export async function sendEmail({to,name,subject,html,text}) {
   }
 }
 
+// Limpeza de contas de cliente que nunca confirmaram o e-mail, para não ocuparem e-mail e telefone:
+// - o e-mail voltou como inexistente e não foi corrigido em 24 horas;
+// - 7 dias sem confirmar desde que o e-mail atual foi definido (no cadastro ou na correção).
+// Só com o envio ligado (sem ele, ninguém tem como confirmar) e só contas sem agendamentos, fila ou
+// avaliações (contas sem confirmação não conseguem criar nada; é só uma garantia a mais).
+export async function purgeUnconfirmedAccounts(db) {
+  if(!emailEnabled()) return 0;
+  return (await db.query(`DELETE FROM usuarios u WHERE u.tipo='cliente' AND NOT u.email_verificado
+    AND (u.email_recusado_em<=now()-interval '24 hours' OR u.email_definido_em<=now()-interval '7 days')
+    AND NOT EXISTS (SELECT 1 FROM agendamentos a WHERE a.cliente_id=u.id)
+    AND NOT EXISTS (SELECT 1 FROM fila_espera f WHERE f.cliente_id=u.id)
+    AND NOT EXISTS (SELECT 1 FROM comentarios c WHERE c.cliente_id=u.id)`)).rowCount;
+}
+
 // Token de uso único para links enviados por e-mail. O banco guarda só o hash.
 export async function createEmailToken(db,userId,tipo,seconds) {
   const token=randomBytes(32).toString('hex');

@@ -305,7 +305,7 @@ Ao sair de um status ativo, a reserva libera o intervalo e o backend processa a 
 
 | Tabela | Responsabilidade |
 | --- | --- |
-| `usuarios` | Identidade, contato, senha ou id do Google, perfil, foto, confirmação do e-mail e data em que o e-mail voltou como inexistente |
+| `usuarios` | Identidade, contato, senha ou id do Google, perfil, foto, confirmação do e-mail, data em que o e-mail voltou como inexistente e desde quando o e-mail atual está na conta |
 | `sessoes` | Hash do token, usuário e validade |
 | `tokens_email` | Links enviados por e-mail (confirmação de e-mail e nova senha): hash do token, usuário, tipo e validade; uso único |
 | `servicos` | Nome, preço, duração padrão e ícone |
@@ -321,9 +321,9 @@ Ao sair de um status ativo, a reserva libera o intervalo e o backend processa a 
 
 `slots` é uma **consulta de ocupações**, não uma tabela separada. `horarios.disponivel` representa bloqueio manual; a ocupação resulta dos agendamentos ativos. Não existe rota administrativa de bloqueio manual atualmente.
 
-`npm run db:migrate` aplica, em uma transação e sob trava, as versões listadas em [backend/migrations/index.js](backend/migrations/index.js) que ainda não constam em `schema_migrations`: a versão `1` é `schema.sql`, a versão `2` é [002_varios_servicos.sql](backend/migrations/002_varios_servicos.sql), a versão `3` é [003_login_google.sql](backend/migrations/003_login_google.sql), a versão `4` é [004_confirmacao_email.sql](backend/migrations/004_confirmacao_email.sql) e a versão `5` é [005_email_recusado.sql](backend/migrations/005_email_recusado.sql). Reexecutar o comando não reaplica versões já registradas, e o servidor só inicia quando a versão mais recente estiver aplicada. **Nunca edite uma migração já aplicada**: crie um novo arquivo, acrescente-o à lista e registre a mudança aqui. Executar o SQL diretamente repetidas vezes não substitui o comando de migração.
+`npm run db:migrate` aplica, em uma transação e sob trava, as versões listadas em [backend/migrations/index.js](backend/migrations/index.js) que ainda não constam em `schema_migrations`: a versão `1` é `schema.sql`, a versão `2` é [002_varios_servicos.sql](backend/migrations/002_varios_servicos.sql), a versão `3` é [003_login_google.sql](backend/migrations/003_login_google.sql), a versão `4` é [004_confirmacao_email.sql](backend/migrations/004_confirmacao_email.sql), a versão `5` é [005_email_recusado.sql](backend/migrations/005_email_recusado.sql) e a versão `6` é [006_email_definido_em.sql](backend/migrations/006_email_definido_em.sql). Reexecutar o comando não reaplica versões já registradas, e o servidor só inicia quando a versão mais recente estiver aplicada. **Nunca edite uma migração já aplicada**: crie um novo arquivo, acrescente-o à lista e registre a mudança aqui. Executar o SQL diretamente repetidas vezes não substitui o comando de migração.
 
-A versão `2` copia o serviço de cada agendamento e pedido de fila existentes para as novas tabelas, sem alterar valores ou durações registrados. A versão `3` acrescenta `usuarios.google_id` (único) e torna `senha` e `telefone` opcionais; toda conta precisa ter senha ou id do Google. A versão `4` acrescenta `usuarios.email_verificado` (as contas que já existiam ficam confirmadas; as novas, não) e a tabela `tokens_email`. A versão `5` acrescenta `usuarios.email_recusado_em`, preenchida pelo webhook do Brevo quando o e-mail de uma conta não confirmada volta como inexistente.
+A versão `2` copia o serviço de cada agendamento e pedido de fila existentes para as novas tabelas, sem alterar valores ou durações registrados. A versão `3` acrescenta `usuarios.google_id` (único) e torna `senha` e `telefone` opcionais; toda conta precisa ter senha ou id do Google. A versão `4` acrescenta `usuarios.email_verificado` (as contas que já existiam ficam confirmadas; as novas, não) e a tabela `tokens_email`. A versão `5` acrescenta `usuarios.email_recusado_em`, preenchida pelo webhook do Brevo quando o e-mail de uma conta não confirmada volta como inexistente. A versão `6` acrescenta `usuarios.email_definido_em` (desde quando o e-mail atual está na conta; recomeça quando o cliente corrige o e-mail), usada na limpeza de contas não confirmadas.
 
 Antes de migrar um banco legado:
 
@@ -541,6 +541,8 @@ O mesmo envio atende a **recuperação de senha**: o link **Esqueci minha senha*
 1. **Domínio:** o cadastro (e a troca de e-mail) consulta o DNS e recusa domínios que não recebem e-mail (`EMAIL_DOMAIN_INVALID`), como `gmail.cm`. Falha de rede na consulta não barra ninguém.
 2. **Sugestão:** o formulário sugere a correção de domínios parecidos com os mais comuns (`gmial.com` → `gmail.com`) e segura o primeiro envio. Muitos desses erros são domínios reais, registrados por terceiros, que o DNS aceita.
 3. **Aviso do Brevo:** quando o e-mail volta porque o endereço não existe, o Brevo chama `POST /api/webhooks/brevo`. A conta não confirmada passa a mostrar "Esse e-mail parece não existir" (o Início e o Perfil se atualizam sozinhos por alguns minutos), e o cliente corrige o e-mail no Perfil, que envia um novo link.
+
+4. **Limpeza:** ao iniciar e de hora em hora (enquanto o servidor está acordado), contas de cliente não confirmadas são apagadas quando o e-mail voltou como inexistente e não foi corrigido em 24 horas, ou depois de 7 dias sem confirmação desde que o e-mail atual foi definido. Isso libera o e-mail e o telefone. Só vale com o envio de e-mails configurado e só para contas sem agendamentos, fila ou avaliações.
 
 Para o item 3, defina `BREVO_WEBHOOK_SECRET` no Render (um texto aleatório) e crie no Brevo um webhook transacional para `PUBLIC_URL/api/webhooks/brevo`, com os eventos **Hard bounce**, **Invalid** e **Blocked** e o cabeçalho `X-Webhook-Token` com o mesmo segredo. Pela API: `POST https://api.brevo.com/v3/webhooks` com `type: "transactional"`, `events: ["hardBounce","invalid","blocked"]` e `headers: [{ "key": "X-Webhook-Token", "value": "<segredo>" }]`.
 

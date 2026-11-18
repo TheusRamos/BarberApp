@@ -234,8 +234,10 @@ app.patch('/api/users/:id',auth,async(req,res)=>{
     await requireMailDomain(newEmail);
     if(!resendByAccount.hit(key)) fail(429,'Você já trocou o e-mail ou pediu vários links. Aguarde uma hora.','RATE_LIMIT');
   }
+  // E-mail novo: some a marca de "voltou como inexistente" e o prazo de 7 dias para confirmar recomeça
   const u=(await pool.query(`UPDATE usuarios SET nome=$1,telefone=$2,foto=$3,email=$4,
-    email_recusado_em=CASE WHEN $5 THEN NULL ELSE email_recusado_em END WHERE id=$6 RETURNING *`,
+    email_recusado_em=CASE WHEN $5 THEN NULL ELSE email_recusado_em END,
+    email_definido_em=CASE WHEN $5 THEN now() ELSE email_definido_em END WHERE id=$6 RETURNING *`,
     [p.name===undefined?old.nome:text(p.name,'Nome',3),p.phone===undefined?old.telefone:phone(p.phone),
       p.photoURL===undefined?old.foto:photo(p.photoURL),newEmail,emailChanged,key])).rows[0];
   let emailSent;
