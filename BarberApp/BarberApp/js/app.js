@@ -28,6 +28,8 @@ let bookingDatePicker = null;
 let filterDatePicker = null;
 // Status escolhido nos cards "Confirmados" / "Pendentes" de Agendamentos ("" = todos)
 let statusFilter = "";
+// Cliente que ainda não confirmou o e-mail (com a confirmação exigida pelo servidor): não agenda até confirmar
+let mustConfirmEmail = false;
 const STATUS_PLURAL = { Confirmado: "confirmados", Pendente: "pendentes" };
 let usersCache = [];
 let barbeirosCache = [];
@@ -560,7 +562,29 @@ function updateBookingAccess() {
   if (!notice || !fieldset) return;
 
   notice.classList.toggle("hidden", Boolean(currentUser) || isOffline);
-  fieldset.disabled = !currentUser || isOffline;
+  // Sem o e-mail confirmado, o aviso explica e oferece um novo link
+  const verifyNotice = $("verify-required");
+  verifyNotice?.classList.toggle("hidden", !currentUser || isOffline || !mustConfirmEmail);
+  if ($("verify-required-email")) $("verify-required-email").textContent = currentUser?.email || "";
+  fieldset.disabled = !currentUser || isOffline || mustConfirmEmail;
+}
+
+async function resendVerification() {
+  const button = $("verify-resend-btn");
+  if (button) button.disabled = true;
+  try {
+    await api.auth.resendVerification();
+    showToast("Enviamos um novo link. Confira também a caixa de spam.");
+  } catch (error) {
+    console.error("Erro ao reenviar a confirmação:", error);
+    if (error.code === "ALREADY_VERIFIED") {
+      mustConfirmEmail = false;
+      updateBookingAccess();
+    }
+    showToast(apiErrorMessage(error, "Não foi possível reenviar o link."));
+  } finally {
+    if (button) button.disabled = false;
+  }
 }
 
 function prefillUserData() {
@@ -684,6 +708,8 @@ function loadFormPage() {
   const timeSelect = $("hora");
   if (timeSelect) timeSelect.addEventListener("change", () => clearError("hora"));
 
+  $("verify-resend-btn")?.addEventListener("click", resendVerification);
+
   const openAppointmentsBtn = $("open-appointments");
   if (openAppointmentsBtn) {
     openAppointmentsBtn.addEventListener("click", () => {
@@ -746,6 +772,10 @@ function loadFormPage() {
       } else if (error.code === "PHONE_REQUIRED") {
         showToast(apiErrorMessage(error));
         setTimeout(() => (window.location.href = "auth.html"), 1600);
+      } else if (error.code === "EMAIL_NOT_VERIFIED") {
+        mustConfirmEmail = true;
+        updateBookingAccess();
+        showToast(apiErrorMessage(error));
       } else {
         showToast(apiErrorMessage(error, "Erro ao salvar agendamento."));
       }
@@ -1501,6 +1531,7 @@ function renderUsersList() {
 async function initAuth() {
   currentUser = null;
   isAdmin = false;
+  mustConfirmEmail = false;
   if (!navigator.onLine) isOffline = true;
 
   if (getToken()) {
@@ -1508,6 +1539,14 @@ async function initAuth() {
       const { user } = await api.auth.me();
       currentUser = user;
       isAdmin = user?.role === "admin";
+      // Cliente sem e-mail confirmado: só trava o agendamento se o servidor exige a confirmação
+      if (user?.role === "client" && !user.emailVerified) {
+        try {
+          mustConfirmEmail = Boolean((await api.auth.options()).emailVerification);
+        } catch {
+          mustConfirmEmail = false;
+        }
+      }
     } catch (error) {
       if (error.code === "NETWORK_ERROR") isOffline = true;
       else console.warn("Sessão inválida ou expirada.", error);

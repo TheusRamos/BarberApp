@@ -160,9 +160,10 @@ a:focus-visible {
   color: var(--text);
 }
 
-/* Aviso "Você está sem internet" no Início e em Agendamentos.
-   Quem decide quando aparece é o js/app.js. */
-.offline-notice {
+/* Avisos em caixa: "Você está sem internet" (Início e Agendamentos) e
+   "Confirme seu e-mail" (Perfil). Quem decide quando aparecem são o js/app.js e o js/auth.js. */
+.offline-notice,
+.verify-notice {
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -172,24 +173,37 @@ a:focus-visible {
   border-radius: var(--radius);
 }
 
-.offline-notice > .material-symbols-outlined {
+.offline-notice > .material-symbols-outlined,
+.verify-notice > .material-symbols-outlined {
   color: var(--primary);
   font-size: 26px;
   flex-shrink: 0;
   margin-top: 2px;
 }
 
-.offline-notice strong {
+.offline-notice strong,
+.verify-notice strong {
   display: block;
   font-size: 0.95rem;
   margin-bottom: 4px;
 }
 
-.offline-notice p {
+.offline-notice p,
+.verify-notice p {
   margin: 0;
   font-size: 0.88rem;
   line-height: 1.6;
   color: var(--text-muted);
+}
+
+/* No Perfil, o espaço entre os blocos já vem do painel */
+.logged-panel .verify-notice {
+  margin-bottom: 0;
+}
+
+.verify-notice .text-btn {
+  margin-top: 10px;
+  font-size: 0.88rem;
 }
 
 /* Lista aberta dos selects (barbeiro, horário, filtro de serviço).

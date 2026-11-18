@@ -18,7 +18,8 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
   const {runMigrations}=await import('../migrations/index.js');
   const {google}=await import('../google.js');
   const {turnstile}=await import('../captcha.js');
-  let server,fakeGoogle,fakeTurnstile;
+  const {brevo}=await import('../email.js');
+  let server,fakeGoogle,fakeTurnstile,fakeBrevo;
   try {
     const tables=await pool.query("SELECT 1 FROM information_schema.tables WHERE table_schema='public' LIMIT 1");
     assert.equal(tables.rowCount,0,'TEST_DATABASE_URL precisa apontar para um banco vazio.');
@@ -172,7 +173,7 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
         {headers:{cookie:cookie.split(';')[0]},redirect:'manual'});
       return Object.fromEntries(new URLSearchParams(new URL(back.headers.get('location'),base).hash.slice(1)));
     }
-    assert.deepEqual((await call('/auth/options')).body,{google:true,captcha:null});
+    assert.deepEqual((await call('/auth/options')).body,{google:true,captcha:null,emailVerification:false});
     const googleFirst=await googleLogin({sub:'g-1',email:'G@test.com',name:'Cliente Google'});
     const g=await call('/auth/google/session','POST',{code:googleFirst.google_code});
     assert.equal(g.status,200);
@@ -210,6 +211,56 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
     assert.equal((await post('/auth/login',{email:'humano@test.com',password:'senha123'},'198.51.100.30')).body.code,'CAPTCHA_REQUIRED');
     assert.equal((await post('/auth/login',{email:'humano@test.com',password:'senha123',captchaToken:'ok'},'198.51.100.30')).status,200);
     Object.assign(turnstile,{siteKey:undefined,secret:undefined});
+    // Confirmação de e-mail contra um Brevo falso, que confere a chave da API e guarda as mensagens.
+    // E-mails que começam com "falha" são recusados, para testar o Brevo fora do ar.
+    const mails=[];
+    fakeBrevo=await new Promise(resolve=>{const s=createServer((req,res)=>{let body='';req.on('data',c=>body+=c);req.on('end',()=>{
+      const message=JSON.parse(body||'{}');
+      const ok=req.headers['api-key']==='chave-brevo' && !String(message.to?.[0]?.email).startsWith('falha');
+      if(ok) mails.push(message);
+      res.writeHead(ok?201:400,{'Content-Type':'application/json'});
+      res.end(JSON.stringify(ok?{messageId:'<1@teste>'}:{code:'invalid_parameter',message:'recusado'}));
+    });}).listen(0,'127.0.0.1',()=>resolve(s));});
+    Object.assign(brevo,{apiKey:'chave-brevo',from:'barbearia@test.com',url:`http://127.0.0.1:${fakeBrevo.address().port}/v3/smtp/email`});
+    const linkToken=message=>/#verificar=([a-f0-9]{64})/.exec(message.htmlContent)[1];
+    assert.equal((await call('/auth/options')).body.emailVerification,true);
+    const newbie=await post('/auth/register',{name:'Cliente Novo',email:'novo@test.com',phone:'11910101010',password:'senha123'},'192.0.2.1');
+    assert.equal(newbie.status,201);assert.equal(newbie.body.emailSent,true);assert.equal(newbie.body.user.emailVerified,false);
+    assert.equal(mails.length,1);
+    assert.deepEqual([mails[0].to[0].email,mails[0].sender.email],['novo@test.com','barbearia@test.com']);
+    assert.match(mails[0].textContent,/http:\/\/127\.0\.0\.1:3000\/auth\.html#verificar=[a-f0-9]{64}/);
+    // Sem confirmar, o cliente não agenda, não entra na fila e não avalia. Google e administrador não confirmam.
+    assert.equal((await call('/agendamentos','POST',{},newbie.body.token)).body.code,'EMAIL_NOT_VERIFIED');
+    assert.equal((await call('/waitlist','POST',{},newbie.body.token)).body.code,'EMAIL_NOT_VERIFIED');
+    assert.equal((await call('/comments','POST',{rating:5,text:'Bom'},newbie.body.token)).body.code,'EMAIL_NOT_VERIFIED');
+    assert.equal((await call('/auth/me','GET',undefined,g.body.token)).body.user.emailVerified,true);
+    assert.notEqual((await call('/agendamentos','POST',{},g.body.token)).body.code,'EMAIL_NOT_VERIFIED');
+    assert.notEqual((await call('/agendamentos','POST',{},admin)).body.code,'EMAIL_NOT_VERIFIED');
+    // Os links valem até a confirmação; depois, nenhum serve mais (uso único)
+    assert.equal((await call('/auth/verify-email/resend','POST',{},newbie.body.token)).status,200);
+    assert.equal(mails.length,2);
+    assert.equal((await call('/auth/verify-email','POST',{token:'0'.repeat(64)})).body.code,'VERIFY_INVALID');
+    assert.equal((await call('/auth/verify-email','POST',{token:linkToken(mails[0])})).status,200);
+    assert.equal((await call('/auth/verify-email','POST',{token:linkToken(mails[1])})).body.code,'VERIFY_INVALID');
+    assert.equal((await call('/auth/me','GET',undefined,newbie.body.token)).body.user.emailVerified,true);
+    assert.notEqual((await call('/agendamentos','POST',{},newbie.body.token)).body.code,'EMAIL_NOT_VERIFIED');
+    assert.equal((await call('/auth/verify-email/resend','POST',{},newbie.body.token)).body.code,'ALREADY_VERIFIED');
+    // Conta criada com o envio desligado fica bloqueada até confirmar; link vencido não serve; 3 reenvios por hora
+    assert.equal((await call('/comments','POST',{rating:4,text:'Bom'},hidden.token)).body.code,'EMAIL_NOT_VERIFIED');
+    assert.equal((await call('/auth/verify-email/resend','POST',{},hidden.token)).status,200);
+    await pool.query("UPDATE tokens_email SET expira_em=now()-interval '1 minute' WHERE token_hash=$1",
+      [createHash('sha256').update(linkToken(mails.at(-1))).digest('hex')]);
+    assert.equal((await call('/auth/verify-email','POST',{token:linkToken(mails.at(-1))})).body.code,'VERIFY_INVALID');
+    assert.equal((await call('/auth/verify-email/resend','POST',{},hidden.token)).status,200);
+    assert.equal((await call('/auth/verify-email/resend','POST',{},hidden.token)).status,200);
+    assert.equal((await call('/auth/verify-email/resend','POST',{},hidden.token)).body.code,'RATE_LIMIT');
+    // Brevo fora do ar: a conta é criada mesmo assim, e o reenvio avisa a falha
+    const failed=await post('/auth/register',{name:'Cliente Falha',email:'falha@test.com',phone:'11920202020',password:'senha123'},'192.0.2.2');
+    assert.equal(failed.status,201);assert.equal(failed.body.emailSent,false);
+    const resendFailed=(await call('/auth/verify-email/resend','POST',{},failed.body.token)).body;
+    assert.equal(resendFailed.code,'EMAIL_FAILED');assert.match(resendFailed.message,/enviar o e-mail/);
+    Object.assign(brevo,{apiKey:undefined,from:undefined});
+    assert.equal((await call('/auth/verify-email/resend','POST',{},failed.body.token)).body.code,'EMAIL_DISABLED');
     const malformed=await fetch(base+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:'{'});
     assert.equal(malformed.status,400);assert.equal((await malformed.json()).message,'Requisição inválida.');
     const page=await fetch(base.replace(/\/api$/,'/'));
@@ -220,6 +271,7 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
     if(server) await new Promise(resolve=>server.close(resolve));
     if(fakeGoogle) await new Promise(resolve=>fakeGoogle.close(resolve));
     if(fakeTurnstile) await new Promise(resolve=>fakeTurnstile.close(resolve));
+    if(fakeBrevo) await new Promise(resolve=>fakeBrevo.close(resolve));
     await pool.end();
   }
 });

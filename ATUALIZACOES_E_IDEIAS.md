@@ -115,9 +115,25 @@ Os problemas abaixo foram relatados e ainda precisam ser investigados. As causas
 
 ## Outras ideias pendentes
 
-Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **021**.
+Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **022**.
 
 ## Atualizações concluídas
+
+### 021 — Confirmação de e-mail com o Brevo (fase 3 da lista `alterações.md`)
+
+- **Estado:** Concluído — migração 4 aplicada no Neon em 17/11/2026 (as 5 contas existentes ficaram confirmadas); a confirmação passa a valer quando `BREVO_API_KEY` e `EMAIL_FROM` estiverem no Render
+- **Teste real (17/11/2026):** o Brevo entregou o e-mail em 4 segundos, e o link confirmou a conta. A mensagem caiu no **spam**, com o remetente trocado pelo Brevo (`…@…k1.brevosend.com`), porque o remetente (e-mail institucional) não pode ser autenticado. O bloqueio por IP do Brevo foi desativado, para o Render conseguir enviar. Um domínio próprio, autenticado no Brevo, melhoraria a entrega.
+- **Registrado em:** 17/11/2026
+- **Objetivo:** Resolver o item 2 da lista de alterações e a pendência "verificação de e-mail" da revisão de segurança (item 013).
+- **Decisões:** Envio pela API HTTP do Brevo (o Render bloqueia SMTP). Sem confirmar, o cliente entra, mas não agenda, não entra na fila e não avalia. Contas que já existiam, contas do Google e o administrador contam como confirmadas. O remetente é um e-mail grátis, que o Brevo troca por um endereço dele; por isso os avisos pedem para conferir o spam.
+- **Concluído em:** 17/11/2026
+- **Resumo da entrega:**
+  - Migração 4: `usuarios.email_verificado` e tabela `tokens_email` (só o hash do token, validade e uso único; servirá também para a recuperação de senha).
+  - `backend/email.js`: envio pelo Brevo, desligado sem `BREVO_API_KEY`, `EMAIL_FROM` e `PUBLIC_URL`, e e-mail de confirmação com link de 24 horas para `auth.html#verificar=...`.
+  - API: o cadastro envia o link (a conta é criada mesmo se o envio falhar); `POST /api/auth/verify-email` confirma sem exigir login; `POST /api/auth/verify-email/resend` reenvia (3 por hora); `EMAIL_NOT_VERIFIED` bloqueia reserva, fila e avaliação.
+  - Telas: aviso "Confirme seu e-mail para agendar" no Início (com o formulário travado) e no Perfil, ambos com **Reenviar link**; o link funciona mesmo aberto em outro aparelho ou colado com a página já aberta.
+  - Mensagens de erro 5xx criadas de propósito (ex.: "Não foi possível enviar o e-mail agora") deixam de ser trocadas pela mensagem genérica de banco de dados.
+  - Testes: o de integração cobre o fluxo contra um Brevo falso (envio, bloqueio, reenvio, limite, link usado, vencido e inválido, Brevo fora do ar). Conferido no navegador com um banco descartável: cadastro, avisos, reenvio, confirmação pelo link e desbloqueio (9 verificações).
 
 ### 020 — Cards de status clicáveis e horários do barbeiro em 24 h
 

@@ -202,6 +202,9 @@ Os scripts de inicialização, desenvolvimento, migração e criação de admini
 | `PUBLIC_URL` | Endereço público do site, sem barra final; forma o retorno do login com Google | Sem padrão. Local: `http://127.0.0.1:3000`; Render: `https://barberapp-at0n.onrender.com` |
 | `GOOGLE_CLIENT_ID` | ID do cliente OAuth do Google | Sem padrão. Com `GOOGLE_CLIENT_SECRET` e `PUBLIC_URL`, ativa o botão **Continuar com o Google** |
 | `GOOGLE_CLIENT_SECRET` | Segredo do cliente OAuth do Google | Sem padrão; nunca coloque no frontend nem no repositório |
+| `BREVO_API_KEY` | Chave da API do Brevo, para enviar e-mails | Sem padrão. Com `EMAIL_FROM` e `PUBLIC_URL`, ativa a confirmação de e-mail; nunca coloque no frontend nem no repositório |
+| `EMAIL_FROM` | Remetente dos e-mails, verificado no Brevo | Sem padrão. Com e-mail grátis (Gmail etc.), o Brevo troca o remetente por um endereço dele |
+| `EMAIL_FROM_NAME` | Nome do remetente | `Barber` |
 | `MAX_ACTIVE_BOOKINGS` | Máximo de reservas ativas futuras + pedidos na fila por cliente | `3`; administradores não têm limite |
 | `ADMIN_NAME` | Nome da nova conta administrativa | Apenas em `admin:create`; mínimo de 3 caracteres |
 | `ADMIN_EMAIL` | E-mail da nova conta administrativa | Apenas em `admin:create`; único |
@@ -301,8 +304,9 @@ Ao sair de um status ativo, a reserva libera o intervalo e o backend processa a 
 
 | Tabela | Responsabilidade |
 | --- | --- |
-| `usuarios` | Identidade, contato, senha ou id do Google, perfil e foto |
+| `usuarios` | Identidade, contato, senha ou id do Google, perfil, foto e confirmação do e-mail |
 | `sessoes` | Hash do token, usuário e validade |
+| `tokens_email` | Links enviados por e-mail (confirmação): hash do token, usuário, tipo e validade; uso único |
 | `servicos` | Nome, preço, duração padrão e ícone |
 | `cabeleireiros` | Profissionais, expediente, dias, foto e situação |
 | `cabeleireiro_servicos` | Serviços e duração por profissional |
@@ -316,9 +320,9 @@ Ao sair de um status ativo, a reserva libera o intervalo e o backend processa a 
 
 `slots` é uma **consulta de ocupações**, não uma tabela separada. `horarios.disponivel` representa bloqueio manual; a ocupação resulta dos agendamentos ativos. Não existe rota administrativa de bloqueio manual atualmente.
 
-`npm run db:migrate` aplica, em uma transação e sob trava, as versões listadas em [backend/migrations/index.js](backend/migrations/index.js) que ainda não constam em `schema_migrations`: a versão `1` é `schema.sql`, a versão `2` é [002_varios_servicos.sql](backend/migrations/002_varios_servicos.sql) e a versão `3` é [003_login_google.sql](backend/migrations/003_login_google.sql). Reexecutar o comando não reaplica versões já registradas, e o servidor só inicia quando a versão mais recente estiver aplicada. **Nunca edite uma migração já aplicada**: crie um novo arquivo, acrescente-o à lista e registre a mudança aqui. Executar o SQL diretamente repetidas vezes não substitui o comando de migração.
+`npm run db:migrate` aplica, em uma transação e sob trava, as versões listadas em [backend/migrations/index.js](backend/migrations/index.js) que ainda não constam em `schema_migrations`: a versão `1` é `schema.sql`, a versão `2` é [002_varios_servicos.sql](backend/migrations/002_varios_servicos.sql), a versão `3` é [003_login_google.sql](backend/migrations/003_login_google.sql) e a versão `4` é [004_confirmacao_email.sql](backend/migrations/004_confirmacao_email.sql). Reexecutar o comando não reaplica versões já registradas, e o servidor só inicia quando a versão mais recente estiver aplicada. **Nunca edite uma migração já aplicada**: crie um novo arquivo, acrescente-o à lista e registre a mudança aqui. Executar o SQL diretamente repetidas vezes não substitui o comando de migração.
 
-A versão `2` copia o serviço de cada agendamento e pedido de fila existentes para as novas tabelas, sem alterar valores ou durações registrados. A versão `3` acrescenta `usuarios.google_id` (único) e torna `senha` e `telefone` opcionais; toda conta precisa ter senha ou id do Google.
+A versão `2` copia o serviço de cada agendamento e pedido de fila existentes para as novas tabelas, sem alterar valores ou durações registrados. A versão `3` acrescenta `usuarios.google_id` (único) e torna `senha` e `telefone` opcionais; toda conta precisa ter senha ou id do Google. A versão `4` acrescenta `usuarios.email_verificado` (as contas que já existiam ficam confirmadas; as novas, não) e a tabela `tokens_email`.
 
 Antes de migrar um banco legado:
 
@@ -353,7 +357,9 @@ Todas as rotas abaixo são relativas a `/api`.
 | POST | `/auth/logout` | Autenticado; revoga a sessão enviada |
 | POST | `/auth/logout-all` | Autenticado; revoga todas as sessões do usuário, inclusive a enviada |
 | POST | `/auth/password` | Autenticado; troca a senha e revoga as outras sessões do usuário |
-| GET | `/auth/options` | Público; `{ "google": true/false, "captcha": "<chave do site>" ou null }`, conforme o login com Google e o Turnstile estejam configurados |
+| GET | `/auth/options` | Público; `{ "google": true/false, "captcha": "<chave do site>" ou null, "emailVerification": true/false }`, conforme o login com Google, o Turnstile e o envio de e-mails estejam configurados |
+| POST | `/auth/verify-email` | Público; `{ token }` do link `auth.html#verificar=...` (24 horas, uso único) confirma o e-mail |
+| POST | `/auth/verify-email/resend` | Autenticado; envia um novo link de confirmação (3 por hora) |
 | GET | `/auth/google` | Navegação; guarda `state`, PKCE e `nonce` em cookie e redireciona ao Google |
 | GET | `/auth/google/callback` | Retorno do Google; redireciona a `auth.html#google_code=...` ou `#google_error=...` |
 | POST | `/auth/google/session` | Público; troca o código de uso único (1 minuto) por `{ token, user }` |
@@ -424,14 +430,15 @@ Invoke-RestMethod http://127.0.0.1:3000/api/health
 
 | HTTP | Exemplos de código / motivo |
 | --- | --- |
-| 400 | `VALIDATION_ERROR`, `WEAK_PASSWORD`, `WRONG_PASSWORD` (senha atual incorreta na troca), `PHONE_REQUIRED` (reserva ou fila sem telefone cadastrado), `GOOGLE_FAILED` (código do Google inválido ou expirado), `CAPTCHA_REQUIRED` (verificação anti-robô ausente ou recusada), `BAD_REQUEST` (JSON malformado); campos ou regras inválidos |
+| 400 | `VALIDATION_ERROR`, `WEAK_PASSWORD`, `WRONG_PASSWORD` (senha atual incorreta na troca), `VERIFY_INVALID` (link de confirmação usado, vencido ou inválido), `PHONE_REQUIRED` (reserva ou fila sem telefone cadastrado), `GOOGLE_FAILED` (código do Google inválido ou expirado), `CAPTCHA_REQUIRED` (verificação anti-robô ausente ou recusada), `BAD_REQUEST` (JSON malformado); campos ou regras inválidos |
 | 401 | `UNAUTHORIZED`, `INVALID_CREDENTIALS`; sessão ausente/expirada ou login inválido |
-| 403 | `FORBIDDEN`; perfil ou titularidade sem permissão |
+| 403 | `FORBIDDEN`; perfil ou titularidade sem permissão. `EMAIL_NOT_VERIFIED`: com a confirmação de e-mail ativa, cliente sem e-mail confirmado tentou agendar, entrar na fila ou avaliar |
 | 404 | `NOT_FOUND`; recurso ou rota inexistente |
-| 409 | `SLOT_TAKEN`, `SLOT_AVAILABLE`, `ALREADY_ON_WAITLIST`, `BOOKING_LIMIT`, `COMMENT_PENDING`, `EMAIL_IN_USE`, `DUPLICATE`, `IN_USE` |
+| 409 | `SLOT_TAKEN`, `SLOT_AVAILABLE`, `ALREADY_ON_WAITLIST`, `BOOKING_LIMIT`, `COMMENT_PENDING`, `EMAIL_IN_USE`, `DUPLICATE`, `IN_USE`, `ALREADY_VERIFIED` |
 | 413 | `PAYLOAD_TOO_LARGE`; corpo JSON excede o limite |
 | 429 | `RATE_LIMIT`; limite de login (por IP, ou por conta quando o Turnstile está desligado), de cadastro ou de troca de senha atingido |
 | 500 | Falha interna; mensagem genérica ao cliente |
+| 502 / 503 | `EMAIL_FAILED` (o Brevo recusou ou não respondeu), `EMAIL_DISABLED` (envio de e-mails não configurado) |
 
 `NETWORK_ERROR` é produzido pelo cliente JavaScript quando `fetch` falha; não é um status HTTP. O retorno do Google não tem corpo JSON: os erros chegam em `auth.html#google_error=` como `GOOGLE_EMAIL_IN_USE` (e-mail já cadastrado com senha), `GOOGLE_CANCELLED`, `GOOGLE_DISABLED` ou `GOOGLE_FAILED`, e o motivo técnico fica no log do servidor. Consulte `message` e `code`, pois nem toda falha interna tem o mesmo código.
 
@@ -512,6 +519,16 @@ O Turnstile é o CAPTCHA gratuito da Cloudflare; na maioria das vezes, o visitan
 3. Localmente, use as chaves de teste da Cloudflare, que sempre aprovam: `TURNSTILE_SITE_KEY=1x00000000000000000000AA` e `TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA`.
 
 Sem as duas chaves, o site funciona sem CAPTCHA, e a conta que passa do limite de tentativas fica bloqueada por 15 minutos. A política de segurança (CSP) só libera `challenges.cloudflare.com` quando o Turnstile está ativo.
+
+### Confirmação de e-mail (Brevo)
+
+Os e-mails saem pela API HTTP do Brevo, porque o Render bloqueia o envio por SMTP. Com a confirmação ativa, o cadastro com senha envia um link (`auth.html#verificar=...`, válido por 24 horas), e o cliente só agenda, entra na fila e avalia depois de confirmar. Contas do Google, o administrador e as contas que já existiam antes da migração 4 contam como confirmadas. O Perfil e a página inicial mostram o aviso com **Reenviar link**.
+
+1. No [Brevo](https://www.brevo.com/), em **Senders, Domains & Dedicated IPs → Senders**, verifique o e-mail remetente.
+2. Em **SMTP & API → API Keys**, gere uma chave.
+3. No Render, em **Environment**, defina `BREVO_API_KEY` e `EMAIL_FROM` antes de publicar a versão com a migração 4, para que nenhuma conta nova fique sem o e-mail de confirmação. `PUBLIC_URL` já está no `render.yaml`.
+
+Sem um domínio próprio, o remetente é um e-mail grátis (Gmail etc.), que o Brevo não consegue autenticar: ele troca o remetente por um endereço dele, e as mensagens tendem a cair no spam. Por isso os avisos pedem para conferir a caixa de spam. Um domínio próprio, autenticado no Brevo, resolve. Sem `BREVO_API_KEY` e `EMAIL_FROM`, nada é enviado e a confirmação não é exigida.
 
 ### Outra hospedagem com frontend e backend juntos
 

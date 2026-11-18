@@ -198,6 +198,23 @@
           </div>
         </div>
 
+        <!-- Cliente que ainda não confirmou o e-mail: os campos ficam travados até confirmar (o app.js decide) -->
+        <div id="verify-required" class="login-required hidden" role="status">
+          <div class="login-required-body">
+            <span class="material-symbols-outlined">mark_email_unread</span>
+            <div>
+              <strong>Confirme seu e-mail para agendar</strong>
+              <p>Enviamos um link para <b id="verify-required-email"></b>. Não chegou? Confira a caixa de spam ou de lixo eletrônico.</p>
+            </div>
+          </div>
+          <div class="login-required-actions">
+            <button type="button" class="secondary-btn" id="verify-resend-btn">
+              <span class="material-symbols-outlined">forward_to_inbox</span>
+              Reenviar link
+            </button>
+          </div>
+        </div>
+
         <form class="booking-form" id="booking-form" novalidate>
           <fieldset class="booking-fieldset" id="booking-fieldset">
           <div class="form-grid">

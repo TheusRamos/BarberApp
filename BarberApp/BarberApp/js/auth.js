@@ -78,6 +78,56 @@ function setupPasswordToggles() {
   });
 }
 
+// ============================================================
+// CONFIRMAÇÃO DE E-MAIL
+// ============================================================
+
+// Aviso no Perfil para o cliente que ainda não confirmou o e-mail (só quando o servidor exige a confirmação).
+async function updateVerifyNotice(user) {
+  const notice = $("verify-notice");
+  if (!notice) return;
+  let required = false;
+  if (user?.role === "client" && !user.emailVerified) {
+    try {
+      required = Boolean((await api.auth.options()).emailVerification);
+    } catch {
+      required = false;
+    }
+  }
+  if ($("verify-notice-email")) $("verify-notice-email").textContent = user?.email || "";
+  notice.classList.toggle("hidden", !required);
+}
+
+async function handleResendVerification() {
+  const button = $("verify-resend-btn");
+  if (button) button.disabled = true;
+  try {
+    await api.auth.resendVerification();
+    showToast("Enviamos um novo link. Confira também a caixa de spam.");
+  } catch (error) {
+    console.error("Erro ao reenviar a confirmação:", error);
+    if (error.code === "ALREADY_VERIFIED") $("verify-notice")?.classList.add("hidden");
+    showToast(translateApiError(error));
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+// Link do e-mail de confirmação (auth.html#verificar=TOKEN). Funciona sem login:
+// o e-mail pode ser aberto em outro aparelho ou no navegador do app de e-mail.
+async function handleVerifyReturn() {
+  const token = new URLSearchParams(location.hash.slice(1)).get("verificar");
+  if (!token) return;
+  history.replaceState(null, "", location.pathname + location.search);
+  try {
+    await api.auth.verifyEmail(token);
+    showToast(getToken() ? "E-mail confirmado! Agora você já pode agendar." : "E-mail confirmado! Entre na sua conta para agendar.");
+  } catch (error) {
+    console.error("Erro ao confirmar o e-mail:", error);
+    showToast(translateApiError(error));
+  }
+}
+
 // "Criar conta" depois de um login recusado: abre o cadastro com o email já digitado.
 function goToRegisterFromLogin() {
   const email = ($("login-email")?.value || "").trim();
@@ -472,11 +522,15 @@ async function handleRegister(event) {
   if (submitBtn) submitBtn.disabled = true;
 
   try {
-    const { token, user } = await api.auth.register({ name, email, phone, password, captchaToken: captcha.register.token || undefined });
+    const { token, user, emailSent } = await api.auth.register({ name, email, phone, password, captchaToken: captcha.register.token || undefined });
     setToken(token);
     currentUser = user;
-    showToast("Cadastro realizado com sucesso.");
-    setTimeout(() => (window.location.href = "index.html"), 700);
+    // emailSent só vem quando o servidor exige a confirmação de e-mail
+    if (emailSent === undefined) showToast("Cadastro realizado com sucesso.");
+    else showToast(emailSent
+      ? "Conta criada! Enviamos um link de confirmação para o seu e-mail."
+      : "Conta criada! Não conseguimos enviar o e-mail de confirmação agora: peça um novo link na página inicial.");
+    setTimeout(() => (window.location.href = "index.html"), emailSent === undefined ? 700 : 2200);
   } catch (error) {
     console.error("Erro no cadastro:", error);
     resetCaptcha("register");
@@ -580,6 +634,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("tab-login")?.addEventListener("click", showLogin);
   $("tab-register")?.addEventListener("click", showRegister);
   $("login-register-link")?.addEventListener("click", goToRegisterFromLogin);
+  $("verify-resend-btn")?.addEventListener("click", handleResendVerification);
   $("login-form")?.addEventListener("submit", handleLogin);
   $("register-form")?.addEventListener("submit", handleRegister);
   $("logout-btn")?.addEventListener("click", handleLogout);
@@ -595,6 +650,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
+  // Link de confirmação colado com esta página já aberta: só o # muda, sem recarregar
+  window.addEventListener("hashchange", async () => {
+    if (!location.hash.includes("verificar=")) return;
+    await handleVerifyReturn();
+    currentUser = await loadCurrentUser();
+    if (currentUser) {
+      showLoggedPanel(currentUser);
+      updateVerifyNotice(currentUser);
+    }
+  });
+
+  await handleVerifyReturn();
   const googleLogin = await handleGoogleReturn();
   currentUser = await loadCurrentUser();
 
@@ -612,6 +679,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (currentUser) {
     showLoggedPanel(currentUser);
+    updateVerifyNotice(currentUser);
     if (googleLogin) {
       showToast("Conta conectada. Informe seu telefone para poder agendar.");
       $("profile-phone")?.focus();

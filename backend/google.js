@@ -47,7 +47,8 @@ export async function googleUser(db,{sub,email,name}) {
   if(linked) return linked;
   if((await db.query('SELECT 1 FROM usuarios WHERE lower(email)=$1',[email])).rowCount)
     fail(409,'Este e-mail já tem cadastro. Entre com e-mail e senha.','GOOGLE_EMAIL_IN_USE');
-  return (await db.query("INSERT INTO usuarios(nome,email,google_id,tipo) VALUES($1,$2,$3,'cliente') RETURNING *",[name,email,sub])).rows[0];
+  // O Google só entrega e-mails já confirmados (email_verified), então a conta nasce confirmada.
+  return (await db.query("INSERT INTO usuarios(nome,email,google_id,tipo,email_verificado) VALUES($1,$2,$3,'cliente',true) RETURNING *",[name,email,sub])).rows[0];
 }
 
 // Código de uso único (1 minuto) que a página troca pela sessão, para o token não passar pela URL.

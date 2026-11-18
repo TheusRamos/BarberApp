@@ -105,6 +105,16 @@
         <!-- Logged-in: profile editing -->
         <section id="logged-panel" class="logged-panel hidden">
 
+          <!-- Conta sem e-mail confirmado (o auth.js mostra quando o servidor exige a confirmação) -->
+          <div id="verify-notice" class="verify-notice hidden" role="status">
+            <span class="material-symbols-outlined" aria-hidden="true">mark_email_unread</span>
+            <div>
+              <strong>Confirme seu e-mail para agendar</strong>
+              <p>Enviamos um link para <b id="verify-notice-email"></b>. Não chegou? Confira a caixa de spam ou de lixo eletrônico.</p>
+              <button type="button" class="text-btn" id="verify-resend-btn">Reenviar link</button>
+            </div>
+          </div>
+
           <div class="profile-avatar-section">
             <div class="profile-avatar-wrap">
               <div class="profile-avatar" id="profile-avatar">

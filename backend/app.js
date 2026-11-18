@@ -5,6 +5,7 @@ import { fail,text,id,email,phone,photo,hashPassword,verifyPassword,tokenHash,us
 import { bookingSelect,bookingDTO,getBooking,lockAgenda,prepare,conflict,insertBooking,insertWaitlist,saveBookingServices,promote,statusDB,active,checkQuota } from './bookings.js';
 import { googleEnabled,start,finish,googleUser,issueCode,redeemCode } from './google.js';
 import { turnstile,captchaEnabled,requireCaptcha } from './captcha.js';
+import { emailEnabled,sendVerification,useEmailToken } from './email.js';
 
 export const app=express();
 app.disable('x-powered-by');
@@ -64,16 +65,48 @@ function admin(req,res,next) {if(req.user?.tipo!=='administrador') fail(403,'Ace
 const loginByIp=limiter(30,900000),loginByAccount=limiter(10,900000),registerByIp=limiter(10,3600000);
 // Troca de senha: limite por usuário para que um token roubado não sirva para testar a senha atual.
 const passwordByAccount=limiter(5,900000);
+// Confirmação de e-mail: poucos reenvios por conta (cada um é um e-mail de verdade) e tentativas de link por IP.
+const resendByAccount=limiter(3,3600000),verifyByIp=limiter(30,900000);
+// Com o envio de e-mails ligado, o cliente só agenda, entra na fila e avalia depois de confirmar o e-mail.
+function emailConfirmed(req,res,next) {
+  if(emailEnabled() && req.user.tipo==='cliente' && !req.user.email_verificado)
+    fail(403,'Confirme seu e-mail para continuar: use o link que enviamos (veja também o spam) ou peça um novo no Perfil.','EMAIL_NOT_VERIFIED');
+  next();
+}
 app.get('/api/health',async(req,res)=>{await pool.query('SELECT 1');res.json({status:'ok'});});
 app.post('/api/auth/register',async(req,res)=>{
   if(!registerByIp.hit(clientIp(req))) fail(429,'Muitos cadastros a partir desta conexão. Aguarde uma hora.','RATE_LIMIT');
   const p=req.body;
   const values=[text(p.name,'Nome',3),email(p.email),phone(p.phone),await hashPassword(p.password)];
   if(captchaEnabled()) await requireCaptcha(p.captchaToken,clientIp(req));
-  res.status(201).json(await transaction(async db=>{
+  const {result,user}=await transaction(async db=>{
     const u=(await db.query("INSERT INTO usuarios(nome,email,telefone,senha,tipo) VALUES($1,$2,$3,$4,'cliente') RETURNING *",values)).rows[0];
-    return session(db,u);
-  }));
+    return {result:await session(db,u),user:u};
+  });
+  // A conta é criada mesmo se o e-mail falhar: o cliente pede outro link no Perfil.
+  if(emailEnabled()) result.emailSent=await sendVerification(pool,user).then(()=>true,error=>{
+    console.error('Falha ao enviar a confirmação de e-mail:',error.message);return false;});
+  res.status(201).json(result);
+});
+// Link do e-mail (auth.html#verificar=TOKEN): o token basta, sem login, porque o link pode abrir em outro aparelho.
+app.post('/api/auth/verify-email',async(req,res)=>{
+  if(!verifyByIp.hit(clientIp(req))) fail(429,'Muitas tentativas. Aguarde 15 minutos.','RATE_LIMIT');
+  const userId=await useEmailToken(pool,req.body.token,'verificacao');
+  if(!userId) fail(400,'Este link de confirmação é inválido ou expirou. Peça um novo no Perfil.','VERIFY_INVALID');
+  await pool.query('UPDATE usuarios SET email_verificado=true WHERE id=$1',[userId]);
+  await pool.query("DELETE FROM tokens_email WHERE usuario_id=$1 AND tipo='verificacao'",[userId]);
+  res.json({});
+});
+app.post('/api/auth/verify-email/resend',auth,async(req,res)=>{
+  if(!emailEnabled()) fail(503,'O envio de e-mails está desligado no momento.','EMAIL_DISABLED');
+  if(req.user.email_verificado) fail(409,'Seu e-mail já está confirmado.','ALREADY_VERIFIED');
+  if(!resendByAccount.hit(req.user.id)) fail(429,'Você já pediu vários links. Confira a caixa de spam ou aguarde uma hora.','RATE_LIMIT');
+  try { await sendVerification(pool,req.user); }
+  catch(error) {
+    console.error('Falha ao reenviar a confirmação de e-mail:',error.message);
+    fail(502,'Não foi possível enviar o e-mail agora. Tente de novo em alguns minutos.','EMAIL_FAILED');
+  }
+  res.json({});
 });
 app.post('/api/auth/login',async(req,res)=>{
   if(!loginByIp.hit(clientIp(req))) fail(429,'Muitas tentativas. Aguarde 15 minutos.','RATE_LIMIT');
@@ -107,7 +140,7 @@ app.post('/api/auth/password',auth,async(req,res)=>{
 });
 // Login com Google: /api/auth/google leva ao Google, que volta para /callback; a página recebe
 // um código de uso único no fragmento da URL e o troca pela sessão em /session.
-app.get('/api/auth/options',(req,res)=>res.json({google:googleEnabled(),captcha:captchaEnabled()?turnstile.siteKey:null}));
+app.get('/api/auth/options',(req,res)=>res.json({google:googleEnabled(),captcha:captchaEnabled()?turnstile.siteKey:null,emailVerification:emailEnabled()}));
 app.get('/api/auth/google',(req,res)=>{
   if(!googleEnabled()) return res.redirect('/auth.html#google_error=GOOGLE_DISABLED');
   const {url,cookie}=start();
@@ -235,7 +268,7 @@ app.get('/api/agendamentos',auth,async(req,res)=>res.json((await pool.query(`${b
 app.get('/api/agendamentos/:id',auth,async(req,res)=>res.json(bookingDTO(await getBooking(pool,req.params.id,req.user))));
 // Contas criadas pelo Google começam sem telefone; a barbearia precisa dele para contatar o cliente.
 function phoneRequired(req,res,next) {if(!req.user.telefone) fail(400,'Cadastre seu telefone no Perfil antes de agendar.','PHONE_REQUIRED');next();}
-app.post('/api/agendamentos',auth,phoneRequired,async(req,res)=>{
+app.post('/api/agendamentos',auth,phoneRequired,emailConfirmed,async(req,res)=>{
   const result=await transaction(async db=>{await lockAgenda(db);const plan=await prepare(db,req.body),{h}=plan;
     await checkQuota(db,req.user,h.id);
     if(await conflict(db,h,plan.duracao)) fail(409,'Horário já reservado.','SLOT_TAKEN');
@@ -277,7 +310,7 @@ app.delete('/api/agendamentos/:id',auth,admin,async(req,res)=>{
   await transaction(async db=>{await lockAgenda(db);const a=await getBooking(db,req.params.id,req.user,true);
     await db.query('DELETE FROM agendamentos WHERE id=$1',[a.id]);await promote(db,a.cabeleireiro_id,a.data);});res.json({});
 });
-app.post('/api/waitlist',auth,phoneRequired,async(req,res)=>{
+app.post('/api/waitlist',auth,phoneRequired,emailConfirmed,async(req,res)=>{
   if(req.user.tipo==='administrador') fail(403,'A fila é destinada aos clientes.','FORBIDDEN');
   const result=await transaction(async db=>{await lockAgenda(db);const plan=await prepare(db,req.body);
     if(!await conflict(db,plan.h,plan.duracao)) fail(409,'Horário disponível. Faça um agendamento.','SLOT_AVAILABLE');
@@ -294,7 +327,7 @@ app.get('/api/comments',async(req,res)=>{
     ${isAdmin?'':'WHERE c.aprovado'} ORDER BY c.criado_em DESC`)).rows;
   res.json(rows.map(c=>{const dto=commentDTO(c);if(!isAdmin) {delete dto.userId;dto.authorName=publicName(c.nome);}return dto;}));
 });
-app.post('/api/comments',auth,async(req,res)=>{
+app.post('/api/comments',auth,emailConfirmed,async(req,res)=>{
   const p=req.body,body=text(p.text,'Comentário',1,500);
   if(!Number.isInteger(p.rating)||p.rating<1||p.rating>5||body.split(/\s+/).length>50) fail(400,'Informe nota de 1 a 5 e até 50 palavras.');
   // Uma avaliação pendente por usuário: limita a fila de moderação e impede envio duplicado.
@@ -325,6 +358,7 @@ app.use((error,req,res,next)=>{
   else if(code==='23505') {status=409;code=error.constraint?.includes('email')?'EMAIL_IN_USE':'DUPLICATE';message='Email, telefone ou registro já cadastrado.';}
   else if(code==='23503') {status=409;code='IN_USE';message='Este registro está vinculado a outros dados e não pode ser removido.';}
   else if(['23514','22007','22008','22P02','22003'].includes(code)) {status=400;message='Dados inválidos. Confira os campos.';code='VALIDATION_ERROR';}
-  if(status>=500) {console.error('Erro na API:',error.code||error.name);message='Não foi possível acessar o banco de dados. Tente novamente.';}
+  // Erro inesperado (banco, bug): não repassar a mensagem interna. Os do fail() já são textos para o usuário.
+  if(status>=500) {console.error('Erro na API:',error.code||error.name);if(!error.status) message='Não foi possível acessar o banco de dados. Tente novamente.';}
   res.status(status).json({message,code});
 });

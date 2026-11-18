@@ -6,13 +6,15 @@
 //
 // Contrato da API implementada em backend/:
 //
-//   POST   /auth/register        { name, email, phone, password, captchaToken? } -> { token, user }
+//   POST   /auth/register        { name, email, phone, password, captchaToken? } -> { token, user, emailSent? } (emailSent só com o envio de e-mails ligado)
 //   POST   /auth/login           { email, password, captchaToken? }      -> { token, user }   (CAPTCHA_REQUIRED após muitas tentativas)
 //   POST   /auth/logout          -                                       -> {}
 //   POST   /auth/logout-all      -                                       -> {}                (encerra todas as sessões)
 //   POST   /auth/password        { currentPassword, newPassword }        -> {}                (encerra as outras sessões)
 //   GET    /auth/me              -                                       -> { user }
-//   GET    /auth/options         -                                       -> { google, captcha } (login com Google ativo; chave do Turnstile ou null)
+//   GET    /auth/options         -                                       -> { google, captcha, emailVerification } (Google ativo; chave do Turnstile ou null; confirmação de e-mail exigida)
+//   POST   /auth/verify-email    { token }                               -> {}                (link do e-mail; VERIFY_INVALID se usado ou vencido)
+//   POST   /auth/verify-email/resend  -                                  -> {}                (novo link; sem confirmar, agendar, fila e avaliar dão EMAIL_NOT_VERIFIED)
 //   GET    /auth/google          (navegação) leva ao Google e volta para auth.html#google_code=... ou #google_error=...
 //   POST   /auth/google/session  { code }                                -> { token, user }   (código de uso único)
 //
@@ -141,7 +143,9 @@ export const api = {
     changePassword: payload => request("/auth/password", { method: "POST", body: payload }),
     me: () => request("/auth/me"),
     options: () => request("/auth/options", { auth: false }),
-    googleSession: code => request("/auth/google/session", { method: "POST", body: { code }, auth: false })
+    googleSession: code => request("/auth/google/session", { method: "POST", body: { code }, auth: false }),
+    verifyEmail: token => request("/auth/verify-email", { method: "POST", body: { token }, auth: false }),
+    resendVerification: () => request("/auth/verify-email/resend", { method: "POST" })
   },
 
   users: {

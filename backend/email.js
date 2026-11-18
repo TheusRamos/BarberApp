@@ -1,0 +1,72 @@
+import { randomBytes } from 'node:crypto';
+import { tokenHash } from './security.js';
+
+// E-mails pela API HTTP do Brevo: o Render bloqueia o envio por SMTP.
+// Sem BREVO_API_KEY, EMAIL_FROM e PUBLIC_URL, o envio fica desligado (como o login com Google e o Turnstile),
+// e a confirmação de e-mail não é exigida.
+export const brevo={
+  apiKey:process.env.BREVO_API_KEY,
+  from:process.env.EMAIL_FROM,
+  fromName:process.env.EMAIL_FROM_NAME || 'Barber',
+  url:'https://api.brevo.com/v3/smtp/email' // os testes trocam por um servidor falso
+};
+export const emailEnabled=()=>Boolean(brevo.apiKey && brevo.from && process.env.PUBLIC_URL);
+
+export async function sendEmail({to,name,subject,html,text}) {
+  const response=await fetch(brevo.url,{method:'POST',signal:AbortSignal.timeout(10000),
+    headers:{'api-key':brevo.apiKey,'Content-Type':'application/json',accept:'application/json'},
+    body:JSON.stringify({sender:{email:brevo.from,name:brevo.fromName},to:[{email:to,name}],
+      subject,htmlContent:html,textContent:text})});
+  if(!response.ok) {
+    const body=await response.json().catch(()=>({}));
+    throw new Error(`Brevo recusou o envio (${response.status} ${body.code || ''}: ${body.message || 'sem detalhes'})`);
+  }
+}
+
+// Token de uso único para links enviados por e-mail. O banco guarda só o hash.
+export async function createEmailToken(db,userId,tipo,seconds) {
+  const token=randomBytes(32).toString('hex');
+  await db.query("INSERT INTO tokens_email(token_hash,usuario_id,tipo,expira_em) VALUES($1,$2,$3,now()+make_interval(secs=>$4))",
+    [tokenHash(token),userId,tipo,seconds]);
+  return token;
+}
+
+// Apaga o token ao usar (não serve duas vezes) e devolve o id do usuário, ou null se for inválido ou vencido.
+export async function useEmailToken(db,token,tipo) {
+  if(typeof token!=='string' || !/^[a-f0-9]{64}$/.test(token)) return null;
+  const row=(await db.query('DELETE FROM tokens_email WHERE token_hash=$1 AND tipo=$2 RETURNING usuario_id,expira_em>now() AS valido',
+    [tokenHash(token),tipo])).rows[0];
+  return row?.valido ? row.usuario_id : null;
+}
+
+const escapeHTML=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const siteUrl=path=>`${process.env.PUBLIC_URL.replace(/\/$/,'')}/${path}`;
+
+// Layout simples, com estilos na própria tag: é o que os programas de e-mail respeitam.
+function layout({greeting,lines,button,url,footer}) {
+  const paragraphs=lines.map(line=>`<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#3a3a35">${line}</p>`).join('');
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
+<body style="margin:0;padding:24px;background:#f4f1ea;font-family:Arial,Helvetica,sans-serif">
+<div style="max-width:520px;margin:0 auto;background:#ffffff;border:1px solid #e3d9bf;border-radius:6px;padding:28px">
+<p style="margin:0 0 18px;font-size:13px;font-weight:bold;letter-spacing:2px;color:#a37a2c">BARBER</p>
+<h1 style="margin:0 0 16px;font-size:20px;color:#282823">${greeting}</h1>
+${paragraphs}
+<p style="margin:22px 0"><a href="${url}" style="display:inline-block;padding:13px 22px;background:#e9be5f;color:#282823;font-weight:bold;text-decoration:none;border-radius:4px">${button}</a></p>
+<p style="margin:0 0 6px;font-size:13px;line-height:1.6;color:#6b6b63">Se o botão não funcionar, copie este endereço no navegador:</p>
+<p style="margin:0 0 20px;font-size:13px;word-break:break-all;color:#6b6b63">${url}</p>
+<p style="margin:0;font-size:12px;line-height:1.6;color:#8a8a80">${footer}</p>
+</div></body></html>`;
+}
+
+// Confirmação de e-mail: link válido por 24 horas, para auth.html#verificar=TOKEN.
+export async function sendVerification(db,user) {
+  const token=await createEmailToken(db,user.id,'verificacao',24*3600);
+  const url=siteUrl(`auth.html#verificar=${token}`);
+  const firstName=String(user.nome).trim().split(/\s+/)[0];
+  const footer='Se você não criou uma conta na Barber, ignore este e-mail.';
+  await sendEmail({to:user.email,name:user.nome,subject:'Confirme seu e-mail na Barber',
+    html:layout({greeting:`Olá, ${escapeHTML(firstName)}!`,button:'Confirmar e-mail',url,footer,
+      lines:['Falta só confirmar seu e-mail para você agendar na Barber.','O link vale por 24 horas.']}),
+    text:`Olá, ${firstName}!\n\nFalta só confirmar seu e-mail para você agendar na Barber.\n`+
+      `Abra este link (vale por 24 horas):\n${url}\n\n${footer}\n`});
+}

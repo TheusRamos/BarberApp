@@ -3,7 +3,8 @@ import { readFile } from 'node:fs/promises';
 export const migrations=[
   {version:1,file:'../schema.sql'},
   {version:2,file:'./002_varios_servicos.sql'},
-  {version:3,file:'./003_login_google.sql'}
+  {version:3,file:'./003_login_google.sql'},
+  {version:4,file:'./004_confirmacao_email.sql'}
 ];
 export const latestVersion=migrations.at(-1).version;
 // Executar dentro de transação: aplica apenas as versões ainda não registradas.
