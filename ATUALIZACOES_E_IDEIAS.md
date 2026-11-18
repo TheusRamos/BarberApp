@@ -121,8 +121,9 @@ Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo ident
 
 ### 023 — Cadastro com e-mail inexistente
 
-- **Estado:** Concluído no código — falta aplicar a migração 5 no Neon, definir `BREVO_WEBHOOK_SECRET` no Render, criar o webhook no Brevo e publicar
+- **Estado:** Concluído — no ar desde 17/11/2026 (commit d40fd8b), com a migração 5 no Neon, `BREVO_WEBHOOK_SECRET` no Render e o webhook transacional criado no Brevo (eventos hard bounce, invalid e blocked)
 - **Registrado em:** 17/11/2026
+- **Concluído em:** 17/11/2026
 - **Objetivo:** Recusar ou corrigir cadastros com e-mail que não existe. Como não há como confirmar uma caixa de e-mail sem enviar uma mensagem, a solução tem três camadas.
 - **Resumo da entrega:**
   - **Domínio:** o cadastro e a troca de e-mail consultam o DNS e recusam domínios que não recebem e-mail (`EMAIL_DOMAIN_INVALID`), como `gmail.cm` ou `gmail.con`. Falha de rede na consulta não barra ninguém.
