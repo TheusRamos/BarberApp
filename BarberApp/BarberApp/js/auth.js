@@ -81,10 +81,100 @@ function setupPasswordToggles() {
 }
 
 // ============================================================
+// SUGESTÃO DE E-MAIL ("gmial.com" → "gmail.com")
+// ============================================================
+
+// Domínios comuns no Brasil. Um domínio parecido com eles (até 2 letras de diferença) provavelmente foi
+// digitado errado. Vários desses erros são domínios reais, registrados por terceiros, que o servidor não
+// tem como recusar (ex.: gmial.com recebe e-mail), por isso a sugestão aparece no formulário.
+const COMMON_DOMAINS = ["gmail.com", "hotmail.com", "outlook.com", "yahoo.com", "yahoo.com.br", "icloud.com",
+  "live.com", "msn.com", "hotmail.com.br", "outlook.com.br", "bol.com.br", "uol.com.br", "terra.com.br"];
+// Domínios reais parecidos com os comuns: não recebem sugestão
+const REAL_DOMAINS = new Set([...COMMON_DOMAINS, "mail.com", "gmx.com", "ymail.com", "me.com", "mac.com",
+  "aol.com", "live.com.br", "ig.com.br", "globo.com"]);
+
+// Quantas letras é preciso trocar, apagar, inserir ou inverter de lugar para ir de "a" até "b"
+function editDistance(a, b) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+    }
+  }
+  return d[a.length][b.length];
+}
+
+function suggestEmail(value) {
+  const [local, domain, extra] = value.trim().toLowerCase().split("@");
+  if (!local || !domain || extra !== undefined || REAL_DOMAINS.has(domain)) return null;
+  let best = null;
+  for (const candidate of COMMON_DOMAINS) {
+    const distance = editDistance(domain, candidate);
+    if (distance <= 2 && (!best || distance < best.distance)) best = { candidate, distance };
+  }
+  return best ? `${local}@${best.candidate}` : null;
+}
+
+// "Você quis dizer fulano@gmail.com?" abaixo do campo; o botão troca o e-mail pela sugestão
+function showEmailSuggestion(inputId) {
+  const input = $(inputId);
+  const box = $(`${inputId}-suggestion`);
+  if (!input || !box) return null;
+  const suggestion = suggestEmail(input.value);
+  box.classList.toggle("hidden", !suggestion);
+  // Mesma sugestão já na tela: não redesenha (senão o botão some debaixo do mouse no meio do clique)
+  if (!suggestion || box.dataset.suggestion === suggestion) return suggestion;
+  box.dataset.suggestion = suggestion;
+  box.replaceChildren();
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "text-btn";
+  button.textContent = suggestion;
+  // Clicar não tira o foco do campo
+  button.addEventListener("mousedown", event => event.preventDefault());
+  button.addEventListener("click", () => {
+    input.value = suggestion;
+    box.classList.add("hidden");
+    delete box.dataset.suggestion;
+    clearError(inputId);
+    input.focus();
+  });
+  box.append("Você quis dizer ", button, "?");
+  return suggestion;
+}
+
+// No envio: com uma sugestão que a pessoa ainda não viu para este valor, mostra e segura o envio uma vez.
+// Se ela enviar de novo sem mudar, o e-mail segue como está.
+const suggestionSeen = {};
+function holdForSuggestion(inputId) {
+  const value = ($(inputId)?.value || "").trim().toLowerCase();
+  if (!showEmailSuggestion(inputId) || suggestionSeen[inputId] === value) return false;
+  suggestionSeen[inputId] = value;
+  setError(inputId, "Confira o e-mail antes de continuar. Se ele estiver certo, envie de novo.");
+  $(inputId)?.focus();
+  return true;
+}
+
+function setupEmailSuggestions() {
+  for (const id of ["register-email", "profile-email-field"]) {
+    $(id)?.addEventListener("blur", () => showEmailSuggestion(id));
+    $(id)?.addEventListener("input", () => {
+      const box = $(`${id}-suggestion`);
+      if (!box) return;
+      box.classList.add("hidden");
+      delete box.dataset.suggestion;
+    });
+  }
+}
+
+// ============================================================
 // CONFIRMAÇÃO DE E-MAIL
 // ============================================================
 
-// Aviso no Perfil para o cliente que ainda não confirmou o e-mail (só quando o servidor exige a confirmação).
+// Perfil do cliente que ainda não confirmou o e-mail (só quando o servidor exige a confirmação):
+// aviso, campo de e-mail liberado para correção e consulta periódica enquanto a confirmação não chega.
 async function updateVerifyNotice(user) {
   const notice = $("verify-notice");
   if (!notice) return;
@@ -96,8 +186,48 @@ async function updateVerifyNotice(user) {
       required = false;
     }
   }
-  if ($("verify-notice-email")) $("verify-notice-email").textContent = user?.email || "";
+  // O e-mail voltou (aviso do Brevo): o endereço não existe, então reenviar não adianta; é preciso corrigir
+  const bounced = required && Boolean(user.emailBounced);
   notice.classList.toggle("hidden", !required);
+  notice.querySelectorAll(".verify-email").forEach(el => (el.textContent = user?.email || ""));
+  notice.querySelector(".verify-title").textContent = bounced ? "Esse e-mail parece não existir" : "Confirme seu e-mail para agendar";
+  notice.querySelector(".verify-normal")?.classList.toggle("hidden", bounced);
+  notice.querySelector(".verify-bounced")?.classList.toggle("hidden", !bounced);
+  $("verify-resend-btn")?.classList.toggle("hidden", bounced);
+
+  const emailField = $("profile-email-field");
+  if (emailField) emailField.disabled = !required;
+  $("profile-email-hint")?.classList.toggle("hidden", !required);
+
+  if (required && !bounced) watchEmailStatus();
+  else stopEmailWatch();
+}
+
+// Enquanto espera a confirmação, consulta a conta a cada 8 segundos, por uns 3 minutos: o aviso de
+// e-mail que voltou (chega segundos depois do envio) ou a confirmação feita em outro aparelho aparecem sozinhos.
+let emailWatch = null;
+function watchEmailStatus() {
+  stopEmailWatch();
+  let rounds = 0;
+  emailWatch = setInterval(async () => {
+    if (++rounds > 22) return stopEmailWatch();
+    try {
+      const { user } = await api.auth.me();
+      if (user.emailVerified || user.emailBounced) {
+        stopEmailWatch();
+        currentUser = user;
+        updateVerifyNotice(user);
+        if (user.emailVerified) showToast("E-mail confirmado! Agora você já pode agendar.");
+      }
+    } catch {
+      // sem internet: tenta de novo na próxima volta
+    }
+  }, 8000);
+}
+
+function stopEmailWatch() {
+  clearInterval(emailWatch);
+  emailWatch = null;
 }
 
 async function handleResendVerification() {
@@ -498,6 +628,16 @@ async function handleProfileSave(event) {
     return;
   }
 
+  // E-mail corrigido (só antes da confirmação, quando o campo fica liberado)
+  const emailField = $("profile-email-field");
+  const newEmail = emailField && !emailField.disabled ? emailField.value.trim() : "";
+  const emailChanged = Boolean(newEmail) && newEmail.toLowerCase() !== (currentUser?.email || "").toLowerCase();
+  if (emailChanged && !isValidEmail(newEmail)) {
+    setError("profile-email-field", "Informe um email válido.");
+    return;
+  }
+  if (emailChanged && holdForSuggestion("profile-email-field")) return;
+
   if (!currentUser) {
     showToast("Sessão expirada. Faça login novamente.");
     return;
@@ -509,18 +649,31 @@ async function handleProfileSave(event) {
   try {
     const payload = { name, phone };
     if (pendingPhotoBase64) payload.photoURL = pendingPhotoBase64;
+    if (emailChanged) payload.email = newEmail;
 
-    currentUser = await api.users.update(currentUser.id, payload);
+    const updated = await api.users.update(currentUser.id, payload);
+    currentUser = updated;
 
     const nameDisplay = $("profile-name-display");
     if (nameDisplay) nameDisplay.textContent = name;
 
     pendingPhotoBase64 = null;
-    showToast("Perfil atualizado com sucesso!");
+    if (emailChanged) {
+      if ($("profile-email-display")) $("profile-email-display").textContent = updated.email;
+      if (emailField) emailField.value = updated.email;
+      updateVerifyNotice(updated);
+      showToast(updated.emailSent === false
+        ? "E-mail atualizado, mas não conseguimos enviar o link agora. Use \"Reenviar link\" daqui a pouco."
+        : "E-mail atualizado! Enviamos um novo link de confirmação.");
+    } else {
+      showToast("Perfil atualizado com sucesso!");
+    }
     if (returnHomeAfterSave) setTimeout(() => (window.location.href = "index.html"), 700);
   } catch (error) {
     console.error("Erro ao salvar perfil:", error);
-    showToast(translateApiError(error));
+    // Problemas do e-mail aparecem no próprio campo
+    if (["EMAIL_DOMAIN_INVALID", "EMAIL_IN_USE", "EMAIL_LOCKED"].includes(error.code)) setError("profile-email-field", translateApiError(error));
+    else showToast(translateApiError(error));
   } finally {
     if (saveBtn) saveBtn.disabled = false;
   }
@@ -631,6 +784,7 @@ async function handleRegister(event) {
   if (password !== confirm)                           { setError("register-password-confirm", "As senhas não coincidem."); valid = false; }
   if (captchaSiteKey && !captcha.register.token)      { setError("register-captcha", "Confirme que você não é um robô."); valid = false; }
   if (!valid) return;
+  if (holdForSuggestion("register-email")) return;
 
   const submitBtn = submitButton(event);
   if (submitBtn) submitBtn.disabled = true;
@@ -648,7 +802,9 @@ async function handleRegister(event) {
   } catch (error) {
     console.error("Erro no cadastro:", error);
     resetCaptcha("register");
-    showToast(translateApiError(error));
+    // Domínio que não recebe e-mail ou e-mail já cadastrado: o aviso aparece no próprio campo
+    if (["EMAIL_DOMAIN_INVALID", "EMAIL_IN_USE"].includes(error.code)) setError("register-email", translateApiError(error));
+    else showToast(translateApiError(error));
     if (submitBtn) submitBtn.disabled = false;
   }
 }
@@ -747,6 +903,7 @@ async function loadCurrentUser() {
 
 document.addEventListener("DOMContentLoaded", async () => {
   setupPasswordToggles();
+  setupEmailSuggestions();
   $("tab-login")?.addEventListener("click", showLogin);
   $("tab-register")?.addEventListener("click", showRegister);
   $("login-register-link")?.addEventListener("click", goToRegisterFromLogin);

@@ -115,9 +115,20 @@ Os problemas abaixo foram relatados e ainda precisam ser investigados. As causas
 
 ## Outras ideias pendentes
 
-Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **023**.
+Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **024**.
 
 ## Atualizações concluídas
+
+### 023 — Cadastro com e-mail inexistente
+
+- **Estado:** Concluído no código — falta aplicar a migração 5 no Neon, definir `BREVO_WEBHOOK_SECRET` no Render, criar o webhook no Brevo e publicar
+- **Registrado em:** 17/11/2026
+- **Objetivo:** Recusar ou corrigir cadastros com e-mail que não existe. Como não há como confirmar uma caixa de e-mail sem enviar uma mensagem, a solução tem três camadas.
+- **Resumo da entrega:**
+  - **Domínio:** o cadastro e a troca de e-mail consultam o DNS e recusam domínios que não recebem e-mail (`EMAIL_DOMAIN_INVALID`), como `gmail.cm` ou `gmail.con`. Falha de rede na consulta não barra ninguém.
+  - **Sugestão:** o formulário sugere a correção de domínios parecidos com os comuns no Brasil (`gmial.com` → `gmail.com`) e segura o primeiro envio. Na conferência com o DNS real, `gmial.com` e `hotmial.com` recebem e-mail (domínios de terceiros), por isso a sugestão é necessária.
+  - **Aviso do Brevo (webhook):** quando o e-mail volta como inexistente (`hard_bounce`, `invalid_email`, `blocked`), a conta não confirmada é marcada (migração 5: `usuarios.email_recusado_em`). O Início e o Perfil mostram "Esse e-mail parece não existir" e se atualizam sozinhos por alguns minutos; o cliente corrige o e-mail no Perfil (permitido só antes da confirmação), e um novo link é enviado. O webhook só aceita chamadas com o segredo `BREVO_WEBHOOK_SECRET`.
+  - Testes: o de integração cobre os domínios (DNS falso), o webhook (com e sem segredo, conta confirmada intocada) e a troca de e-mail (domínio ruim, e-mail de outra conta, admin, link antigo invalidado, bloqueio depois de confirmar). Conferido no navegador (11 verificações), o que achou e corrigiu um clique perdido na sugestão.
 
 ### 022 — Recuperação de senha por e-mail (fase 4 da lista `alterações.md`)
 

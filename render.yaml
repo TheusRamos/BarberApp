@@ -42,3 +42,5 @@ services:
         sync: false
       - key: EMAIL_FROM
         sync: false
+      - key: BREVO_WEBHOOK_SECRET
+        sync: false

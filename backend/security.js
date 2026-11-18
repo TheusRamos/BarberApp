@@ -72,7 +72,7 @@ export function limiter(max, windowMs) {
 export const tokenHash = token => createHash('sha256').update(token).digest('hex');
 export const userDTO = u => ({id:String(u.id),name:u.nome,email:u.email,phone:u.telefone,
   role:u.tipo==='administrador'?'admin':'client',photoURL:u.foto || '',hasPassword:Boolean(u.senha),
-  emailVerified:Boolean(u.email_verificado)});
+  emailVerified:Boolean(u.email_verificado),emailBounced:Boolean(u.email_recusado_em)});
 export async function session(db,user) {
   const token=randomBytes(32).toString('hex');
   await db.query('INSERT INTO sessoes(token_hash,usuario_id) VALUES($1,$2)',[tokenHash(token),user.id]);

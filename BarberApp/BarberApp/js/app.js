@@ -562,11 +562,44 @@ function updateBookingAccess() {
   if (!notice || !fieldset) return;
 
   notice.classList.toggle("hidden", Boolean(currentUser) || isOffline);
-  // Sem o e-mail confirmado, o aviso explica e oferece um novo link
+  // Sem o e-mail confirmado, o aviso explica e oferece um novo link. Se o e-mail voltou (o endereço
+  // não existe), reenviar não adianta: o aviso leva ao Perfil para corrigir o e-mail.
   const verifyNotice = $("verify-required");
-  verifyNotice?.classList.toggle("hidden", !currentUser || isOffline || !mustConfirmEmail);
-  if ($("verify-required-email")) $("verify-required-email").textContent = currentUser?.email || "";
+  if (verifyNotice) {
+    const bounced = Boolean(currentUser?.emailBounced);
+    verifyNotice.classList.toggle("hidden", !currentUser || isOffline || !mustConfirmEmail);
+    verifyNotice.querySelectorAll(".verify-email").forEach(el => (el.textContent = currentUser?.email || ""));
+    verifyNotice.querySelector(".verify-title").textContent = bounced ? "Esse e-mail parece não existir" : "Confirme seu e-mail para agendar";
+    verifyNotice.querySelector(".verify-normal")?.classList.toggle("hidden", bounced);
+    verifyNotice.querySelector(".verify-bounced")?.classList.toggle("hidden", !bounced);
+    $("verify-resend-btn")?.classList.toggle("hidden", bounced);
+    $("verify-fix-link")?.classList.toggle("hidden", !bounced);
+  }
   fieldset.disabled = !currentUser || isOffline || mustConfirmEmail;
+}
+
+// Enquanto espera a confirmação, consulta a conta a cada 8 segundos, por uns 3 minutos: o aviso de
+// e-mail que voltou (chega segundos depois do envio) ou a confirmação feita em outro aparelho aparecem sozinhos.
+let emailWatch = null;
+function watchEmailStatus() {
+  clearInterval(emailWatch);
+  if (!mustConfirmEmail || currentUser?.emailBounced || !$("verify-required")) return;
+  let rounds = 0;
+  emailWatch = setInterval(async () => {
+    if (++rounds > 22) return clearInterval(emailWatch);
+    try {
+      const { user } = await api.auth.me();
+      if (user.emailVerified || user.emailBounced) {
+        clearInterval(emailWatch);
+        currentUser = user;
+        mustConfirmEmail = !user.emailVerified;
+        updateBookingAccess();
+        if (user.emailVerified) showToast("E-mail confirmado! Agora você já pode agendar.");
+      }
+    } catch {
+      // sem internet: tenta de novo na próxima volta
+    }
+  }, 8000);
 }
 
 async function resendVerification() {
@@ -1562,6 +1595,7 @@ async function initAuth() {
   // Cliente: o filtro de data já começa em hoje (mostra os agendamentos de hoje em diante)
   filterDatePicker?.setValue(isAdmin ? "" : getTodayISO(), { silent: true });
   updateOfflineState();
+  watchEmailStatus();
   prefillUserData();
   renderCommentsList(commentsCache);
   renderAdminCommentReview();

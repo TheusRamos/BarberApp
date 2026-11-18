@@ -109,8 +109,10 @@
           <div id="verify-notice" class="verify-notice hidden" role="status">
             <span class="material-symbols-outlined" aria-hidden="true">mark_email_unread</span>
             <div>
-              <strong>Confirme seu e-mail para agendar</strong>
-              <p>Enviamos um link para <b id="verify-notice-email"></b>. Não chegou? Confira a caixa de spam ou de lixo eletrônico.</p>
+              <strong class="verify-title">Confirme seu e-mail para agendar</strong>
+              <p class="verify-normal">Enviamos um link para <b class="verify-email"></b>. Não chegou? Confira a caixa de spam ou de lixo eletrônico. Digitou o e-mail errado? Corrija no campo Email, abaixo, e salve.</p>
+              <!-- O Brevo avisou que o e-mail voltou: o endereço não existe -->
+              <p class="verify-bounced hidden">Não conseguimos entregar a confirmação em <b class="verify-email"></b>: esse endereço parece não existir. Corrija o e-mail no campo abaixo e salve para receber um novo link.</p>
               <button type="button" class="text-btn" id="verify-resend-btn">Reenviar link</button>
             </div>
           </div>
@@ -148,7 +150,11 @@
 
             <div class="form-group">
               <label for="profile-email-field">Email</label>
-              <input type="email" id="profile-email-field" disabled autocomplete="off" />
+              <!-- Só pode ser corrigido enquanto o e-mail não está confirmado (o auth.js libera) -->
+              <input type="email" id="profile-email-field" disabled autocomplete="email" maxlength="120" />
+              <small class="field-error" id="error-profile-email-field"></small>
+              <p class="email-suggestion hidden" id="profile-email-field-suggestion"></p>
+              <small class="field-hint hidden" id="profile-email-hint">Enquanto o e-mail não for confirmado, você pode corrigi-lo. Ao salvar, enviamos um novo link.</small>
             </div>
 
             <div class="form-actions">
@@ -262,6 +268,8 @@
               <label for="register-email">Email</label>
               <input type="email" id="register-email" required maxlength="120" autocomplete="email" />
               <small class="field-error" id="error-register-email"></small>
+              <!-- "Você quis dizer ...@gmail.com?", para erro de digitação no domínio (o auth.js preenche) -->
+              <p class="email-suggestion hidden" id="register-email-suggestion"></p>
             </div>
 
             <div class="form-group">

@@ -203,8 +203,10 @@
           <div class="login-required-body">
             <span class="material-symbols-outlined">mark_email_unread</span>
             <div>
-              <strong>Confirme seu e-mail para agendar</strong>
-              <p>Enviamos um link para <b id="verify-required-email"></b>. Não chegou? Confira a caixa de spam ou de lixo eletrônico.</p>
+              <strong class="verify-title">Confirme seu e-mail para agendar</strong>
+              <p class="verify-normal">Enviamos um link para <b class="verify-email"></b>. Não chegou? Confira a caixa de spam ou de lixo eletrônico.</p>
+              <!-- O Brevo avisou que o e-mail voltou: o endereço não existe -->
+              <p class="verify-bounced hidden">Não conseguimos entregar a confirmação em <b class="verify-email"></b>: esse endereço parece não existir. Corrija o e-mail no seu Perfil para receber um novo link.</p>
             </div>
           </div>
           <div class="login-required-actions">
@@ -212,6 +214,10 @@
               <span class="material-symbols-outlined">forward_to_inbox</span>
               Reenviar link
             </button>
+            <a href="auth.html" class="secondary-btn hidden" id="verify-fix-link">
+              <span class="material-symbols-outlined">edit</span>
+              Corrigir e-mail
+            </a>
           </div>
         </div>
 

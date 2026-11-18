@@ -205,6 +205,7 @@ Os scripts de inicialização, desenvolvimento, migração e criação de admini
 | `BREVO_API_KEY` | Chave da API do Brevo, para enviar e-mails | Sem padrão. Com `EMAIL_FROM` e `PUBLIC_URL`, ativa a confirmação de e-mail; nunca coloque no frontend nem no repositório |
 | `EMAIL_FROM` | Remetente dos e-mails, verificado no Brevo | Sem padrão. Com e-mail grátis (Gmail etc.), o Brevo troca o remetente por um endereço dele |
 | `EMAIL_FROM_NAME` | Nome do remetente | `Barber` |
+| `BREVO_WEBHOOK_SECRET` | Segredo que o Brevo envia no cabeçalho `X-Webhook-Token` ao avisar que um e-mail voltou | Sem padrão. Sem ele, o webhook recusa tudo e o aviso de e-mail inexistente não aparece; nunca coloque no repositório |
 | `MAX_ACTIVE_BOOKINGS` | Máximo de reservas ativas futuras + pedidos na fila por cliente | `3`; administradores não têm limite |
 | `ADMIN_NAME` | Nome da nova conta administrativa | Apenas em `admin:create`; mínimo de 3 caracteres |
 | `ADMIN_EMAIL` | E-mail da nova conta administrativa | Apenas em `admin:create`; único |
@@ -304,7 +305,7 @@ Ao sair de um status ativo, a reserva libera o intervalo e o backend processa a 
 
 | Tabela | Responsabilidade |
 | --- | --- |
-| `usuarios` | Identidade, contato, senha ou id do Google, perfil, foto e confirmação do e-mail |
+| `usuarios` | Identidade, contato, senha ou id do Google, perfil, foto, confirmação do e-mail e data em que o e-mail voltou como inexistente |
 | `sessoes` | Hash do token, usuário e validade |
 | `tokens_email` | Links enviados por e-mail (confirmação de e-mail e nova senha): hash do token, usuário, tipo e validade; uso único |
 | `servicos` | Nome, preço, duração padrão e ícone |
@@ -320,9 +321,9 @@ Ao sair de um status ativo, a reserva libera o intervalo e o backend processa a 
 
 `slots` é uma **consulta de ocupações**, não uma tabela separada. `horarios.disponivel` representa bloqueio manual; a ocupação resulta dos agendamentos ativos. Não existe rota administrativa de bloqueio manual atualmente.
 
-`npm run db:migrate` aplica, em uma transação e sob trava, as versões listadas em [backend/migrations/index.js](backend/migrations/index.js) que ainda não constam em `schema_migrations`: a versão `1` é `schema.sql`, a versão `2` é [002_varios_servicos.sql](backend/migrations/002_varios_servicos.sql), a versão `3` é [003_login_google.sql](backend/migrations/003_login_google.sql) e a versão `4` é [004_confirmacao_email.sql](backend/migrations/004_confirmacao_email.sql). Reexecutar o comando não reaplica versões já registradas, e o servidor só inicia quando a versão mais recente estiver aplicada. **Nunca edite uma migração já aplicada**: crie um novo arquivo, acrescente-o à lista e registre a mudança aqui. Executar o SQL diretamente repetidas vezes não substitui o comando de migração.
+`npm run db:migrate` aplica, em uma transação e sob trava, as versões listadas em [backend/migrations/index.js](backend/migrations/index.js) que ainda não constam em `schema_migrations`: a versão `1` é `schema.sql`, a versão `2` é [002_varios_servicos.sql](backend/migrations/002_varios_servicos.sql), a versão `3` é [003_login_google.sql](backend/migrations/003_login_google.sql), a versão `4` é [004_confirmacao_email.sql](backend/migrations/004_confirmacao_email.sql) e a versão `5` é [005_email_recusado.sql](backend/migrations/005_email_recusado.sql). Reexecutar o comando não reaplica versões já registradas, e o servidor só inicia quando a versão mais recente estiver aplicada. **Nunca edite uma migração já aplicada**: crie um novo arquivo, acrescente-o à lista e registre a mudança aqui. Executar o SQL diretamente repetidas vezes não substitui o comando de migração.
 
-A versão `2` copia o serviço de cada agendamento e pedido de fila existentes para as novas tabelas, sem alterar valores ou durações registrados. A versão `3` acrescenta `usuarios.google_id` (único) e torna `senha` e `telefone` opcionais; toda conta precisa ter senha ou id do Google. A versão `4` acrescenta `usuarios.email_verificado` (as contas que já existiam ficam confirmadas; as novas, não) e a tabela `tokens_email`.
+A versão `2` copia o serviço de cada agendamento e pedido de fila existentes para as novas tabelas, sem alterar valores ou durações registrados. A versão `3` acrescenta `usuarios.google_id` (único) e torna `senha` e `telefone` opcionais; toda conta precisa ter senha ou id do Google. A versão `4` acrescenta `usuarios.email_verificado` (as contas que já existiam ficam confirmadas; as novas, não) e a tabela `tokens_email`. A versão `5` acrescenta `usuarios.email_recusado_em`, preenchida pelo webhook do Brevo quando o e-mail de uma conta não confirmada volta como inexistente.
 
 Antes de migrar um banco legado:
 
@@ -366,7 +367,8 @@ Todas as rotas abaixo são relativas a `/api`.
 | GET | `/auth/google/callback` | Retorno do Google; redireciona a `auth.html#google_code=...` ou `#google_error=...` |
 | POST | `/auth/google/session` | Público; troca o código de uso único (1 minuto) por `{ token, user }` |
 | GET | `/users` | Admin; usuários, incluindo administradores |
-| PATCH | `/users/:id` | Titular ou admin; nome, telefone e foto |
+| PATCH | `/users/:id` | Titular ou admin; nome, telefone e foto. O próprio cliente também troca o `email` enquanto ele não está confirmado: a resposta traz `emailSent` e um novo link é enviado (3 por hora) |
+| POST | `/webhooks/brevo` | Só o Brevo, com o cabeçalho `X-Webhook-Token`; eventos `hard_bounce`, `invalid_email` e `blocked` marcam como inexistente o e-mail de contas não confirmadas |
 | DELETE | `/users/:id` | Admin; exclui cliente sem vínculos impeditivos |
 | GET | `/services` | Público; serviços |
 | POST / PATCH / DELETE | `/services` / `/services/:id` / `/services/:id` | Admin; criar, editar ou remover serviço |
@@ -434,11 +436,11 @@ Invoke-RestMethod http://127.0.0.1:3000/api/health
 
 | HTTP | Exemplos de código / motivo |
 | --- | --- |
-| 400 | `VALIDATION_ERROR`, `WEAK_PASSWORD`, `WRONG_PASSWORD` (senha atual incorreta na troca), `VERIFY_INVALID` (link de confirmação usado, vencido ou inválido), `RESET_INVALID` (link de nova senha usado, vencido ou inválido), `PHONE_REQUIRED` (reserva ou fila sem telefone cadastrado), `GOOGLE_FAILED` (código do Google inválido ou expirado), `CAPTCHA_REQUIRED` (verificação anti-robô ausente ou recusada), `BAD_REQUEST` (JSON malformado); campos ou regras inválidos |
+| 400 | `VALIDATION_ERROR`, `WEAK_PASSWORD`, `WRONG_PASSWORD` (senha atual incorreta na troca), `VERIFY_INVALID` (link de confirmação usado, vencido ou inválido), `RESET_INVALID` (link de nova senha usado, vencido ou inválido), `EMAIL_DOMAIN_INVALID` (domínio do e-mail não recebe mensagens), `PHONE_REQUIRED` (reserva ou fila sem telefone cadastrado), `GOOGLE_FAILED` (código do Google inválido ou expirado), `CAPTCHA_REQUIRED` (verificação anti-robô ausente ou recusada), `BAD_REQUEST` (JSON malformado); campos ou regras inválidos |
 | 401 | `UNAUTHORIZED`, `INVALID_CREDENTIALS`; sessão ausente/expirada ou login inválido |
-| 403 | `FORBIDDEN`; perfil ou titularidade sem permissão. `EMAIL_NOT_VERIFIED`: com a confirmação de e-mail ativa, cliente sem e-mail confirmado tentou agendar, entrar na fila ou avaliar |
+| 403 | `FORBIDDEN`; perfil ou titularidade sem permissão. `EMAIL_LOCKED`: e-mail já confirmado (ou de outra pessoa) não pode ser trocado. `EMAIL_NOT_VERIFIED`: com a confirmação de e-mail ativa, cliente sem e-mail confirmado tentou agendar, entrar na fila ou avaliar |
 | 404 | `NOT_FOUND`; recurso ou rota inexistente |
-| 409 | `SLOT_TAKEN`, `SLOT_AVAILABLE`, `ALREADY_ON_WAITLIST`, `BOOKING_LIMIT`, `COMMENT_PENDING`, `EMAIL_IN_USE`, `DUPLICATE`, `IN_USE`, `ALREADY_VERIFIED` |
+| 409 | `SLOT_TAKEN`, `SLOT_AVAILABLE`, `ALREADY_ON_WAITLIST`, `BOOKING_LIMIT`, `COMMENT_PENDING`, `EMAIL_IN_USE`, `DUPLICATE`, `IN_USE`, `ALREADY_VERIFIED`, `EMAIL_BOUNCED` (reenvio para um e-mail que voltou como inexistente) |
 | 413 | `PAYLOAD_TOO_LARGE`; corpo JSON excede o limite |
 | 429 | `RATE_LIMIT`; limite de login (por IP, ou por conta quando o Turnstile está desligado), de cadastro, de troca de senha, de reenvio de confirmação (3 por hora), de pedidos de nova senha (10 por hora por IP) ou de uso de links (30 a cada 15 minutos por IP) atingido |
 | 500 | Falha interna; mensagem genérica ao cliente |
@@ -533,6 +535,14 @@ Os e-mails saem pela API HTTP do Brevo, porque o Render bloqueia o envio por SMT
 3. No Render, em **Environment**, defina `BREVO_API_KEY` e `EMAIL_FROM` antes de publicar a versão com a migração 4, para que nenhuma conta nova fique sem o e-mail de confirmação. `PUBLIC_URL` já está no `render.yaml`.
 
 O mesmo envio atende a **recuperação de senha**: o link **Esqueci minha senha**, no login, pede o e-mail e sempre mostra a mesma mensagem, exista ou não a conta. O e-mail sai depois da resposta, para que nem o texto nem o tempo revelem quem tem cadastro. O link (`auth.html#redefinir=...`) vale por 1 hora e uma única vez; a nova senha encerra todas as sessões, confirma o e-mail e libera o bloqueio de login. Limites: 3 e-mails por conta e 10 pedidos por IP a cada hora. Sem o envio configurado, o link **Esqueci minha senha** não aparece.
+
+**E-mails inexistentes.** Não há como saber, no instante do cadastro, se uma caixa de e-mail existe sem enviar uma mensagem. Por isso são três camadas:
+
+1. **Domínio:** o cadastro (e a troca de e-mail) consulta o DNS e recusa domínios que não recebem e-mail (`EMAIL_DOMAIN_INVALID`), como `gmail.cm`. Falha de rede na consulta não barra ninguém.
+2. **Sugestão:** o formulário sugere a correção de domínios parecidos com os mais comuns (`gmial.com` → `gmail.com`) e segura o primeiro envio. Muitos desses erros são domínios reais, registrados por terceiros, que o DNS aceita.
+3. **Aviso do Brevo:** quando o e-mail volta porque o endereço não existe, o Brevo chama `POST /api/webhooks/brevo`. A conta não confirmada passa a mostrar "Esse e-mail parece não existir" (o Início e o Perfil se atualizam sozinhos por alguns minutos), e o cliente corrige o e-mail no Perfil, que envia um novo link.
+
+Para o item 3, defina `BREVO_WEBHOOK_SECRET` no Render (um texto aleatório) e crie no Brevo um webhook transacional para `PUBLIC_URL/api/webhooks/brevo`, com os eventos **Hard bounce**, **Invalid** e **Blocked** e o cabeçalho `X-Webhook-Token` com o mesmo segredo. Pela API: `POST https://api.brevo.com/v3/webhooks` com `type: "transactional"`, `events: ["hardBounce","invalid","blocked"]` e `headers: [{ "key": "X-Webhook-Token", "value": "<segredo>" }]`.
 
 Sem um domínio próprio, o remetente é um e-mail grátis (Gmail etc.), que o Brevo não consegue autenticar: ele troca o remetente por um endereço dele, e as mensagens tendem a cair no spam. Por isso os avisos pedem para conferir a caixa de spam. Um domínio próprio, autenticado no Brevo, resolve. Sem `BREVO_API_KEY` e `EMAIL_FROM`, nada é enviado e a confirmação não é exigida.
 

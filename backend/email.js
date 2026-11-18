@@ -1,5 +1,27 @@
 import { randomBytes } from 'node:crypto';
+import { Resolver } from 'node:dns/promises';
 import { tokenHash } from './security.js';
+
+// Consulta de DNS do domínio do e-mail (os testes trocam por respostas fixas).
+const resolver=new Resolver({timeout:3000,tries:2});
+export const mailDns={
+  resolveMx:domain=>resolver.resolveMx(domain),
+  resolveAddress:domain=>Promise.any([resolver.resolve4(domain),resolver.resolve6(domain)])
+};
+
+// O domínio do e-mail recebe mensagens? Não, se ele não existe ou declara que não recebe e-mail
+// (MX nulo). Sem registro MX, o próprio domínio pode receber se tiver endereço IP (regra antiga do SMTP).
+// Falha de rede ou tempo esgotado na consulta não barra ninguém.
+export async function mailDomainExists(address) {
+  const domain=address.split('@')[1];
+  try {
+    return (await mailDns.resolveMx(domain)).some(record=>record.exchange && record.exchange!=='.');
+  } catch(error) {
+    if(error.code==='ENOTFOUND') return false;
+    if(error.code==='ENODATA') return mailDns.resolveAddress(domain).then(()=>true,()=>false);
+    return true;
+  }
+}
 
 // E-mails pela API HTTP do Brevo: o Render bloqueia o envio por SMTP.
 // Sem BREVO_API_KEY, EMAIL_FROM e PUBLIC_URL, o envio fica desligado (como o login com Google e o Turnstile),

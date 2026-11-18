@@ -656,6 +656,13 @@ button:disabled,
   color: var(--text-muted);
 }
 
+/* "Você quis dizer fulano@gmail.com?", logo abaixo do campo de e-mail */
+.email-suggestion {
+  margin: -2px 0 0 3px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
 /* Em "Recuperar senha" e "Nova senha", somem as abas e o botão do Google */
 #auth-panel[data-mode="forgot"] .auth-tabs,
 #auth-panel[data-mode="forgot"] #google-login,

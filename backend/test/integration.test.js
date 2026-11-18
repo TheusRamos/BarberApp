@@ -12,14 +12,27 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
   process.env.GOOGLE_CLIENT_ID='cliente-teste';
   process.env.GOOGLE_CLIENT_SECRET='segredo-teste';
   process.env.PUBLIC_URL='http://127.0.0.1:3000';
+  process.env.BREVO_WEBHOOK_SECRET='segredo-webhook';
   const {pool,transaction}=await import('../db.js');
   const {app}=await import('../app.js');
   const {hashPassword}=await import('../security.js');
   const {runMigrations}=await import('../migrations/index.js');
   const {google}=await import('../google.js');
   const {turnstile}=await import('../captcha.js');
-  const {brevo}=await import('../email.js');
+  const {brevo,mailDns}=await import('../email.js');
   let server,fakeGoogle,fakeTurnstile,fakeBrevo;
+  // DNS falso, sem depender da internet: ".invalid" não existe; "semcorreio.test" existe, mas sem MX nem IP;
+  // "nulo.test" declara que não recebe e-mail (MX nulo); "so-ip.test" não tem MX, mas tem IP (recebe).
+  const dnsError=code=>Object.assign(new Error(code),{code});
+  Object.assign(mailDns,{
+    resolveMx:async domain=>{
+      if(domain.endsWith('.invalid')) throw dnsError('ENOTFOUND');
+      if(['semcorreio.test','so-ip.test'].includes(domain)) throw dnsError('ENODATA');
+      if(domain==='nulo.test') return [{exchange:'',priority:0}];
+      return [{exchange:`mx.${domain}`,priority:10}];
+    },
+    resolveAddress:async domain=>{ if(domain==='so-ip.test') return ['192.0.2.10']; throw dnsError('ENODATA'); }
+  });
   try {
     const tables=await pool.query("SELECT 1 FROM information_schema.tables WHERE table_schema='public' LIMIT 1");
     assert.equal(tables.rowCount,0,'TEST_DATABASE_URL precisa apontar para um banco vazio.');
@@ -38,6 +51,13 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
     assert.equal(a.user.role,'client');
     assert.equal((await call('/users','GET',undefined,a.token)).status,403);
     assert.equal((await call('/auth/register','POST',{name:'Outro',email:'A@test.com',phone:'11944444444',password:'senha123'})).status,409);
+    // Domínio que não recebe e-mail é recusado no cadastro; sem MX, mas com IP, é aceito.
+    // (Um IP próprio, para não gastar o limite de 10 cadastros por hora do IP local.)
+    const registerFrom=body=>fetch(base+'/auth/register',{method:'POST',headers:{'Content-Type':'application/json','X-Client-IP':'198.18.0.1'},
+      body:JSON.stringify(body)}).then(async r=>({status:r.status,body:await r.json()}));
+    for(const address of ['x@gmail.invalid','x@semcorreio.test','x@nulo.test'])
+      assert.equal((await registerFrom({name:'Domínio Ruim',email:address,phone:'11944444444',password:'senha123'})).body.code,'EMAIL_DOMAIN_INVALID',address);
+    assert.equal((await registerFrom({name:'Só IP',email:'x@so-ip.test',phone:'11944444445',password:'senha123'})).status,201);
     const service=await call('/services','POST',{name:'Corte',price:45,duration:30},admin);assert.equal(service.status,201);
     const barber=(await call('/barbeiros','POST',{name:'Barbeiro',services:{Corte:30},diasDisponiveis:[0,1,2,3,4,5,6],horarioInicio:'09:00',horarioFim:'20:00'},admin)).body;
     const date=(await pool.query("SELECT (current_date+2)::text AS day")).rows[0].day;
@@ -259,6 +279,32 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
     assert.equal(failed.status,201);assert.equal(failed.body.emailSent,false);
     const resendFailed=(await call('/auth/verify-email/resend','POST',{},failed.body.token)).body;
     assert.equal(resendFailed.code,'EMAIL_FAILED');assert.match(resendFailed.message,/enviar o e-mail/);
+    // E-mail que voltou como inexistente (webhook do Brevo): só com o segredo; marca só contas não confirmadas
+    const typo=await post('/auth/register',{name:'Cliente Digitou Errado',email:'errado@test.com',phone:'11930303030',password:'senha123'},'192.0.2.3');
+    assert.equal(typo.status,201);
+    const typoMail=mails.at(-1);
+    const webhook=(body,secret='segredo-webhook')=>fetch(base+'/webhooks/brevo',{method:'POST',
+      headers:{'Content-Type':'application/json','X-Webhook-Token':secret},body:JSON.stringify(body)}).then(r=>r.status);
+    assert.equal(await webhook({event:'hard_bounce',email:'errado@test.com'},'chute'),401);
+    assert.equal(await webhook({event:'delivered',email:'errado@test.com'}),200);
+    assert.equal((await call('/auth/me','GET',undefined,typo.body.token)).body.user.emailBounced,false,'evento de entrega não marca');
+    assert.equal(await webhook({event:'hard_bounce',email:'ERRADO@test.com',reason:'mailbox does not exist'}),200);
+    assert.equal((await call('/auth/me','GET',undefined,typo.body.token)).body.user.emailBounced,true);
+    assert.equal(await webhook({event:'invalid_email',email:'novo@test.com'}),200);
+    assert.equal((await call('/auth/me','GET',undefined,newbie.body.token)).body.user.emailBounced,false,'conta confirmada não é marcada');
+    assert.equal((await call('/auth/verify-email/resend','POST',{},typo.body.token)).body.code,'EMAIL_BOUNCED');
+    // Corrigir o e-mail: só antes de confirmar, com domínio que recebe e sem repetir e-mail de outra conta
+    const fix=body=>call(`/users/${typo.body.user.id}`,'PATCH',body,typo.body.token);
+    assert.equal((await fix({email:'certo@gmail.invalid'})).body.code,'EMAIL_DOMAIN_INVALID');
+    assert.equal((await fix({email:'b@test.com'})).body.code,'EMAIL_IN_USE');
+    assert.equal((await call(`/users/${typo.body.user.id}`,'PATCH',{email:'outro@test.com'},admin)).body.code,'EMAIL_LOCKED');
+    const fixed=await fix({email:'certo@test.com'});
+    assert.equal(fixed.status,200);
+    assert.deepEqual([fixed.body.email,fixed.body.emailBounced,fixed.body.emailVerified,fixed.body.emailSent],['certo@test.com',false,false,true]);
+    assert.equal(mails.at(-1).to[0].email,'certo@test.com');
+    assert.equal((await call('/auth/verify-email','POST',{token:linkToken(typoMail)})).body.code,'VERIFY_INVALID','o link do e-mail antigo deixa de valer');
+    assert.equal((await call('/auth/verify-email','POST',{token:linkToken(mails.at(-1))})).status,200);
+    assert.equal((await fix({email:'mais-um@test.com'})).body.code,'EMAIL_LOCKED','depois de confirmar, o e-mail não muda');
     // Recuperação de senha: a resposta é igual exista ou não a conta, e o e-mail sai depois da resposta.
     const waitMails=async count=>{for(let i=0;i<100 && mails.length<count;i++) await new Promise(r=>setTimeout(r,20));};
     const resetToken=message=>/#redefinir=([a-f0-9]{64})/.exec(message.htmlContent)?.[1];

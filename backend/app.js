@@ -1,11 +1,12 @@
 import express from 'express';
 import { fileURLToPath } from 'node:url';
+import { timingSafeEqual } from 'node:crypto';
 import { pool,transaction } from './db.js';
 import { fail,text,id,email,phone,photo,hashPassword,verifyPassword,tokenHash,userDTO,session,limiter } from './security.js';
 import { bookingSelect,bookingDTO,getBooking,lockAgenda,prepare,conflict,insertBooking,insertWaitlist,saveBookingServices,promote,statusDB,active,checkQuota } from './bookings.js';
 import { googleEnabled,start,finish,googleUser,issueCode,redeemCode } from './google.js';
 import { turnstile,captchaEnabled,requireCaptcha } from './captcha.js';
-import { emailEnabled,sendVerification,sendPasswordReset,useEmailToken } from './email.js';
+import { emailEnabled,sendVerification,sendPasswordReset,useEmailToken,mailDomainExists } from './email.js';
 
 export const app=express();
 app.disable('x-powered-by');
@@ -74,11 +75,16 @@ function emailConfirmed(req,res,next) {
     fail(403,'Confirme seu e-mail para continuar: use o link que enviamos (veja também o spam) ou peça um novo no Perfil.','EMAIL_NOT_VERIFIED');
   next();
 }
+// Domínio que não recebe e-mail (ex.: "gmail.cm"): recusado no cadastro e na troca de e-mail.
+async function requireMailDomain(address) {
+  if(!await mailDomainExists(address)) fail(400,'Este domínio de e-mail não existe. Confira o que vem depois do @.','EMAIL_DOMAIN_INVALID');
+}
 app.get('/api/health',async(req,res)=>{await pool.query('SELECT 1');res.json({status:'ok'});});
 app.post('/api/auth/register',async(req,res)=>{
   if(!registerByIp.hit(clientIp(req))) fail(429,'Muitos cadastros a partir desta conexão. Aguarde uma hora.','RATE_LIMIT');
   const p=req.body;
   const values=[text(p.name,'Nome',3),email(p.email),phone(p.phone),await hashPassword(p.password)];
+  await requireMailDomain(values[1]);
   if(captchaEnabled()) await requireCaptcha(p.captchaToken,clientIp(req));
   const {result,user}=await transaction(async db=>{
     const u=(await db.query("INSERT INTO usuarios(nome,email,telefone,senha,tipo) VALUES($1,$2,$3,$4,'cliente') RETURNING *",values)).rows[0];
@@ -101,12 +107,25 @@ app.post('/api/auth/verify-email',async(req,res)=>{
 app.post('/api/auth/verify-email/resend',auth,async(req,res)=>{
   if(!emailEnabled()) fail(503,'O envio de e-mails está desligado no momento.','EMAIL_DISABLED');
   if(req.user.email_verificado) fail(409,'Seu e-mail já está confirmado.','ALREADY_VERIFIED');
+  if(req.user.email_recusado_em) fail(409,'Esse endereço não recebe e-mails. Corrija o e-mail no Perfil para receber um novo link.','EMAIL_BOUNCED');
   if(!resendByAccount.hit(req.user.id)) fail(429,'Você já pediu vários links. Confira a caixa de spam ou aguarde uma hora.','RATE_LIMIT');
   try { await sendVerification(pool,req.user); }
   catch(error) {
     console.error('Falha ao reenviar a confirmação de e-mail:',error.message);
     fail(502,'Não foi possível enviar o e-mail agora. Tente de novo em alguns minutos.','EMAIL_FAILED');
   }
+  res.json({});
+});
+// Aviso do Brevo (webhook): o e-mail voltou porque o endereço não existe ou não recebe mensagens.
+// O Brevo manda o segredo de BREVO_WEBHOOK_SECRET no cabeçalho X-Webhook-Token, definido ao criar o webhook.
+// Só contas ainda não confirmadas são marcadas: elas passam a ver o aviso e podem corrigir o e-mail.
+const bounceEvents=new Set(['hard_bounce','invalid_email','blocked']);
+app.post('/api/webhooks/brevo',async(req,res)=>{
+  const secret=process.env.BREVO_WEBHOOK_SECRET,sent=req.get('x-webhook-token') || '';
+  if(!secret || !timingSafeEqual(Buffer.from(tokenHash(sent),'hex'),Buffer.from(tokenHash(secret),'hex'))) fail(401,'Não autorizado.','UNAUTHORIZED');
+  const event=req.body;
+  if(bounceEvents.has(event.event) && typeof event.email==='string')
+    await pool.query('UPDATE usuarios SET email_recusado_em=now() WHERE lower(email)=$1 AND NOT email_verificado',[event.email.trim().toLowerCase()]);
   res.json({});
 });
 // Esqueci minha senha: a resposta é sempre a mesma e sai antes de procurar a conta e enviar o e-mail,
@@ -206,9 +225,26 @@ app.patch('/api/users/:id',auth,async(req,res)=>{
   const old=(await pool.query('SELECT * FROM usuarios WHERE id=$1',[key])).rows[0];
   if(!old) fail(404,'Usuário não encontrado.','NOT_FOUND');
   const p=req.body;
-  const u=(await pool.query('UPDATE usuarios SET nome=$1,telefone=$2,foto=$3 WHERE id=$4 RETURNING *',
-    [p.name===undefined?old.nome:text(p.name,'Nome',3),p.phone===undefined?old.telefone:phone(p.phone),p.photoURL===undefined?old.foto:photo(p.photoURL),key])).rows[0];
-  res.json(userDTO(u));
+  // Trocar o e-mail: só o próprio cliente, antes de confirmar (ex.: digitou errado e o e-mail voltou).
+  // Cada troca envia um novo link, então conta no mesmo limite do reenvio (3 por hora).
+  const newEmail=p.email===undefined?old.email:email(p.email);
+  const emailChanged=newEmail!==old.email.toLowerCase();
+  if(emailChanged) {
+    if(key!==req.user.id || old.tipo!=='cliente' || old.email_verificado) fail(403,'O e-mail só pode ser trocado antes da confirmação.','EMAIL_LOCKED');
+    await requireMailDomain(newEmail);
+    if(!resendByAccount.hit(key)) fail(429,'Você já trocou o e-mail ou pediu vários links. Aguarde uma hora.','RATE_LIMIT');
+  }
+  const u=(await pool.query(`UPDATE usuarios SET nome=$1,telefone=$2,foto=$3,email=$4,
+    email_recusado_em=CASE WHEN $5 THEN NULL ELSE email_recusado_em END WHERE id=$6 RETURNING *`,
+    [p.name===undefined?old.nome:text(p.name,'Nome',3),p.phone===undefined?old.telefone:phone(p.phone),
+      p.photoURL===undefined?old.foto:photo(p.photoURL),newEmail,emailChanged,key])).rows[0];
+  let emailSent;
+  if(emailChanged) {
+    await pool.query("DELETE FROM tokens_email WHERE usuario_id=$1 AND tipo='verificacao'",[key]);
+    if(emailEnabled()) emailSent=await sendVerification(pool,u).then(()=>true,error=>{
+      console.error('Falha ao enviar a confirmação do novo e-mail:',error.message);return false;});
+  }
+  res.json(emailSent===undefined?userDTO(u):{...userDTO(u),emailSent});
 });
 app.delete('/api/users/:id',auth,admin,async(req,res)=>{
   const result=await pool.query("DELETE FROM usuarios WHERE id=$1 AND tipo='cliente' RETURNING id",[id(req.params.id)]);
