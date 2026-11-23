@@ -220,16 +220,19 @@ function generateBarberSlots(barbeiro, selectedDate, selectedServices, editId) {
     booked.push({ s: startMin, e: startMin + dur });
   }
 
+  // Horário que já passou (hoje) fica de fora. O ocupado volta marcado com busy: o cliente
+  // pode escolhê-lo para entrar na fila de espera.
   const now = nowInShop();
   const slots = [];
   while (cur + svcDur <= fimMin) {
     const end = cur + svcDur;
-    const blocked = booked.some(b => cur < b.e && end > b.s) ||
-      (selectedDate === now.date && cur <= now.minutes);
-    if (!blocked) {
+    if (!(selectedDate === now.date && cur <= now.minutes)) {
       const hh = Math.floor(cur / 60);
       const mm = cur % 60;
-      slots.push(`${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`);
+      slots.push({
+        hora: `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`,
+        busy: booked.some(b => cur < b.e && end > b.s)
+      });
     }
     cur += step;
   }
@@ -257,6 +260,9 @@ function updateAdminVisibility() {
   // Previsão e Faturado: só o administrador vê
   document.querySelectorAll(".admin-only").forEach(el => el.classList.toggle("hidden", !isAdmin));
   $("stats-section")?.classList.toggle("with-revenue", isAdmin);
+
+  const title = $("appointments-title");
+  if (title) title.innerHTML = `${isAdmin ? "Todos os" : "Seus"} <span>Agendamentos</span>`;
 
   const description = $("appointments-description");
   if (description) {
@@ -423,6 +429,29 @@ function renderServicesList() {
 }
 
 function updateAvailableTimes() {
+  fillTimeOptions();
+  updateWaitlistMode();
+}
+
+function selectedTimeIsBusy() {
+  return $("hora")?.selectedOptions[0]?.dataset.busy === "true";
+}
+
+// Horário ocupado escolhido: o envio vira pedido de fila de espera, e a dica e o botão dizem isso.
+function updateWaitlistMode() {
+  const busy = selectedTimeIsBusy();
+  $("hora-waitlist-hint")?.classList.toggle("hidden", !busy);
+  if (busy) $("hora")?.setAttribute("aria-describedby", "hora-waitlist-hint");
+  else $("hora")?.removeAttribute("aria-describedby");
+  const submitBtn = $("submit-btn");
+  if (submitBtn && !localStorage.getItem(EDIT_KEY)) {
+    submitBtn.innerHTML = busy
+      ? `<span class="material-symbols-outlined">queue</span>Entrar na fila de espera`
+      : `<span class="material-symbols-outlined">check_circle</span>Confirmar agendamento`;
+  }
+}
+
+function fillTimeOptions() {
   const dateInput = $("data");
   const select    = $("hora");
   if (!dateInput || !select) return;
@@ -462,7 +491,11 @@ function updateAvailableTimes() {
       return;
     }
 
-    const slots = generateBarberSlots(barbeiro, selectedDate, selectedServices, editId);
+    // Os ocupados aparecem para o cliente, marcados, para ele poder entrar na fila de espera.
+    // Na edição e para o administrador, só os livres: a fila é dos clientes, para um novo pedido.
+    const canQueue = Boolean(currentUser) && !isAdmin && !editId;
+    const slots = generateBarberSlots(barbeiro, selectedDate, selectedServices, editId)
+      .filter(slot => canQueue || !slot.busy);
 
     if (!slots.length) {
       select.disabled = true;
@@ -470,9 +503,12 @@ function updateAvailableTimes() {
       return;
     }
 
+    const anyFree = slots.some(slot => !slot.busy);
     select.disabled = false;
-    select.innerHTML = `<option value="">Selecione um horário</option>` +
-      slots.map(hora => `<option value="${escapeHTML(hora)}">${escapeHTML(hora)}</option>`).join("");
+    select.innerHTML = `<option value="">${anyFree ? "Selecione um horário" : "Todos ocupados: escolha um para a fila"}</option>` +
+      slots.map(({ hora, busy }) => busy
+        ? `<option value="${escapeHTML(hora)}" data-busy="true">${escapeHTML(hora)} · ocupado, entrar na fila</option>`
+        : `<option value="${escapeHTML(hora)}">${escapeHTML(hora)}</option>`).join("");
 
     const currentHora = pendingEditAppointment?.hora || "";
     if (currentHora && [...select.options].some(o => o.value === currentHora)) {
@@ -739,7 +775,10 @@ function loadFormPage() {
   }
 
   const timeSelect = $("hora");
-  if (timeSelect) timeSelect.addEventListener("change", () => clearError("hora"));
+  if (timeSelect) timeSelect.addEventListener("change", () => {
+    clearError("hora");
+    updateWaitlistMode();
+  });
 
   $("verify-resend-btn")?.addEventListener("click", resendVerification);
 
@@ -781,6 +820,21 @@ function loadFormPage() {
     const payload = buildAppointmentPayload();
     const currentEditId = localStorage.getItem(EDIT_KEY);
     let saved = false;
+
+    // Horário ocupado: o pedido vai para a fila de espera em vez de virar agendamento.
+    if (!currentEditId && selectedTimeIsBusy()) {
+      lastFailedPayload = payload;
+      try {
+        // Pedido feito: limpa o horário para não reenviar sem querer
+        if (await joinWaitlist() && $("hora")) {
+          $("hora").value = "";
+          updateWaitlistMode();
+        }
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+      return;
+    }
 
     try {
       if (currentEditId) {
@@ -1006,12 +1060,23 @@ async function joinWaitlist() {
 
     lastFailedPayload = null;
     $("waitlist-offer")?.classList.add("hidden");
-    showToast("Você entrou na fila! Será reagendado automaticamente se o horário abrir.");
+    showToast("Você entrou na fila! Se o horário vagar, o agendamento é feito automaticamente.");
+    return true;
   } catch (error) {
     console.error(error);
     if (error.code === "ALREADY_ON_WAITLIST") {
       showToast("Você já está na fila para este horário.");
       $("waitlist-offer")?.classList.add("hidden");
+      return;
+    }
+    // O horário vagou entre a escolha e o envio: atualiza a lista mantendo a escolha, agora livre.
+    if (error.code === "SLOT_AVAILABLE") {
+      $("waitlist-offer")?.classList.add("hidden");
+      const hora = $("hora")?.value || "";
+      await loadSlots();
+      if ($("hora") && [...$("hora").options].some(o => o.value === hora)) $("hora").value = hora;
+      updateWaitlistMode();
+      showToast("Esse horário acabou de vagar. Confirme para agendar.");
       return;
     }
     showToast(apiErrorMessage(error, "Erro ao entrar na fila de espera."));

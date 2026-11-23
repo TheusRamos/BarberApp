@@ -49,6 +49,10 @@
     .login-required {
       margin: 0 0 22px;
     }
+    .waitlist-hint {
+      color: var(--primary);
+      line-height: 1.5;
+    }
     .waitlist-offer-body,
     .login-required-body {
       display: flex;
@@ -271,6 +275,10 @@
               <select id="hora" name="hora" required disabled>
                 <option value="">Selecione uma data primeiro</option>
               </select>
+              <!-- Aparece quando o cliente escolhe um horário ocupado (o app.js mostra) -->
+              <small class="field-hint waitlist-hint hidden" id="hora-waitlist-hint">
+                Horário ocupado: ao enviar, você entra na fila de espera. Se ele vagar, o agendamento é feito automaticamente.
+              </small>
               <small class="field-error" id="error-hora"></small>
             </div>
           </div>

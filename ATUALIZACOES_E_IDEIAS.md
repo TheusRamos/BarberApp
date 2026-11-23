@@ -115,13 +115,24 @@ Os problemas abaixo foram relatados e ainda precisam ser investigados. As causas
 
 ## Outras ideias pendentes
 
-Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **025**.
+Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **026**.
 
 ## Atualizações concluídas
 
+### 025 — Fila de espera pela tela e título dos agendamentos do administrador
+
+- **Estado:** Concluído
+- **Registrado em:** 23/11/2026
+- **Concluído em:** 23/11/2026
+- **Objetivo:** Corrigir os dois pontos mais visíveis da bateria de testes de usabilidade de 23/11/2026: a fila de espera não tinha caminho pela tela, e o administrador via "Seus Agendamentos" numa lista com todos os clientes.
+- **Resumo da entrega:**
+  - **Fila de espera:** a lista de horários do Início passa a mostrar ao cliente os horários ocupados, marcados como "09:00 · ocupado, entrar na fila". Ao escolher um deles, aparece a explicação logo abaixo e o botão vira "Entrar na fila de espera"; o envio cria o pedido na fila (`POST /api/waitlist`), e o horário é limpo para não reenviar sem querer. Se o horário vagar entre a escolha e o envio, a lista é atualizada e o cliente é avisado para confirmar o agendamento. Na edição de um agendamento e para o administrador, a lista continua só com os horários livres. O aviso antigo, para quando o horário é tomado entre a escolha e o envio, continua valendo.
+  - **Título:** em Agendamentos, o administrador vê "Todos os Agendamentos"; o cliente continua vendo "Seus Agendamentos".
+  - Conferido no navegador com um banco descartável (horário ocupado marcado, dica e botão mudando nos dois sentidos, entrada na fila, pedido repetido recusado, e a cliente da fila agendada sozinha quando o dono do horário cancelou).
+
 ### 024 — Limpeza de contas que nunca confirmam o e-mail
 
-- **Estado:** Concluído no código — falta aplicar a migração 6 no Neon e publicar
+- **Estado:** Concluído — no ar desde 17/11/2026 (commit 0d8b02f), com a migração 6 aplicada no Neon
 - **Registrado em:** 17/11/2026
 - **Objetivo:** Não deixar no banco contas com e-mail inexistente (criadas porque o domínio existe, mas a caixa não), que ocupam o e-mail e o telefone.
 - **Resumo da entrega:**

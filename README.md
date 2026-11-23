@@ -285,6 +285,7 @@ Ao sair de um status ativo, a reserva libera o intervalo e o backend processa a 
 ### Fila de espera
 
 - Apenas clientes autenticados podem entrar; deve existir conflito no intervalo solicitado.
+- Na tela de reserva, o cliente vê os horários ocupados marcados como "ocupado, entrar na fila". Ao escolher um deles, o botão vira "Entrar na fila de espera". Na edição de reservas e para o administrador, só aparecem os horários livres.
 - Há no máximo uma entrada por cliente e horário. Cada pedido guarda o horário de início e **todos os serviços desejados**.
 - Cancelamento, conclusão, exclusão ou edição de uma reserva disparam o processamento da fila do profissional/data envolvidos.
 - O processamento segue a ordem dos IDs. Um pedido só é promovido quando o **intervalo inteiro** (soma das durações dos serviços desejados) fica livre a partir do horário pedido. Por exemplo, um pedido de Corte + Barba (45 min) não é promovido se apenas 30 minutos forem liberados. Pedidos que não cabem são pulados; mais de um pedido pode ser promovido na mesma execução.
