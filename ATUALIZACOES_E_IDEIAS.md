@@ -6,23 +6,6 @@ Estados sugeridos: **Pendente**, **Em andamento**, **Concluído** e **Adiado**. 
 
 ## Sugestões de melhoria (Wagner)
 
-### 001 — Selecionar vários serviços no mesmo agendamento
-
-- **Estado:** Em andamento — implementado e testado na API; aguardando validação no navegador
-- **Registrado em:** 22/09/2026
-- **Objetivo:** Permitir que o cliente selecione mais de um serviço disponível em um único agendamento.
-- **Origem:** Sugestão de Wagner.
-- **Comportamento esperado:** O backend deverá somar a duração de todos os serviços selecionados e procurar horários com um intervalo livre suficiente para realizar todos eles. A disponibilidade deverá considerar o expediente do barbeiro e os agendamentos existentes.
-- **Critérios de aceite:**
-  - Permitir selecionar um ou mais serviços disponíveis para o barbeiro escolhido.
-  - Calcular a duração total no backend, usando as durações cadastradas dos serviços para o profissional.
-  - Somar os valores dos serviços selecionados e apresentar o preço total do agendamento.
-  - Oferecer apenas horários que comportem a duração total, sem sobreposição com outras reservas nem ultrapassar o expediente.
-  - Revalidar a disponibilidade no backend ao confirmar a reserva.
-  - Registrar e apresentar todos os serviços selecionados no agendamento.
-- **Decisão (20/10/2026):** O pedido na fila guarda todos os serviços desejados e só é promovido quando houver tempo livre para todos eles a partir do horário pedido (soma das durações do profissional). Assim, quem pediu os mesmos serviços de uma reserva cancelada sempre cabe no espaço liberado.
-- **Andamento (20/10/2026):** Migração 2 com `agendamento_servicos` e `fila_espera_servicos`. A API aceita `servicos` (1 a 5) e soma duração e preço. A interface usa múltipla escolha e mostra o total. A promoção da fila revalida dias, expediente e serviços do profissional. O teste de integração cobre reserva combinada, edição e promoção somente com intervalo suficiente.
-
 ### 002 — Mostrar a média de avaliação de cada barbeiro
 
 - **Estado:** Pendente
@@ -38,84 +21,76 @@ Estados sugeridos: **Pendente**, **Em andamento**, **Concluído** e **Adiado**. 
 
 ## Problemas e ajustes pendentes
 
-Os problemas abaixo foram relatados e ainda precisam ser investigados. As causas e o alcance das correções não foram confirmados.
-
-### 003 — Requisição de permissões ao agendar e observações opcionais
-
-- **Estado:** Pendente
-- **Relato:** Requisição de permissões ao tentar agendar com uma conta que não era do Google ou sem preencher o campo de observações.
-- **Objetivo:** Investigar os dois cenários e corrigir eventuais bloqueios indevidos de agendamento.
-- **Comportamento esperado:** Uma conta de cliente autorizada deve conseguir agendar independentemente da origem do cadastro. O campo de observações deve ser opcional.
-- **Pontos a verificar:** Mensagem apresentada, permissões da conta e comportamento ao enviar observações vazias ou omitir o campo.
-
-### 004 — Comentários duplicados dos clientes
-
-- **Estado:** Em andamento — aguardando validação no navegador
-- **Relato:** Comentários dos clientes aparecem duplicados.
-- **Objetivo:** Investigar se a duplicação ocorre no envio, armazenamento ou exibição e corrigir a causa.
-- **Comportamento esperado:** Um comentário enviado uma única vez deve ser registrado e exibido uma única vez.
-- **Andamento (20/10/2026):** Causa provável identificada no envio: o botão não era desabilitado durante a requisição e a API aceitava envios repetidos. O botão agora fica bloqueado durante o envio, e a API aceita apenas uma avaliação pendente por usuário, de forma atômica (`COMMENT_PENDING`). O teste de integração cobre dois envios simultâneos. A exibição não duplica registros.
-
-### 005 — Bug na avaliação de comentários pelo administrador
-
-- **Estado:** Pendente
-- **Relato:** Falha na avaliação dos comentários por parte do administrador.
-- **Objetivo:** Reproduzir e corrigir o problema no fluxo administrativo de análise dos comentários.
-- **Pontos a definir:** Ação afetada, resultado esperado, resultado observado e passos para reproduzir.
-- **Andamento (20/10/2026):** O defeito relatado não foi reproduzido pela leitura do código. Foram corrigidos: resposta da aprovação sem o nome do autor, cliques repetidos em Aprovar/Reprovar/Remover e ausência de forma de despublicar. O administrador agora pode **ocultar** uma avaliação aprovada, que volta para a moderação. "Reprovar" continua excluindo o registro. Falta confirmar com os passos do relato original.
-
-### 006 — Alteração do banco de dados
-
-- **Estado:** Em andamento
-- **Objetivo:** Planejar as alterações necessárias no banco de dados.
-- **Pontos a definir:** Tabelas e campos afetados, novas regras, necessidade de migração e preservação dos dados existentes.
-- **Andamento (20/10/2026):** Criado o mecanismo de migrações incrementais (`backend/migrations/`). Cada versão é aplicada uma única vez por `npm run db:migrate`. A migração 2 (vários serviços) preserva os dados existentes; a atualização v1 → v2 foi ensaiada em um banco com dados. Outras alterações planejadas devem virar novas migrações.
-
-### 007 — Alterar o layout e o visual do sistema
-
-- **Estado:** Pendente
-- **Objetivo:** Revisar o layout e a apresentação visual das telas do sistema.
-- **Pontos a definir:** Telas prioritárias, referências visuais e relação com a identidade visual prevista no item 012.
+Itens relatados ou encontrados em testes que ainda precisam de correção ou de uma decisão. Os itens 027 a 029 e 031 vêm da bateria de testes de usabilidade de 23/11/2026 (os demais achados dela foram corrigidos nos itens 025 e 026).
 
 ### 008 — Retirar dados pessoais dos alunos do sistema
 
-- **Estado:** Pendente
+- **Estado:** Em andamento — falta decidir o que fazer com os pontos abaixo
 - **Objetivo:** Identificar e remover todo tipo de dado pessoal dos alunos presente no sistema.
 - **Pontos a verificar:** Textos, imagens, contatos, créditos, dados de exemplo e registros armazenados, conforme aplicável.
 - **Comportamento esperado:** O sistema não deve conter dados pessoais dos alunos após a conclusão da revisão e remoção.
-- **Decisão (20/10/2026):** Os créditos com os nomes dos autores, no rodapé de `index.html` e no README, permanecem. Ainda falta revisar o histórico do git e os dados do banco.
+- **Decisão (20/10/2026):** Os créditos com os nomes dos autores, no rodapé de `index.html` e no README, permanecem.
+- **Conferência (23/11/2026):** O código, as imagens e os documentos versionados não têm dados pessoais além dos créditos; os contatos da página Sobre (endereço, telefone, e-mail e Instagram) são fictícios, e os testes usam dados inventados. Restam:
+  - **Banco de produção:** uma conta de cliente com o e-mail pessoal de um dos alunos (criada depois da limpeza de 17/11/2026) e o administrador com e-mail institucional de aluno. **Decisão (23/11/2026):** a conta de cliente permanece.
+  - **Remetente dos e-mails:** `EMAIL_FROM`, no Render, é um e-mail institucional de aluno; ele aparece para os clientes nos e-mails de confirmação e de recuperação de senha.
+  - **Histórico do git:** os commits registram o nome do autor. Apagar exigiria reescrever o histórico do repositório; a recomendação é manter, como os créditos.
 
-### 009 — Verificar possíveis bugs no cadastro de clientes
+### 027 — Acessibilidade: estrelas, ícones, letras pequenas e atalho para o conteúdo
 
 - **Estado:** Pendente
-- **Objetivo:** Revisar o fluxo de cadastro de clientes e corrigir bugs, se encontrados.
-- **Pontos a verificar:** Validação dos campos, envio, mensagens de erro, duplicidade de contas e conclusão do cadastro.
-- **Observação:** Não há um defeito específico confirmado neste registro.
+- **Registrado em:** 23/11/2026
+- **Objetivo:** Concluir os ajustes de acessibilidade encontrados na bateria de usabilidade.
+- **Pontos a corrigir:**
+  - As estrelas da avaliação não recebem foco do teclado (quem não usa mouse ou toque fica sempre com nota 5), e o rótulo "Nota" não está ligado a elas.
+  - O leitor de tela lê o nome dos ícones (de 2 a 28 por página); no administrador, os botões de editar e excluir barbeiro são lidos como "edit" e "delete".
+  - Letras de 10 px (selos do topo e rótulos dos números) e de 11 px no administrador.
+  - Falta o atalho "Pular para o conteúdo": são 7 ou 8 Tabs pelo menu antes de chegar ao conteúdo.
+- **Estimativa:** cerca de 1 h 40.
 
-### 010 — Dashboard de agendamentos pendentes parado em zero
+### 028 — Aviso enquanto o servidor acorda
 
-- **Estado:** Concluído em 17/11/2026 — não reproduzido no sistema atual. Conferido no navegador com um banco descartável: o card "Pendentes" do painel do administrador mostrou a mesma quantidade de reservas pendentes que a API, e os cards de Agendamentos também contam corretamente (item 020).
-- **Relato:** O indicador de agendamentos pendentes permanece em 0.
-- **Objetivo:** Investigar e corrigir a contagem e a atualização do indicador.
-- **Comportamento esperado:** Exibir a quantidade de agendamentos pendentes correspondente ao período e aos filtros aplicáveis, atualizando após mudanças relevantes.
+- **Estado:** Pendente
+- **Registrado em:** 23/11/2026
+- **Objetivo:** No plano grátis do Render, o primeiro acesso depois de 15 minutos parado leva uns 18 segundos, sem nenhum aviso na tela.
+- **Comportamento esperado:** Se a API demorar mais que alguns segundos, mostrar "O servidor está acordando, isso leva até 30 segundos". Manter o servidor sempre acordado não é opção, porque estouraria o limite de uso grátis do Neon.
+- **Estimativa:** cerca de 30 min.
+
+### 029 — Confirmações no visual do Barber
+
+- **Estado:** Pendente
+- **Registrado em:** 23/11/2026
+- **Objetivo:** As 8 confirmações (cancelar, excluir, reprovar etc.) usam a janela padrão do navegador, fora da identidade visual.
+- **Comportamento esperado:** Uma janela própria, no visual do site, que funcione pelo teclado e pelo leitor de tela.
+- **Estimativa:** cerca de 1 h.
+
+### 031 — Avaliação só de quem foi atendido
+
+- **Estado:** Pendente — decisão dos alunos
+- **Registrado em:** 23/11/2026
+- **Objetivo:** Hoje qualquer cliente logado e com e-mail confirmado pode avaliar, mesmo sem ter sido atendido.
+- **Pontos a definir:** Se a avaliação deve exigir um agendamento concluído; se ela passa a ser ligada ao barbeiro do atendimento (o que também resolveria o vínculo pedido no item 002).
+- **Estimativa:** cerca de 40 min, depois da decisão.
 
 ## Melhorias futuras
 
-### 011 — Disponibilizar uma aplicação mobile com Cordova
+### 030 — Fila de espera: consultar, desistir e receber aviso
 
 - **Estado:** Pendente
-- **Objetivo:** Converter o site em uma aplicação mobile também, utilizando Cordova.
-- **Pontos a definir:** Plataformas atendidas, adaptação das telas, integração com o backend, permissões necessárias e forma de distribuição.
+- **Registrado em:** 23/11/2026
+- **Objetivo:** O cliente entra na fila pela tela (item 025), mas não vê os pedidos que fez, não consegue desistir e não é avisado quando a fila vira agendamento (a reserva só aparece na lista de Agendamentos).
+- **Comportamento esperado:** Em Agendamentos, uma seção "Na fila de espera" com os pedidos e o botão "Desistir"; e um e-mail pelo Brevo quando o pedido virar agendamento.
+- **Estimativa:** cerca de 1 h 30 para a consulta e a desistência, e 40 min para o e-mail.
 
-### 012 — Criar uma identidade visual para a barbearia
+### 032 — Ativar o CAPTCHA (Cloudflare Turnstile)
 
-- **Estado:** Pendente
-- **Objetivo:** Desenvolver a identidade visual da barbearia (design).
-- **Pontos a definir:** Logotipo, paleta de cores, tipografia e diretrizes de aplicação no site e na futura aplicação mobile.
+- **Estado:** Pendente — implementação futura (decisão de 23/11/2026)
+- **Registrado em:** 23/11/2026
+- **Objetivo:** Ligar a verificação anti-robô no cadastro e no login de uma conta com muitas tentativas, contra contas falsas em massa.
+- **Situação atual:** O código já está pronto desde o item 017; falta só criar o widget no Cloudflare e colocar `TURNSTILE_SITE_KEY` e `TURNSTILE_SECRET_KEY` no Render (passo a passo no README, seção "CAPTCHA (Cloudflare Turnstile)"). Sem as chaves, o site funciona sem CAPTCHA, e a conta que passa do limite de tentativas de login fica bloqueada por 15 minutos.
 
 ## Outras ideias pendentes
 
-Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **027**.
+Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **033**.
 
 ## Atualizações concluídas
 
@@ -238,7 +213,7 @@ Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo ident
 
 ### 017 — Correções da auditoria de segurança
 
-- **Estado:** Concluído — o CAPTCHA aguarda as chaves do Cloudflare Turnstile no Render; o projeto antigo do Firebase aguarda exclusão pelo responsável
+- **Estado:** Concluído — a ativação do CAPTCHA ficou como implementação futura (item 032); o projeto antigo do Firebase aguarda exclusão pelo responsável
 - **Registrado em:** 23/10/2026
 - **Objetivo:** Corrigir as vulnerabilidades e os bugs encontrados nos testes de segurança e de funcionamento (124 verificações automáticas numa cópia local, checagens de leitura em produção, revisão do código e do histórico do git).
 - **Concluído em:** 23/10/2026
@@ -269,7 +244,7 @@ Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo ident
 
 ### 015 — Publicação no Render com testes automáticos
 
-- **Estado:** Concluído — aguardando o cadastro de serviços e profissionais no banco de produção
+- **Estado:** Concluído — o banco de produção já tem os serviços e os barbeiros cadastrados (6 e 5, conferido em 23/11/2026)
 - **Registrado em:** 23/10/2026
 - **Objetivo:** Publicar o sistema completo (site, API e banco) sem custo e executar os testes a cada envio ao GitHub, pendência da revisão de segurança (item 013).
 - **Concluído em:** 23/10/2026
@@ -281,7 +256,7 @@ Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo ident
 
 ### 014 — Troca de senha e "Sair de todos os dispositivos"
 
-- **Estado:** Concluído — testado na API; aguardando validação no navegador
+- **Estado:** Concluído — testado na API e conferido no navegador
 - **Registrado em:** 21/10/2026
 - **Objetivo:** Permitir que o usuário troque a senha e encerre todas as sessões abertas, pendências da revisão de segurança (item 013).
 - **Concluído em:** 21/10/2026
@@ -305,6 +280,72 @@ Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo ident
   - Lista pública de avaliações sem identificador do autor; erros de JSON malformado sem mensagem interna.
   - Bloqueio de cliques repetidos em login, cadastro, reserva, fila, serviços, profissionais e moderação.
 - **Pendências da revisão:** revisão do histórico do git para o item 008. A verificação de e-mail foi entregue no item 021, e a recuperação de senha por e-mail, no item 022. A revalidação da fila foi entregue com o item 001; troca de senha e "sair de todos os dispositivos", no item 014; publicação do backend com testes no CI, no item 015.
+
+### 012 — Criar uma identidade visual para a barbearia
+
+- **Estado:** Concluído
+- **Concluído em:** 10/11/2026 (conferido em 23/11/2026)
+- **Objetivo:** Desenvolver a identidade visual da barbearia (design).
+- **Resumo da entrega:** Nome "Barber", logotipo dourado (`resources/logo-dourado.png`), paleta escura com dourado (Dark Premium), tipografia e ícones do app, aplicados no site e no app instalável (item 011).
+
+### 011 — Disponibilizar uma aplicação mobile com Cordova
+
+- **Estado:** Concluído — feito como app instalável (PWA), sem Cordova
+- **Concluído em:** 10/11/2026 (conferido em 23/11/2026)
+- **Objetivo:** Converter o site em uma aplicação mobile também.
+- **Resumo da entrega:** O site pode ser instalado no celular pelo botão "Baixe nosso aplicativo", com ícone, tela de abertura, atualização automática e consulta dos agendamentos sem internet (somente leitura). O PWA dispensa lojas de aplicativos e uma segunda base de código, que o Cordova exigiria.
+
+### 010 — Dashboard de agendamentos pendentes parado em zero
+
+- **Estado:** Concluído em 17/11/2026 — não reproduzido no sistema atual
+- **Relato:** O indicador de agendamentos pendentes permanecia em 0.
+- **Resumo da entrega:** Conferido no navegador com um banco descartável: o card "Pendentes" do painel do administrador mostrou a mesma quantidade de reservas pendentes que a API, e os cards de Agendamentos também contam corretamente (item 020).
+
+### 009 — Verificar possíveis bugs no cadastro de clientes
+
+- **Estado:** Concluído em 23/11/2026 — nenhum defeito encontrado
+- **Objetivo:** Revisar o fluxo de cadastro de clientes e corrigir bugs, se encontrados.
+- **Resumo da entrega:** Conferido no navegador: envio vazio e com dados inválidos mostram o aviso em cada campo; o cadastro válido cria a conta e envia o link de confirmação; e-mail já cadastrado (inclusive com letras maiúsculas) é recusado com aviso no próprio campo. Desde então, o cadastro também verifica o domínio do e-mail e sugere correções (item 023) e leva o foco ao primeiro campo com erro (item 026).
+
+### 007 — Alterar o layout e o visual do sistema
+
+- **Estado:** Concluído
+- **Concluído em:** 10/11/2026 (conferido em 23/11/2026)
+- **Objetivo:** Revisar o layout e a apresentação visual das telas do sistema.
+- **Resumo da entrega:** Redesign Dark Premium de todas as telas (pull request #1), com a identidade visual do item 012.
+
+### 006 — Alteração do banco de dados
+
+- **Estado:** Concluído
+- **Concluído em:** 17/11/2026 (conferido em 23/11/2026)
+- **Objetivo:** Planejar as alterações necessárias no banco de dados.
+- **Resumo da entrega:** Mecanismo de migrações incrementais (`backend/migrations/`), em que cada versão é aplicada uma única vez por `npm run db:migrate`. As versões 2 a 6 (vários serviços, login com o Google, confirmação de e-mail, e-mail recusado e prazo de confirmação) estão aplicadas no Neon, preservando os dados existentes. Novas mudanças devem virar novas migrações.
+
+### 005 — Bug na avaliação de comentários pelo administrador
+
+- **Estado:** Concluído em 23/11/2026 — o defeito relatado não foi reproduzido
+- **Relato:** Falha na avaliação dos comentários por parte do administrador.
+- **Resumo da entrega:** Em 20/10/2026 foram corrigidos a resposta da aprovação sem o nome do autor, os cliques repetidos em Aprovar, Reprovar e Remover e a falta de forma de despublicar (o administrador pode **ocultar** uma avaliação aprovada, que volta para a moderação). Conferido no navegador em 23/11/2026: aprovar (sai da revisão e aparece na lista pública), ocultar (volta para a revisão), reprovar (apaga) e remover uma avaliação publicada.
+
+### 004 — Comentários duplicados dos clientes
+
+- **Estado:** Concluído em 23/11/2026
+- **Relato:** Comentários dos clientes apareciam duplicados.
+- **Resumo da entrega:** A causa estava no envio: o botão não era desabilitado durante a requisição e a API aceitava envios repetidos. Desde 20/10/2026, o botão fica bloqueado durante o envio e a API aceita apenas uma avaliação pendente por usuário, de forma atômica (`COMMENT_PENDING`). Conferido no navegador em 23/11/2026: clique duplo em Enviar grava uma avaliação só; uma segunda, com outra ainda pendente, é recusada com aviso; a lista pública não repete avaliações.
+
+### 003 — Requisição de permissões ao agendar e observações opcionais
+
+- **Estado:** Concluído em 23/11/2026 — não reproduzido no sistema atual
+- **Relato:** Pedido de permissões ao tentar agendar com uma conta que não era do Google ou sem preencher o campo de observações.
+- **Resumo da entrega:** Na bateria de usabilidade, uma conta criada com e-mail e senha agendou sem preencher as observações, que são opcionais (até 240 caracteres). O sistema não pede permissões do navegador. O agendamento só é barrado, com aviso claro, sem login, sem telefone (contas do Google, que o cadastram no Perfil) ou com o e-mail ainda não confirmado.
+
+### 001 — Selecionar vários serviços no mesmo agendamento
+
+- **Estado:** Concluído — testado na API e conferido no navegador
+- **Registrado em:** 22/09/2026
+- **Origem:** Sugestão de Wagner.
+- **Objetivo:** Permitir que o cliente selecione mais de um serviço disponível em um único agendamento.
+- **Resumo da entrega:** Migração 2 com `agendamento_servicos` e `fila_espera_servicos`. A API aceita `servicos` (1 a 5) e soma duração e preço; a tela usa múltipla escolha, mostra o total e só oferece horários que comportam a duração somada. O pedido na fila guarda todos os serviços desejados e só é promovido quando há tempo livre para todos eles a partir do horário pedido, revalidando dias, expediente e serviços do profissional. O teste de integração cobre reserva combinada, edição e promoção somente com intervalo suficiente.
 
 ## Modelo para novos registros
 
