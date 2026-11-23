@@ -32,6 +32,7 @@ const ARQUIVOS = [
   'js/config.js',
   'js/app.js',
   'js/calendario.js',
+  'js/dialogo.js',
   'js/auth.js',
   'js/sobre.js',
   'js/sidebar.js',

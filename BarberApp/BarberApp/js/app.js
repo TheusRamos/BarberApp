@@ -1,6 +1,7 @@
 import { api, getToken, saveOfflineCopy, getOfflineCopy } from "./api.js";
 import { appTimeZone } from "./config.js";
 import { createDatePicker, weekdayOf, weekdayName } from "./calendario.js";
+import { confirmDialog } from "./dialogo.js";
 
 const EDIT_KEY = "barber_agendamento_editando";
 const STATUS_SEQUENCE = ["Pendente", "Confirmado", "Concluído", "Cancelado"];
@@ -253,10 +254,10 @@ function updateAuthLink() {
 
   if (currentUser) {
     link.href = "auth.html";
-    link.innerHTML = `<span class="material-symbols-outlined">person</span>${escapeHTML(currentUser.name || currentUser.email || "Perfil")}`;
+    link.innerHTML = `<span class="material-symbols-outlined" aria-hidden="true">person</span>${escapeHTML(currentUser.name || currentUser.email || "Perfil")}`;
   } else {
     link.href = "auth.html";
-    link.innerHTML = `<span class="material-symbols-outlined">person</span>Entrar`;
+    link.innerHTML = `<span class="material-symbols-outlined" aria-hidden="true">person</span>Entrar`;
   }
 }
 
@@ -353,7 +354,7 @@ function renderServiceOptions() {
     return `
       <input type="checkbox" name="servico" id="${escapeHTML(id)}" value="${escapeHTML(service.name)}" ${checked ? "checked" : ""} />
       <label for="${escapeHTML(id)}" class="service-card">
-        <span class="material-symbols-outlined service-icon">${escapeHTML(service.icon || "content_cut")}</span>
+        <span class="material-symbols-outlined service-icon" aria-hidden="true">${escapeHTML(service.icon || "content_cut")}</span>
         <span class="service-title">${escapeHTML(service.name)}</span>
         <span class="service-price">${formatMoney(service.price)}</span>
       </label>
@@ -421,7 +422,9 @@ function renderServicesList() {
   container.querySelectorAll(".delete-service").forEach(button => {
     button.addEventListener("click", async () => {
       if (!isAdmin) return showToast("Acesso negado.");
-      if (!confirm("Remover este serviço?")) return;
+      if (!(await confirmDialog("O serviço sai da lista e deixa de ser oferecido pelos barbeiros.", {
+        title: "Remover este serviço?", confirmText: "Remover", danger: true
+      }))) return;
 
       try {
         await api.services.remove(button.dataset.id);
@@ -453,8 +456,8 @@ function updateWaitlistMode() {
   const submitBtn = $("submit-btn");
   if (submitBtn && !localStorage.getItem(EDIT_KEY)) {
     submitBtn.innerHTML = busy
-      ? `<span class="material-symbols-outlined">queue</span>Entrar na fila de espera`
-      : `<span class="material-symbols-outlined">check_circle</span>Confirmar agendamento`;
+      ? `<span class="material-symbols-outlined" aria-hidden="true">queue</span>Entrar na fila de espera`
+      : `<span class="material-symbols-outlined" aria-hidden="true">check_circle</span>Confirmar agendamento`;
   }
 }
 
@@ -608,7 +611,7 @@ function resetFormState() {
   if (formTitle) formTitle.textContent = "Novo agendamento";
   if (formSubtitle) formSubtitle.textContent = "Preencha os dados para reservar um horário.";
   if (submitBtn) {
-    submitBtn.innerHTML = `<span class="material-symbols-outlined">check_circle</span>Confirmar agendamento`;
+    submitBtn.innerHTML = `<span class="material-symbols-outlined" aria-hidden="true">check_circle</span>Confirmar agendamento`;
   }
   if (cancelEditBtn) cancelEditBtn.classList.add("hidden");
 
@@ -740,7 +743,7 @@ async function fillFormForEdit(docId) {
     $("client-fields")?.classList.remove("hidden");
     if (formTitle) formTitle.textContent = "Editar agendamento";
     if (formSubtitle) formSubtitle.textContent = "Atualize as informações do cliente e salve novamente.";
-    if (submitBtn) submitBtn.innerHTML = `<span class="material-symbols-outlined">save</span>Atualizar agendamento`;
+    if (submitBtn) submitBtn.innerHTML = `<span class="material-symbols-outlined" aria-hidden="true">save</span>Atualizar agendamento`;
     if (cancelEditBtn) cancelEditBtn.classList.remove("hidden");
   } catch (error) {
     console.error("Erro ao carregar agendamento para edição:", error);
@@ -954,22 +957,22 @@ function createAppointmentCard(appointment) {
     </div>
 
     <div class="card-details">
-      <div class="detail-item"><span class="material-symbols-outlined">calendar_today</span><span>${escapeHTML(formatDateBR(appointment.data))}</span></div>
-      <div class="detail-item"><span class="material-symbols-outlined">schedule</span><span>${escapeHTML(appointment.hora || "")}</span></div>
-      <div class="detail-item"><span class="material-symbols-outlined">content_cut</span><span>${escapeHTML(appointment.barbeiro || "Barbeiro não informado")}</span></div>
-      <div class="detail-item"><span class="material-symbols-outlined">mail</span><span>${escapeHTML(appointment.email || "")}</span></div>
-      <div class="detail-item"><span class="material-symbols-outlined">notes</span><span>${escapeHTML(observationsText)}</span></div>
-      <div class="detail-item"><span class="material-symbols-outlined">payments</span><span>${formatMoney(appointment.valor ?? getServicePrice(appointment.servico))}</span></div>
+      <div class="detail-item"><span class="material-symbols-outlined" aria-hidden="true">calendar_today</span><span>${escapeHTML(formatDateBR(appointment.data))}</span></div>
+      <div class="detail-item"><span class="material-symbols-outlined" aria-hidden="true">schedule</span><span>${escapeHTML(appointment.hora || "")}</span></div>
+      <div class="detail-item"><span class="material-symbols-outlined" aria-hidden="true">content_cut</span><span>${escapeHTML(appointment.barbeiro || "Barbeiro não informado")}</span></div>
+      <div class="detail-item"><span class="material-symbols-outlined" aria-hidden="true">mail</span><span>${escapeHTML(appointment.email || "")}</span></div>
+      <div class="detail-item"><span class="material-symbols-outlined" aria-hidden="true">notes</span><span>${escapeHTML(observationsText)}</span></div>
+      <div class="detail-item"><span class="material-symbols-outlined" aria-hidden="true">payments</span><span>${formatMoney(appointment.valor ?? getServicePrice(appointment.servico))}</span></div>
     </div>
 
     <div class="card-actions">
       ${isAdmin && !isOffline ? `
-        <button class="action-btn edit-btn" type="button" data-id="${escapeHTML(appointment.id)}"><span class="material-symbols-outlined">edit</span>Editar</button>
-        <button class="action-btn status-btn" type="button" data-id="${escapeHTML(appointment.id)}"><span class="material-symbols-outlined">edit_note</span>Status</button>
-        <button class="action-btn delete-btn" type="button" data-id="${escapeHTML(appointment.id)}"><span class="material-symbols-outlined">delete</span>Excluir</button>
+        <button class="action-btn edit-btn" type="button" data-id="${escapeHTML(appointment.id)}"><span class="material-symbols-outlined" aria-hidden="true">edit</span>Editar</button>
+        <button class="action-btn status-btn" type="button" data-id="${escapeHTML(appointment.id)}"><span class="material-symbols-outlined" aria-hidden="true">edit_note</span>Status</button>
+        <button class="action-btn delete-btn" type="button" data-id="${escapeHTML(appointment.id)}"><span class="material-symbols-outlined" aria-hidden="true">delete</span>Excluir</button>
       ` : ""}
       ${canClientCancel ? `
-        <button class="action-btn cancel-btn" type="button" data-id="${escapeHTML(appointment.id)}"><span class="material-symbols-outlined">event_busy</span>Cancelar</button>
+        <button class="action-btn cancel-btn" type="button" data-id="${escapeHTML(appointment.id)}"><span class="material-symbols-outlined" aria-hidden="true">event_busy</span>Cancelar</button>
       ` : ""}
     </div>
   `;
@@ -984,7 +987,9 @@ async function cancelAppointment(id) {
 }
 
 async function handleDelete(id) {
-  if (!confirm("Deseja realmente excluir este agendamento?")) return;
+  if (!(await confirmDialog("O agendamento será apagado do sistema e não poderá ser recuperado.", {
+    title: "Excluir este agendamento?", confirmText: "Excluir", danger: true
+  }))) return;
 
   try {
     await api.agendamentos.remove(id);
@@ -1045,7 +1050,7 @@ function showStatusPicker(id, currentStatus, anchorEl) {
             type="button"
             data-status="${escapeHTML(opt.value)}"
             ${opt.value === currentStatus ? "disabled" : ""}>
-      <span class="material-symbols-outlined">${opt.icon}</span>
+      <span class="material-symbols-outlined" aria-hidden="true">${opt.icon}</span>
       ${escapeHTML(opt.value)}
     </button>
   `).join("");
@@ -1133,7 +1138,9 @@ function bindCardActions() {
 
   document.querySelectorAll(".cancel-btn").forEach(button => {
     button.addEventListener("click", async () => {
-      if (!confirm("Cancelar este agendamento?")) return;
+      if (!(await confirmDialog("O horário fica livre para outro cliente.", {
+        title: "Cancelar este agendamento?", confirmText: "Cancelar agendamento", cancelText: "Manter", danger: true
+      }))) return;
       try {
         await cancelAppointment(button.dataset.id);
         showToast("Agendamento cancelado.");
@@ -1161,14 +1168,14 @@ function renderAppointments(filteredAppointments = null) {
       : !isAdmin && $("filter-date")?.value ? "Você não tem agendamentos a partir desta data." : "Tente outra data ou outro serviço.";
     container.innerHTML = hiddenByFilters ? `
       <div class="empty-state">
-        <span class="material-symbols-outlined">filter_alt_off</span>
+        <span class="material-symbols-outlined" aria-hidden="true">filter_alt_off</span>
         <h3>Nenhum agendamento com estes filtros</h3>
         <p>${hint}</p>
         <button type="button" class="secondary-btn empty-state-btn" id="clear-filters">Ver todos os agendamentos</button>
       </div>
     ` : `
       <div class="empty-state">
-        <span class="material-symbols-outlined">event_busy</span>
+        <span class="material-symbols-outlined" aria-hidden="true">event_busy</span>
         <h3>Nenhum agendamento encontrado</h3>
         <p>${isAdmin ? "Cadastre horários e aguarde novos agendamentos." : "Faça um novo agendamento para começar."}</p>
       </div>
@@ -1276,6 +1283,8 @@ async function loadAppointments() {
     applyFilters();
     renderCommentsEligibility();
     updateAdminStats();
+    // Um pedido da fila pode ter virado agendamento: a fila é atualizada junto com a lista
+    await loadWaitlist();
   } catch (error) {
     // A internet caiu no caminho: mostra a cópia salva
     if (error.code === "NETWORK_ERROR" && !isAdmin) {
@@ -1286,6 +1295,61 @@ async function loadAppointments() {
     console.error("Erro ao carregar agendamentos:", error);
     showToast(apiErrorMessage(error, "Erro ao carregar agendamentos."));
   }
+}
+
+// Pedidos do cliente na fila de espera (página Agendamentos). O administrador não entra na fila,
+// e sem internet a seção fica escondida (não há cópia da fila no aparelho).
+async function loadWaitlist() {
+  const section = $("waitlist-section");
+  if (!section) return;
+  if (!currentUser || isAdmin || isOffline) return section.classList.add("hidden");
+  try {
+    renderWaitlist((await api.waitlist.list()) || []);
+  } catch (error) {
+    console.error("Erro ao carregar a fila de espera:", error);
+    section.classList.add("hidden");
+  }
+}
+
+function renderWaitlist(items) {
+  const section = $("waitlist-section");
+  const list = $("waitlist-list");
+  if (!section || !list) return;
+
+  section.classList.toggle("hidden", !items.length);
+  // Ex.: "Rafael Monteiro · Terça-feira, 24/11/2026 às 09:00"
+  const when = item => `${weekdayName(item.data).replace(/^./, c => c.toUpperCase())}, ${formatDateBR(item.data)} às ${item.hora}`;
+  list.innerHTML = items.map(item => `
+    <div class="waitlist-item">
+      <span class="material-symbols-outlined" aria-hidden="true">queue</span>
+      <div class="waitlist-item-info">
+        <strong>${escapeHTML(item.servicos.join(" + ") || "Serviço")}</strong>
+        <span>${escapeHTML(item.barbeiro)} · ${escapeHTML(when(item))}</span>
+      </div>
+      <button type="button" class="action-btn delete-btn leave-waitlist" data-id="${escapeHTML(item.id)}"
+        aria-label="Desistir da fila: ${escapeHTML(item.barbeiro)}, ${escapeHTML(when(item))}">
+        <span class="material-symbols-outlined" aria-hidden="true">logout</span>Desistir
+      </button>
+    </div>`).join("");
+
+  list.querySelectorAll(".leave-waitlist").forEach(button => {
+    button.addEventListener("click", () => withButton(button, () => leaveWaitlist(button.dataset.id)));
+  });
+}
+
+async function leaveWaitlist(id) {
+  if (!(await confirmDialog("Você sai da fila e não será agendado se esse horário vagar.", {
+    title: "Desistir da fila de espera?", confirmText: "Desistir", cancelText: "Continuar na fila", danger: true
+  }))) return;
+
+  try {
+    await api.waitlist.remove(id);
+    showToast("Você saiu da fila de espera.");
+  } catch (error) {
+    console.error("Erro ao sair da fila de espera:", error);
+    showToast(apiErrorMessage(error, "Erro ao sair da fila de espera."));
+  }
+  await loadWaitlist();
 }
 
 async function loadServices() {
@@ -1370,13 +1434,13 @@ function renderCommentsEligibility() {
 
   if (!currentUser) {
     saveBtn.disabled = true;
-    saveBtn.innerHTML = `<span class="material-symbols-outlined">lock</span>Faça login para avaliar`;
+    saveBtn.innerHTML = `<span class="material-symbols-outlined" aria-hidden="true">lock</span>Faça login para avaliar`;
     if (banner) banner.style.display = "";
     return;
   }
 
   saveBtn.disabled = false;
-  saveBtn.innerHTML = `<span class="material-symbols-outlined">send</span>Enviar avaliação`;
+  saveBtn.innerHTML = `<span class="material-symbols-outlined" aria-hidden="true">send</span>Enviar avaliação`;
   if (banner) banner.style.display = "none";
 }
 
@@ -1390,7 +1454,7 @@ function renderCommentsList(items = []) {
   if (!visible.length) {
     container.innerHTML = `
       <div class="empty-comments">
-        <span class="material-symbols-outlined">reviews</span>
+        <span class="material-symbols-outlined" aria-hidden="true">reviews</span>
         <h3>Nenhuma avaliação ainda</h3>
         <p>Seja o primeiro a compartilhar sua experiência.</p>
       </div>`;
@@ -1406,13 +1470,13 @@ function renderCommentsList(items = []) {
         <div class="comment-avatar">${escapeHTML(initial(comment.authorName))}</div>
         <div class="comment-meta">
           <strong>${escapeHTML(comment.authorName || "Cliente")}</strong>
-          <div class="comment-stars">${starsHTML(comment.rating)}</div>
+          <div class="comment-stars" role="img" aria-label="Nota ${Number(comment.rating) || 5} de 5">${starsHTML(comment.rating)}</div>
         </div>
       </div>
       <p class="comment-body">${escapeHTML(comment.text || "")}</p>
       ${isAdmin ? `<div class="comment-actions">
-        <button class="action-btn hide-comment" type="button" data-id="${escapeHTML(comment.id)}"><span class="material-symbols-outlined" style="font-size:16px">visibility_off</span> Ocultar</button>
-        <button class="action-btn delete-btn delete-comment" type="button" data-id="${escapeHTML(comment.id)}"><span class="material-symbols-outlined" style="font-size:16px">delete</span> Remover</button>
+        <button class="action-btn hide-comment" type="button" data-id="${escapeHTML(comment.id)}"><span class="material-symbols-outlined" aria-hidden="true" style="font-size:16px">visibility_off</span> Ocultar</button>
+        <button class="action-btn delete-btn delete-comment" type="button" data-id="${escapeHTML(comment.id)}"><span class="material-symbols-outlined" aria-hidden="true" style="font-size:16px">delete</span> Remover</button>
       </div>` : ""}
     </div>
   `).join("");
@@ -1434,7 +1498,9 @@ function renderCommentsList(items = []) {
   container.querySelectorAll(".delete-comment").forEach(button => {
     button.addEventListener("click", () => withButton(button, async () => {
       if (!isAdmin) return showToast("Acesso negado.");
-      if (!confirm("Remover comentário?")) return;
+      if (!(await confirmDialog("A avaliação sai da página e é apagada.", {
+        title: "Remover esta avaliação?", confirmText: "Remover", danger: true
+      }))) return;
 
       try {
         await api.comments.remove(button.dataset.id);
@@ -1469,7 +1535,7 @@ function renderAdminCommentReview() {
   if (!pending.length) {
     list.innerHTML = `
       <div class="empty-review">
-        <span class="material-symbols-outlined">check_circle</span>
+        <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
         <p>Nenhuma avaliação pendente de revisão.</p>
       </div>`;
     return;
@@ -1484,16 +1550,16 @@ function renderAdminCommentReview() {
         <div class="comment-avatar">${escapeHTML(initial(comment.authorName))}</div>
         <div class="comment-meta">
           <strong>${escapeHTML(comment.authorName || "Cliente")}</strong>
-          <div class="comment-stars">${starsHTML(comment.rating)}</div>
+          <div class="comment-stars" role="img" aria-label="Nota ${Number(comment.rating) || 5} de 5">${starsHTML(comment.rating)}</div>
         </div>
       </div>
       <p class="comment-body">${escapeHTML(comment.text || "")}</p>
       <div class="review-item-actions">
         <button class="action-btn reject-btn reject-comment" type="button" data-id="${escapeHTML(comment.id)}">
-          <span class="material-symbols-outlined" style="font-size:16px">close</span> Reprovar
+          <span class="material-symbols-outlined" aria-hidden="true" style="font-size:16px">close</span> Reprovar
         </button>
         <button class="action-btn approve-btn approve-comment" type="button" data-id="${escapeHTML(comment.id)}">
-          <span class="material-symbols-outlined" style="font-size:16px">check</span> Aprovar
+          <span class="material-symbols-outlined" aria-hidden="true" style="font-size:16px">check</span> Aprovar
         </button>
       </div>
     </div>
@@ -1514,7 +1580,9 @@ function renderAdminCommentReview() {
 
   list.querySelectorAll(".reject-comment").forEach(button => {
     button.addEventListener("click", () => withButton(button, async () => {
-      if (!confirm("Reprovar e remover esta avaliação?")) return;
+      if (!(await confirmDialog("A avaliação não será publicada e será apagada.", {
+        title: "Reprovar esta avaliação?", confirmText: "Reprovar", danger: true
+      }))) return;
       try {
         await api.comments.remove(button.dataset.id);
         showToast("Avaliação reprovada.");
@@ -1617,7 +1685,9 @@ async function loadUsers() {
 
 async function deleteClient(userId) {
   if (!isAdmin) return showToast("Acesso negado.");
-  if (!confirm("Remover este cliente? O perfil será excluído permanentemente.")) return;
+  if (!(await confirmDialog("O perfil do cliente será excluído permanentemente.", {
+    title: "Remover este cliente?", confirmText: "Remover", danger: true
+  }))) return;
 
   try {
     await api.users.remove(userId);
@@ -1806,7 +1876,7 @@ function renderBarberAdminList() {
   if (!barbeirosCache.length) {
     container.innerHTML = `
       <div class="empty-barbeiros">
-        <span class="material-symbols-outlined">group</span>
+        <span class="material-symbols-outlined" aria-hidden="true">group</span>
         <h3>Nenhum barbeiro cadastrado</h3>
         <p>Adicione o primeiro barbeiro usando o formulário ao lado.</p>
       </div>`;
@@ -1833,11 +1903,11 @@ function renderBarberAdminList() {
           <span class="barbeiro-card-horario">${escapeHTML(inicio)} – ${escapeHTML(fim)}</span>
         </div>
         <div class="barbeiro-card-actions">
-          <button class="action-btn edit-barbeiro-btn" type="button" data-id="${escapeHTML(b.id)}" title="Editar">
-            <span class="material-symbols-outlined" style="font-size:16px">edit</span>
+          <button class="action-btn edit-barbeiro-btn" type="button" data-id="${escapeHTML(b.id)}" title="Editar" aria-label="Editar ${escapeHTML(b.name || "barbeiro")}">
+            <span class="material-symbols-outlined" aria-hidden="true" style="font-size:16px">edit</span>
           </button>
-          <button class="action-btn delete-btn delete-barbeiro-btn" type="button" data-id="${escapeHTML(b.id)}" title="Remover">
-            <span class="material-symbols-outlined" style="font-size:16px">delete</span>
+          <button class="action-btn delete-btn delete-barbeiro-btn" type="button" data-id="${escapeHTML(b.id)}" title="Remover" aria-label="Remover ${escapeHTML(b.name || "barbeiro")}">
+            <span class="material-symbols-outlined" aria-hidden="true" style="font-size:16px">delete</span>
           </button>
         </div>
       </div>`;
@@ -2046,7 +2116,9 @@ async function saveBarbeiroAdmin() {
 
 async function deleteBarbeiroAdmin(id) {
   if (!isAdmin) return showToast("Acesso negado.");
-  if (!confirm("Remover este barbeiro?")) return;
+  if (!(await confirmDialog("O barbeiro deixa de aparecer para os clientes. Os agendamentos ativos dele precisam ser cancelados ou concluídos antes.", {
+    title: "Remover este barbeiro?", confirmText: "Remover", danger: true
+  }))) return;
   try {
     await api.barbeiros.remove(id);
     showToast("Barbeiro removido.");

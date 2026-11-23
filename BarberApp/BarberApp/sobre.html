@@ -161,7 +161,7 @@
     }
 
     .highlight-text span {
-      font-size: 0.82rem;
+      font-size: 0.84rem;
       color: var(--text-muted);
       line-height: 1.6;
     }
@@ -284,7 +284,7 @@
     }
 
     .equipe-info .equipe-role {
-      font-size: 0.83rem;
+      font-size: 0.84rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.08em;
@@ -485,6 +485,8 @@
   </style>
 </head>
 <body>
+  <!-- Atalho do teclado: aparece só com o Tab e pula o menu lateral -->
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 
   <!-- Overlay + Sidebar -->
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -494,47 +496,47 @@
         <img src="resources/logo-dourado.png" alt="Barber, página inicial" class="sidebar-logo" />
       </a>
       <button class="sidebar-close" id="sidebarClose" aria-label="Fechar menu">
-        <span class="material-symbols-outlined">close</span>
+        <span class="material-symbols-outlined" aria-hidden="true">close</span>
       </button>
     </div>
     <nav class="sidebar-nav">
       <a href="index.html" class="sidebar-link">
-        <span class="material-symbols-outlined">home</span>
+        <span class="material-symbols-outlined" aria-hidden="true">home</span>
         Início
       </a>
       <a href="agendamentos.html" class="sidebar-link">
-        <span class="material-symbols-outlined">calendar_month</span>
+        <span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>
         Agendamentos
       </a>
       <a href="comentarios.html" class="sidebar-link">
-        <span class="material-symbols-outlined">reviews</span>
+        <span class="material-symbols-outlined" aria-hidden="true">reviews</span>
         Avaliações
       </a>
       <a href="sobre.html" class="sidebar-link">
-        <span class="material-symbols-outlined">info</span>
+        <span class="material-symbols-outlined" aria-hidden="true">info</span>
         Sobre Nós
       </a>
       <a href="auth.html" class="sidebar-link">
-        <span class="material-symbols-outlined">person</span>
+        <span class="material-symbols-outlined" aria-hidden="true">person</span>
         Perfil
       </a>
       <a href="admin.html" class="sidebar-link hidden" id="admin-nav-link">
-        <span class="material-symbols-outlined">admin_panel_settings</span>
+        <span class="material-symbols-outlined" aria-hidden="true">admin_panel_settings</span>
         Administração
       </a>
     </nav>
     <button type="button" class="sidebar-install hidden" id="install-app-btn">
-      <span class="material-symbols-outlined">install_mobile</span>
+      <span class="material-symbols-outlined" aria-hidden="true">install_mobile</span>
       Baixe nosso aplicativo
     </button>
   </aside>
 
   <!-- Mobile toggle -->
   <button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu">
-    <span class="material-symbols-outlined">menu</span>
+    <span class="material-symbols-outlined" aria-hidden="true">menu</span>
   </button>
 
-  <main class="app">
+  <main class="app" id="conteudo" tabindex="-1">
     <div class="bg-orb orb-left"></div>
     <div class="bg-orb orb-bottom"></div>
 
@@ -550,7 +552,7 @@
       </p>
     </section>
 
-    <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined">content_cut</span></div>
+    <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined" aria-hidden="true">content_cut</span></div>
 
     <!-- Nossa História -->
     <section class="container sobre-section">
@@ -573,7 +575,7 @@
         <div class="sobre-historia-highlight">
           <div class="highlight-item anim-fade-up">
             <div class="highlight-icon">
-              <span class="material-symbols-outlined">workspace_premium</span>
+              <span class="material-symbols-outlined" aria-hidden="true">workspace_premium</span>
             </div>
             <div class="highlight-text">
               <strong>Qualidade Premium</strong>
@@ -582,7 +584,7 @@
           </div>
           <div class="highlight-item anim-fade-up anim-d1">
             <div class="highlight-icon">
-              <span class="material-symbols-outlined">handshake</span>
+              <span class="material-symbols-outlined" aria-hidden="true">handshake</span>
             </div>
             <div class="highlight-text">
               <strong>Atendimento Personalizado</strong>
@@ -591,7 +593,7 @@
           </div>
           <div class="highlight-item anim-fade-up anim-d2">
             <div class="highlight-icon">
-              <span class="material-symbols-outlined">verified</span>
+              <span class="material-symbols-outlined" aria-hidden="true">verified</span>
             </div>
             <div class="highlight-text">
               <strong>Profissionais Certificados</strong>
@@ -600,7 +602,7 @@
           </div>
           <div class="highlight-item anim-fade-up anim-d3">
             <div class="highlight-icon">
-              <span class="material-symbols-outlined">favorite</span>
+              <span class="material-symbols-outlined" aria-hidden="true">favorite</span>
             </div>
             <div class="highlight-text">
               <strong>Ambiente Acolhedor</strong>
@@ -611,7 +613,7 @@
       </div>
     </section>
 
-    <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined">content_cut</span></div>
+    <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined" aria-hidden="true">content_cut</span></div>
 
     <!-- Serviços -->
     <section class="container sobre-section">
@@ -623,7 +625,7 @@
       </div>
     </section>
 
-    <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined">content_cut</span></div>
+    <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined" aria-hidden="true">content_cut</span></div>
 
     <!-- Equipe -->
     <section class="container sobre-section">
@@ -635,7 +637,7 @@
       </div>
     </section>
 
-    <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined">content_cut</span></div>
+    <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined" aria-hidden="true">content_cut</span></div>
 
     <!-- Horários e Contato -->
     <section class="container sobre-section">
@@ -645,7 +647,7 @@
       <div class="sobre-info-grid">
         <div class="sobre-info-card anim-fade-up anim-d1">
           <div class="sobre-info-card-title">
-            <span class="material-symbols-outlined">schedule</span>
+            <span class="material-symbols-outlined" aria-hidden="true">schedule</span>
             Horário de funcionamento
           </div>
           <div class="horario-lista">
@@ -670,33 +672,33 @@
 
         <div class="sobre-info-card anim-fade-up anim-d2">
           <div class="sobre-info-card-title">
-            <span class="material-symbols-outlined">location_on</span>
+            <span class="material-symbols-outlined" aria-hidden="true">location_on</span>
             Localização e contato
           </div>
           <div class="contato-lista">
             <div class="contato-item">
-              <span class="material-symbols-outlined">place</span>
+              <span class="material-symbols-outlined" aria-hidden="true">place</span>
               <div class="contato-item-text">
                 <strong>Endereço</strong>
                 <span>Rua das Tesouras, 123 – Centro<br />São Paulo – SP, 01310-100</span>
               </div>
             </div>
             <div class="contato-item">
-              <span class="material-symbols-outlined">phone</span>
+              <span class="material-symbols-outlined" aria-hidden="true">phone</span>
               <div class="contato-item-text">
                 <strong>Telefone / WhatsApp</strong>
                 <span>(11) 99999-1234</span>
               </div>
             </div>
             <div class="contato-item">
-              <span class="material-symbols-outlined">mail</span>
+              <span class="material-symbols-outlined" aria-hidden="true">mail</span>
               <div class="contato-item-text">
                 <strong>Email</strong>
                 <span>contato@barberapp.com.br</span>
               </div>
             </div>
             <div class="contato-item">
-              <span class="material-symbols-outlined">photo_camera</span>
+              <span class="material-symbols-outlined" aria-hidden="true">photo_camera</span>
               <div class="contato-item-text">
                 <strong>Instagram</strong>
                 <span>@barberapp.oficial</span>
@@ -707,14 +709,14 @@
       </div>
     </section>
 
-    <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined">content_cut</span></div>
+    <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined" aria-hidden="true">content_cut</span></div>
 
     <!-- CTA -->
     <section class="container sobre-cta">
       <h2 class="anim-fade-up">Pronto para o próximo <span>nível?</span></h2>
       <p class="anim-fade-up anim-d1">Agende agora mesmo e garanta seu horário com nossos profissionais.</p>
       <a href="index.html" class="sobre-cta-btn">
-        <span class="material-symbols-outlined">content_cut</span>
+        <span class="material-symbols-outlined" aria-hidden="true">content_cut</span>
         Agendar agora
       </a>
     </section>

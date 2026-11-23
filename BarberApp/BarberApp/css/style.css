@@ -252,7 +252,7 @@ input, textarea, button {
 }
 
 .welcome-text {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -492,7 +492,7 @@ button:disabled,
 
 .form-group label,
 .section-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -566,13 +566,13 @@ button:disabled,
 .field-error {
   min-height: 15px;
   margin-left: 3px;
-  font-size: 0.75rem;
+  font-size: 0.84rem;
   color: var(--danger);
 }
 
 .field-hint {
   margin-left: 3px;
-  font-size: 0.75rem;
+  font-size: 0.84rem;
   color: var(--text-soft);
 }
 
@@ -741,7 +741,7 @@ button:disabled,
 }
 
 .service-price {
-  font-size: 0.76rem;
+  font-size: 0.84rem;
   font-weight: 700;
   color: var(--text-soft);
 }
@@ -811,7 +811,7 @@ button:disabled,
 }
 
 .stat-item span {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.11em;
   text-transform: uppercase;
@@ -944,7 +944,7 @@ button:disabled,
   align-items: center;
   gap: 12px;
   margin: 18px 0 14px;
-  font-size: 0.8rem;
+  font-size: 0.84rem;
   color: var(--text-soft);
 }
 

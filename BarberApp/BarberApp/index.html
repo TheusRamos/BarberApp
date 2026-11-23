@@ -89,6 +89,8 @@
   </style>
 </head>
 <body>
+  <!-- Atalho do teclado: aparece só com o Tab e pula o menu lateral -->
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 
   <!-- Overlay + Sidebar -->
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -98,47 +100,47 @@
         <img src="resources/logo-dourado.png" alt="Barber, página inicial" class="sidebar-logo" />
       </a>
       <button class="sidebar-close" id="sidebarClose" aria-label="Fechar menu">
-        <span class="material-symbols-outlined">close</span>
+        <span class="material-symbols-outlined" aria-hidden="true">close</span>
       </button>
     </div>
     <nav class="sidebar-nav">
       <a href="index.html" class="sidebar-link">
-        <span class="material-symbols-outlined">home</span>
+        <span class="material-symbols-outlined" aria-hidden="true">home</span>
         Início
       </a>
       <a href="agendamentos.html" class="sidebar-link">
-        <span class="material-symbols-outlined">calendar_month</span>
+        <span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>
         Agendamentos
       </a>
       <a href="comentarios.html" class="sidebar-link">
-        <span class="material-symbols-outlined">reviews</span>
+        <span class="material-symbols-outlined" aria-hidden="true">reviews</span>
         Avaliações
       </a>
       <a href="sobre.html" class="sidebar-link">
-        <span class="material-symbols-outlined">info</span>
+        <span class="material-symbols-outlined" aria-hidden="true">info</span>
         Sobre Nós
       </a>
       <a href="auth.html" class="sidebar-link" id="auth-link">
-        <span class="material-symbols-outlined">person</span>
+        <span class="material-symbols-outlined" aria-hidden="true">person</span>
         Entrar
       </a>
       <a href="admin.html" class="sidebar-link hidden" id="admin-nav-link">
-        <span class="material-symbols-outlined">admin_panel_settings</span>
+        <span class="material-symbols-outlined" aria-hidden="true">admin_panel_settings</span>
         Administração
       </a>
     </nav>
     <button type="button" class="sidebar-install hidden" id="install-app-btn">
-      <span class="material-symbols-outlined">install_mobile</span>
+      <span class="material-symbols-outlined" aria-hidden="true">install_mobile</span>
       Baixe nosso aplicativo
     </button>
   </aside>
 
   <!-- Mobile toggle -->
   <button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu">
-    <span class="material-symbols-outlined">menu</span>
+    <span class="material-symbols-outlined" aria-hidden="true">menu</span>
   </button>
 
-  <main class="app">
+  <main class="app" id="conteudo" tabindex="-1">
     <div class="bg-orb orb-left"></div>
     <div class="bg-orb orb-bottom"></div>
 
@@ -158,7 +160,7 @@
 
         <div class="hero-actions anim-fade-up anim-d3">
           <button type="button" class="secondary-btn" id="open-appointments">
-            <span class="material-symbols-outlined">calendar_month</span>
+            <span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>
             Ver agendamentos
           </button>
         </div>
@@ -177,7 +179,7 @@
 
         <!-- Aviso sem internet (app no celular): o app.js mostra e trava os campos abaixo -->
         <div id="offline-notice" class="offline-notice hidden" role="status">
-          <span class="material-symbols-outlined">wifi_off</span>
+          <span class="material-symbols-outlined" aria-hidden="true">wifi_off</span>
           <div>
             <strong>Você está sem internet</strong>
             <p>Para agendar um horário, conecte-se à internet.</p>
@@ -187,7 +189,7 @@
         <!-- Aviso para quem não entrou na conta: o app.js mostra e trava os campos abaixo -->
         <div id="login-required" class="login-required hidden" role="status">
           <div class="login-required-body">
-            <span class="material-symbols-outlined">lock</span>
+            <span class="material-symbols-outlined" aria-hidden="true">lock</span>
             <div>
               <strong>Entre na sua conta para agendar</strong>
               <p>Você pode ver os serviços e preços, mas para reservar um horário é preciso estar logado.</p>
@@ -196,7 +198,7 @@
           <div class="login-required-actions">
             <a href="auth.html#cadastro" class="ghost-btn">Criar conta</a>
             <a href="auth.html" class="secondary-btn">
-              <span class="material-symbols-outlined">login</span>
+              <span class="material-symbols-outlined" aria-hidden="true">login</span>
               Entrar
             </a>
           </div>
@@ -205,7 +207,7 @@
         <!-- Cliente que ainda não confirmou o e-mail: os campos ficam travados até confirmar (o app.js decide) -->
         <div id="verify-required" class="login-required hidden" role="status">
           <div class="login-required-body">
-            <span class="material-symbols-outlined">mark_email_unread</span>
+            <span class="material-symbols-outlined" aria-hidden="true">mark_email_unread</span>
             <div>
               <strong class="verify-title">Confirme seu e-mail para agendar</strong>
               <p class="verify-normal">Enviamos um link para <b class="verify-email"></b>. Não chegou? Confira a caixa de spam ou de lixo eletrônico.</p>
@@ -215,11 +217,11 @@
           </div>
           <div class="login-required-actions">
             <button type="button" class="secondary-btn" id="verify-resend-btn">
-              <span class="material-symbols-outlined">forward_to_inbox</span>
+              <span class="material-symbols-outlined" aria-hidden="true">forward_to_inbox</span>
               Reenviar link
             </button>
             <a href="auth.html" class="secondary-btn hidden" id="verify-fix-link">
-              <span class="material-symbols-outlined">edit</span>
+              <span class="material-symbols-outlined" aria-hidden="true">edit</span>
               Corrigir e-mail
             </a>
           </div>
@@ -293,19 +295,19 @@
 
           <div class="form-actions">
             <button type="submit" class="submit-btn" id="submit-btn">
-              <span class="material-symbols-outlined">check_circle</span>
+              <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
               Confirmar agendamento
             </button>
 
             <button type="button" class="ghost-btn hidden" id="cancel-edit-btn">
-              <span class="material-symbols-outlined">close</span>
+              <span class="material-symbols-outlined" aria-hidden="true">close</span>
               Cancelar edição
             </button>
           </div>
 
           <div id="waitlist-offer" class="waitlist-offer hidden">
             <div class="waitlist-offer-body">
-              <span class="material-symbols-outlined">queue</span>
+              <span class="material-symbols-outlined" aria-hidden="true">queue</span>
               <div>
                 <strong>Horário indisponível</strong>
                 <p>Este horário já está reservado. Quer entrar na fila? Você será reagendado automaticamente se o horário abrir.</p>
@@ -314,7 +316,7 @@
             <div class="waitlist-offer-actions">
               <button type="button" class="ghost-btn" id="waitlist-dismiss-btn">Fechar</button>
               <button type="button" class="secondary-btn" id="waitlist-join-btn">
-                <span class="material-symbols-outlined">queue</span>
+                <span class="material-symbols-outlined" aria-hidden="true">queue</span>
                 Entrar na fila
               </button>
             </div>
@@ -331,7 +333,7 @@
   <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <footer class="site-footer">
-    <div class="divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined">content_cut</span></div>
+    <div class="divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined" aria-hidden="true">content_cut</span></div>
     <p>Criado por <strong>Matheus Ramos</strong> e <strong>Lukas Raymond</strong></p>
   </footer>
 

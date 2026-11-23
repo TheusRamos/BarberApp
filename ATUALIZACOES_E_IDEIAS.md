@@ -21,7 +21,7 @@ Estados sugeridos: **Pendente**, **Em andamento**, **Concluído** e **Adiado**. 
 
 ## Problemas e ajustes pendentes
 
-Itens relatados ou encontrados em testes que ainda precisam de correção ou de uma decisão. Os itens 027 a 029 e 031 vêm da bateria de testes de usabilidade de 23/11/2026 (os demais achados dela foram corrigidos nos itens 025 e 026).
+Itens relatados ou encontrados em testes que ainda precisam de correção ou de uma decisão. O item 031 vem da bateria de testes de usabilidade de 23/11/2026 (os demais achados dela foram corrigidos nos itens 025 a 030).
 
 ### 008 — Retirar dados pessoais dos alunos do sistema
 
@@ -35,34 +35,6 @@ Itens relatados ou encontrados em testes que ainda precisam de correção ou de 
   - **Remetente dos e-mails:** `EMAIL_FROM`, no Render, é um e-mail institucional de aluno; ele aparece para os clientes nos e-mails de confirmação e de recuperação de senha.
   - **Histórico do git:** os commits registram o nome do autor. Apagar exigiria reescrever o histórico do repositório; a recomendação é manter, como os créditos.
 
-### 027 — Acessibilidade: estrelas, ícones, letras pequenas e atalho para o conteúdo
-
-- **Estado:** Pendente
-- **Registrado em:** 23/11/2026
-- **Objetivo:** Concluir os ajustes de acessibilidade encontrados na bateria de usabilidade.
-- **Pontos a corrigir:**
-  - As estrelas da avaliação não recebem foco do teclado (quem não usa mouse ou toque fica sempre com nota 5), e o rótulo "Nota" não está ligado a elas.
-  - O leitor de tela lê o nome dos ícones (de 2 a 28 por página); no administrador, os botões de editar e excluir barbeiro são lidos como "edit" e "delete".
-  - Letras de 10 px (selos do topo e rótulos dos números) e de 11 px no administrador.
-  - Falta o atalho "Pular para o conteúdo": são 7 ou 8 Tabs pelo menu antes de chegar ao conteúdo.
-- **Estimativa:** cerca de 1 h 40.
-
-### 028 — Aviso enquanto o servidor acorda
-
-- **Estado:** Pendente
-- **Registrado em:** 23/11/2026
-- **Objetivo:** No plano grátis do Render, o primeiro acesso depois de 15 minutos parado leva uns 18 segundos, sem nenhum aviso na tela.
-- **Comportamento esperado:** Se a API demorar mais que alguns segundos, mostrar "O servidor está acordando, isso leva até 30 segundos". Manter o servidor sempre acordado não é opção, porque estouraria o limite de uso grátis do Neon.
-- **Estimativa:** cerca de 30 min.
-
-### 029 — Confirmações no visual do Barber
-
-- **Estado:** Pendente
-- **Registrado em:** 23/11/2026
-- **Objetivo:** As 8 confirmações (cancelar, excluir, reprovar etc.) usam a janela padrão do navegador, fora da identidade visual.
-- **Comportamento esperado:** Uma janela própria, no visual do site, que funcione pelo teclado e pelo leitor de tela.
-- **Estimativa:** cerca de 1 h.
-
 ### 031 — Avaliação só de quem foi atendido
 
 - **Estado:** Pendente — decisão dos alunos
@@ -72,14 +44,6 @@ Itens relatados ou encontrados em testes que ainda precisam de correção ou de 
 - **Estimativa:** cerca de 40 min, depois da decisão.
 
 ## Melhorias futuras
-
-### 030 — Fila de espera: consultar, desistir e receber aviso
-
-- **Estado:** Pendente
-- **Registrado em:** 23/11/2026
-- **Objetivo:** O cliente entra na fila pela tela (item 025), mas não vê os pedidos que fez, não consegue desistir e não é avisado quando a fila vira agendamento (a reserva só aparece na lista de Agendamentos).
-- **Comportamento esperado:** Em Agendamentos, uma seção "Na fila de espera" com os pedidos e o botão "Desistir"; e um e-mail pelo Brevo quando o pedido virar agendamento.
-- **Estimativa:** cerca de 1 h 30 para a consulta e a desistência, e 40 min para o e-mail.
 
 ### 032 — Ativar o CAPTCHA (Cloudflare Turnstile)
 
@@ -93,6 +57,49 @@ Itens relatados ou encontrados em testes que ainda precisam de correção ou de 
 Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **033**.
 
 ## Atualizações concluídas
+
+### 030 — Fila de espera: consultar, desistir e receber aviso
+
+- **Estado:** Concluído
+- **Registrado em:** 23/11/2026
+- **Concluído em:** 23/11/2026
+- **Objetivo:** O cliente entrava na fila pela tela (item 025), mas não via os pedidos que fez, não conseguia desistir e não era avisado quando a fila virava agendamento.
+- **Resumo da entrega:**
+  - **API:** `GET /api/waitlist` lista os pedidos do próprio cliente (horários que ainda não passaram, com barbeiro, data, hora e serviços); `DELETE /api/waitlist/:id` desiste de um pedido, só pelo dono (pedido de outro cliente responde como inexistente).
+  - **Tela:** em Agendamentos, a seção "Na fila de espera" aparece quando há pedidos, cada um com o botão "Desistir" (com a janela de confirmação do item 029). A seção é atualizada junto com a lista de agendamentos.
+  - **E-mail:** quando um pedido vira agendamento (cancelamento, conclusão, exclusão ou edição de outra reserva), o cliente recebe "Sua vaga na fila de espera abriu!", com serviço, barbeiro, data, hora e o botão "Ver meus agendamentos". O e-mail sai depois da resposta e da transação gravada; falha no envio só vai para o log. As linhas dos e-mails passaram a ser escapadas no HTML, porque agora levam nomes de serviços e barbeiros.
+  - Teste de integração: listagem, desistência, tentativa de outro cliente e o e-mail da promoção (com o Brevo falso). Conferido no navegador.
+
+### 029 — Confirmações no visual do Barber
+
+- **Estado:** Concluído
+- **Registrado em:** 23/11/2026
+- **Concluído em:** 23/11/2026
+- **Objetivo:** As 8 confirmações (cancelar e excluir agendamento, remover serviço, barbeiro, cliente e avaliação, reprovar avaliação, sair de todos os dispositivos) usavam a janela padrão do navegador, fora da identidade visual.
+- **Resumo da entrega:** `js/dialogo.js` cria uma janela própria com o `<dialog>` do navegador: título, explicação do que vai acontecer e botões com o nome da ação ("Cancelar agendamento", "Manter"). O foco fica preso na janela, Esc ou clique fora cancelam, e o foco volta ao botão que a abriu. Em ações que apagam algo, o foco começa em "Voltar", contra um Enter sem querer, e o botão de confirmar fica vermelho.
+
+### 028 — Aviso enquanto o servidor acorda
+
+- **Estado:** Concluído
+- **Registrado em:** 23/11/2026
+- **Concluído em:** 23/11/2026
+- **Objetivo:** No plano grátis do Render, o primeiro acesso depois de 15 minutos parado leva uns 18 segundos, sem nenhum aviso na tela.
+- **Resumo da entrega:** Quando uma chamada à API passa de 3 segundos, aparece no rodapé "O servidor está acordando. Isso pode levar até 30 segundos.", que some quando as chamadas lentas terminam (também anunciado pelo leitor de tela).
+- **Limite:** o aviso depende da página já estar aberta. Para quem nunca visitou o site, a própria página vem do servidor que está acordando, e o navegador fica carregando sem mostrar nada. Quem já instalou o app ou visitou antes recebe a página guardada no aparelho em até 4 segundos e vê o aviso. Resolver o primeiro acesso exigiria hospedar as páginas num serviço estático que não dorme, separado da API. Manter o servidor sempre acordado não é opção, porque estouraria o limite de uso grátis do Neon.
+
+### 027 — Acessibilidade: estrelas, ícones, letras pequenas e atalho para o conteúdo
+
+- **Estado:** Concluído
+- **Registrado em:** 23/11/2026
+- **Concluído em:** 23/11/2026
+- **Objetivo:** Concluir os ajustes de acessibilidade encontrados na bateria de usabilidade.
+- **Resumo da entrega:**
+  - **Estrelas da avaliação:** viram um grupo de opções ligado ao rótulo "Nota": o Tab chega à nota escolhida, as setas mudam a nota (Home e End vão para 1 e 5) e o leitor de tela anuncia "4 estrelas, selecionado". As estrelas das avaliações publicadas são lidas como "Nota 4 de 5".
+  - **Ícones:** os 147 ícones das páginas e dos scripts ficam escondidos do leitor de tela (`aria-hidden`); os botões de editar e remover barbeiro ganham nome em português ("Editar André Moura").
+  - **Letras:** nada menor que 12 px. Além das regras em `px`, as em `rem` abaixo de 0,84rem também subiram, porque a página usa fonte base de 90% (1rem = 14,4 px).
+  - **Atalho "Pular para o conteúdo":** primeiro Tab de cada página, aparece só com o teclado e leva direto ao conteúdo, sem passar pelo menu lateral.
+  - **Achado no teste:** no celular, o formulário de barbeiro do administrador passava da borda direita da tela e ficava cortado, e os serviços dos cartões de barbeiro também (as reticências não funcionavam). Os dois foram corrigidos.
+  - Conferido no navegador: as 20 telas da inspeção sem ícones lidos, sem campos sem rótulo, sem botões só com ícone, sem letras abaixo de 12 px e sem rolagem para o lado.
 
 ### 026 — Ajustes de usabilidade no celular e no leitor de tela
 

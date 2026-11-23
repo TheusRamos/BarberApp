@@ -33,7 +33,7 @@ async function loadServicos() {
     grid.innerHTML = services.map((s, idx) => `
       <div class="sobre-servico-card anim-fade-up${idx > 0 && idx <= 5 ? ` anim-d${idx}` : ''}">
         <div class="sobre-servico-icon">
-          <span class="material-symbols-outlined">${esc(s.icon || "content_cut")}</span>
+          <span class="material-symbols-outlined" aria-hidden="true">${esc(s.icon || "content_cut")}</span>
         </div>
         <div class="sobre-servico-info">
           <h3>${esc(s.name)}</h3>

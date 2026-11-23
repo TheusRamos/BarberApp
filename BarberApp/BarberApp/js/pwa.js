@@ -51,10 +51,10 @@
   function abrirPassoAPasso(iphone) {
     fecharPassoAPasso();
     const passos = iphone
-      ? ['Toque em <b>Compartilhar</b> <span class="material-symbols-outlined">ios_share</span> na barra do navegador.',
+      ? ['Toque em <b>Compartilhar</b> <span class="material-symbols-outlined" aria-hidden="true">ios_share</span> na barra do navegador.',
          'Escolha <b>Adicionar à Tela de Início</b>.',
          'Toque em <b>Adicionar</b>.']
-      : ['Abra o menu do navegador <span class="material-symbols-outlined">more_vert</span>.',
+      : ['Abra o menu do navegador <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>.',
          'Toque em <b>Instalar app</b> ou <b>Adicionar à tela inicial</b>.',
          'Confirme.'];
 
@@ -65,7 +65,7 @@
     painel.setAttribute('aria-labelledby', 'install-guide-title');
     painel.innerHTML = `
       <button type="button" class="install-guide-close" aria-label="Fechar">
-        <span class="material-symbols-outlined">close</span>
+        <span class="material-symbols-outlined" aria-hidden="true">close</span>
       </button>
       <h3 id="install-guide-title">Instale o app Barber</h3>
       <ol>${passos.map(passo => `<li>${passo}</li>`).join('')}</ol>

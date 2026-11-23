@@ -6,7 +6,7 @@ import { fail,text,id,email,phone,photo,hashPassword,verifyPassword,tokenHash,us
 import { bookingSelect,bookingDTO,getBooking,lockAgenda,prepare,conflict,insertBooking,insertWaitlist,saveBookingServices,promote,statusDB,active,checkQuota } from './bookings.js';
 import { googleEnabled,start,finish,googleUser,issueCode,redeemCode } from './google.js';
 import { turnstile,captchaEnabled,requireCaptcha } from './captcha.js';
-import { emailEnabled,sendVerification,sendPasswordReset,useEmailToken,mailDomainExists } from './email.js';
+import { emailEnabled,sendVerification,sendPasswordReset,sendWaitlistBooked,useEmailToken,mailDomainExists } from './email.js';
 
 export const app=express();
 app.disable('x-powered-by');
@@ -344,7 +344,19 @@ app.post('/api/agendamentos',auth,phoneRequired,emailConfirmed,async(req,res)=>{
     await db.query('DELETE FROM fila_espera WHERE cliente_id=$1 AND horario_id=$2',[req.user.id,h.id]);
     return bookingDTO(await getBooking(db,key,req.user));});res.status(201).json(result);
 });
+// Pedidos da fila que viraram agendamento: avisa cada cliente por e-mail, depois da resposta e da transação
+// gravada. Falha no envio só vai para o log: a reserva já está feita e aparece na lista do cliente.
+function notifyPromoted(bookingIds) {
+  if(!bookingIds.length || !emailEnabled()) return;
+  (async()=>{
+    for(const key of bookingIds) {
+      const booking=(await pool.query(`${bookingSelect} WHERE a.id=$1`,[key])).rows[0];
+      if(booking) await sendWaitlistBooked(booking);
+    }
+  })().catch(error=>console.error('Falha ao avisar a fila de espera por e-mail:',error.message));
+}
 app.patch('/api/agendamentos/:id',auth,admin,async(req,res)=>{
+  let promoted=[];
   const result=await transaction(async db=>{await lockAgenda(db);const old=await getBooking(db,req.params.id,req.user,true);
     if(!active(old.status)) fail(409,'Somente agendamentos ativos podem ser editados.');
     const {h,services,duracao,valor,observacoes}=await prepare(db,req.body);
@@ -352,11 +364,13 @@ app.patch('/api/agendamentos/:id',auth,admin,async(req,res)=>{
     await db.query('UPDATE agendamentos SET servico_id=$1,cabeleireiro_id=$2,horario_id=$3,duracao=$4,valor=$5,observacoes=$6 WHERE id=$7',
       [services[0].id,h.cabeleireiro_id,h.id,duracao,valor,observacoes,old.id]);
     await saveBookingServices(db,old.id,services);
-    await promote(db,old.cabeleireiro_id,old.data);return bookingDTO(await getBooking(db,old.id,req.user));});res.json(result);
+    promoted=await promote(db,old.cabeleireiro_id,old.data);return bookingDTO(await getBooking(db,old.id,req.user));});res.json(result);
+  notifyPromoted(promoted);
 });
 async function changeStatus(req,res) {
   const target=req.path.endsWith('/cancel')?'cancelado':statusDB(req.body.status);
   if(!target) fail(400,'Status inválido.');
+  let promoted=[];
   const result=await transaction(async db=>{await lockAgenda(db);const old=await getBooking(db,req.params.id,req.user,true);
     if(req.user.tipo!=='administrador') {
       if(!active(old.status)||target!=='cancelado') fail(403,'Este agendamento não pode ser cancelado.','FORBIDDEN');
@@ -369,14 +383,33 @@ async function changeStatus(req,res) {
       if(await conflict(db,old,old.duracao,old.id)) fail(409,'Horário já reservado.','SLOT_TAKEN');
     }
     await db.query('UPDATE agendamentos SET status=$1 WHERE id=$2',[target,old.id]);
-    if(active(old.status) && !active(target)) await promote(db,old.cabeleireiro_id,old.data);
+    if(active(old.status) && !active(target)) promoted=await promote(db,old.cabeleireiro_id,old.data);
     return bookingDTO(await getBooking(db,old.id,req.user));});res.json(result);
+  notifyPromoted(promoted);
 }
 app.patch('/api/agendamentos/:id/status',auth,admin,changeStatus);
 app.post('/api/agendamentos/:id/cancel',auth,changeStatus);
 app.delete('/api/agendamentos/:id',auth,admin,async(req,res)=>{
+  let promoted=[];
   await transaction(async db=>{await lockAgenda(db);const a=await getBooking(db,req.params.id,req.user,true);
-    await db.query('DELETE FROM agendamentos WHERE id=$1',[a.id]);await promote(db,a.cabeleireiro_id,a.data);});res.json({});
+    await db.query('DELETE FROM agendamentos WHERE id=$1',[a.id]);promoted=await promote(db,a.cabeleireiro_id,a.data);});res.json({});
+  notifyPromoted(promoted);
+});
+// Pedidos do próprio cliente na fila de espera, de horários que ainda não passaram, com os serviços pedidos.
+app.get('/api/waitlist',auth,async(req,res)=>{
+  const rows=(await pool.query(`SELECT f.id,f.valor,f.duracao,h.data,h.hora,b.nome AS barbeiro,
+      (SELECT array_agg(s.nome ORDER BY x.ordem) FROM fila_espera_servicos x JOIN servicos s ON s.id=x.servico_id
+        WHERE x.fila_id=f.id) AS servicos
+    FROM fila_espera f JOIN horarios h ON h.id=f.horario_id JOIN cabeleireiros b ON b.id=h.cabeleireiro_id
+    WHERE f.cliente_id=$1 AND h.data+h.hora>localtimestamp ORDER BY h.data,h.hora`,[req.user.id])).rows;
+  res.json(rows.map(f=>({id:String(f.id),barbeiro:f.barbeiro,data:f.data,hora:f.hora.slice(0,5),
+    servicos:f.servicos || [],valor:Number(f.valor),duracao:f.duracao})));
+});
+// Desistir de um pedido da fila: só o dono do pedido (de outro cliente, responde como inexistente).
+app.delete('/api/waitlist/:id',auth,async(req,res)=>{
+  const removed=await pool.query('DELETE FROM fila_espera WHERE id=$1 AND cliente_id=$2',[id(req.params.id),req.user.id]);
+  if(!removed.rowCount) fail(404,'Pedido não encontrado na fila de espera.','NOT_FOUND');
+  res.json({});
 });
 app.post('/api/waitlist',auth,phoneRequired,emailConfirmed,async(req,res)=>{
   if(req.user.tipo==='administrador') fail(403,'A fila é destinada aos clientes.','FORBIDDEN');

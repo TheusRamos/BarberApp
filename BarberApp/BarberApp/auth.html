@@ -35,6 +35,8 @@
   <link rel="stylesheet" href="css/componentes.css" />
 </head>
 <body>
+  <!-- Atalho do teclado: aparece só com o Tab e pula o menu lateral -->
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 
   <!-- Overlay + Sidebar -->
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -44,47 +46,47 @@
         <img src="resources/logo-dourado.png" alt="Barber, página inicial" class="sidebar-logo" />
       </a>
       <button class="sidebar-close" id="sidebarClose" aria-label="Fechar menu">
-        <span class="material-symbols-outlined">close</span>
+        <span class="material-symbols-outlined" aria-hidden="true">close</span>
       </button>
     </div>
     <nav class="sidebar-nav">
       <a href="index.html" class="sidebar-link">
-        <span class="material-symbols-outlined">home</span>
+        <span class="material-symbols-outlined" aria-hidden="true">home</span>
         Início
       </a>
       <a href="agendamentos.html" class="sidebar-link">
-        <span class="material-symbols-outlined">calendar_month</span>
+        <span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>
         Agendamentos
       </a>
       <a href="comentarios.html" class="sidebar-link">
-        <span class="material-symbols-outlined">reviews</span>
+        <span class="material-symbols-outlined" aria-hidden="true">reviews</span>
         Avaliações
       </a>
       <a href="sobre.html" class="sidebar-link">
-        <span class="material-symbols-outlined">info</span>
+        <span class="material-symbols-outlined" aria-hidden="true">info</span>
         Sobre Nós
       </a>
       <a href="auth.html" class="sidebar-link">
-        <span class="material-symbols-outlined">person</span>
+        <span class="material-symbols-outlined" aria-hidden="true">person</span>
         Perfil
       </a>
       <a href="admin.html" class="sidebar-link hidden" id="admin-nav-link">
-        <span class="material-symbols-outlined">admin_panel_settings</span>
+        <span class="material-symbols-outlined" aria-hidden="true">admin_panel_settings</span>
         Administração
       </a>
     </nav>
     <button type="button" class="sidebar-install hidden" id="install-app-btn">
-      <span class="material-symbols-outlined">install_mobile</span>
+      <span class="material-symbols-outlined" aria-hidden="true">install_mobile</span>
       Baixe nosso aplicativo
     </button>
   </aside>
 
   <!-- Mobile toggle -->
   <button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu">
-    <span class="material-symbols-outlined">menu</span>
+    <span class="material-symbols-outlined" aria-hidden="true">menu</span>
   </button>
 
-  <main class="app">
+  <main class="app" id="conteudo" tabindex="-1">
     <section class="container hero-grid auth-page-grid">
       <div class="hero-content auth-copy">
         <img src="resources/logo-dourado.png" alt="" class="auth-logo" />
@@ -124,7 +126,7 @@
                 <span id="avatar-initial">?</span>
               </div>
               <label for="photo-upload" class="profile-avatar-label" title="Trocar foto de perfil">
-                <span class="material-symbols-outlined">photo_camera</span>
+                <span class="material-symbols-outlined" aria-hidden="true">photo_camera</span>
               </label>
               <input type="file" id="photo-upload" accept="image/*" class="hidden" />
             </div>
@@ -159,7 +161,7 @@
 
             <div class="form-actions">
               <button type="submit" class="submit-btn" id="profile-save-btn">
-                <span class="material-symbols-outlined">check_circle</span>
+                <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
                 Salvar alterações
               </button>
             </div>
@@ -195,7 +197,7 @@
 
             <div class="form-actions">
               <button type="submit" class="secondary-btn">
-                <span class="material-symbols-outlined">lock_reset</span>
+                <span class="material-symbols-outlined" aria-hidden="true">lock_reset</span>
                 Alterar senha
               </button>
             </div>
@@ -203,15 +205,15 @@
 
           <div class="profile-actions">
             <a href="agendamentos.html" class="secondary-btn">
-              <span class="material-symbols-outlined">calendar_month</span>
+              <span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>
               Meus agendamentos
             </a>
             <button type="button" class="ghost-btn" id="logout-btn">
-              <span class="material-symbols-outlined">logout</span>
+              <span class="material-symbols-outlined" aria-hidden="true">logout</span>
               Sair da conta
             </button>
             <button type="button" class="ghost-btn" id="logout-all-btn">
-              <span class="material-symbols-outlined">devices</span>
+              <span class="material-symbols-outlined" aria-hidden="true">devices</span>
               Sair de todos os dispositivos
             </button>
           </div>
@@ -361,7 +363,7 @@
 
         <div class="auth-footer">
           <a href="index.html" class="ghost-btn">
-            <span class="material-symbols-outlined">arrow_back</span>
+            <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
             Voltar
           </a>
         </div>

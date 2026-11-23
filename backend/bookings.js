@@ -110,7 +110,9 @@ export async function insertWaitlist(db,clientId,plan) {
 // atende às regras atuais do profissional (dias, expediente e serviços), revalidadas
 // por prepare(); duração e preço da reserva criada são os vigentes na promoção.
 // Pedidos que deixaram de atender às regras permanecem na fila.
+// Devolve os ids das reservas criadas, para o cliente ser avisado por e-mail depois da transação.
 export async function promote(db,barberId,date) {
+  const promoted=[];
   const queue=(await db.query(`SELECT f.*,h.cabeleireiro_id,h.data,h.hora,
       (SELECT array_agg(s.nome ORDER BY x.ordem) FROM fila_espera_servicos x JOIN servicos s ON s.id=x.servico_id
         WHERE x.fila_id=f.id) AS servicos
@@ -127,7 +129,8 @@ export async function promote(db,barberId,date) {
       continue;
     }
     if (await conflict(db,plan.h,plan.duracao)) continue;
-    await insertBooking(db,entry.cliente_id,plan);
+    promoted.push(await insertBooking(db,entry.cliente_id,plan));
     await db.query('DELETE FROM fila_espera WHERE id=$1',[entry.id]);
   }
+  return promoted;
 }

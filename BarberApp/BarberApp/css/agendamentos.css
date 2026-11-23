@@ -248,7 +248,7 @@ textarea::placeholder { color: var(--text-soft); }
 }
 
 .welcome-text {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -410,7 +410,7 @@ button.stat-link {
 }
 
 .stat-item span {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.11em;
   text-transform: uppercase;
@@ -425,6 +425,65 @@ button.stat-link {
   margin-top: 8px;
   /* Ao chegar pelo card "Agendamentos", o título não fica embaixo do botão do menu */
   scroll-margin-top: 70px;
+}
+
+/* Fila de espera do cliente (acima da lista de agendamentos; o app.js mostra só se houver pedidos) */
+.waitlist-section {
+  margin-top: 8px;
+  margin-bottom: 40px;
+}
+
+.waitlist-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.waitlist-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: var(--appointment-card-bg);
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius);
+}
+
+.waitlist-item > .material-symbols-outlined {
+  flex-shrink: 0;
+  font-size: 24px;
+  color: var(--primary);
+}
+
+.waitlist-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.waitlist-item-info strong {
+  font-size: 0.98rem;
+  color: var(--text);
+}
+
+.waitlist-item-info span {
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* No celular, o botão "Desistir" vai para a linha de baixo, na largura toda */
+@media (max-width: 520px) {
+  .waitlist-item {
+    flex-wrap: wrap;
+  }
+
+  .waitlist-item .leave-waitlist {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .section-top {
@@ -524,7 +583,7 @@ button.stat-link {
 .status-badge {
   padding: 8px 13px;
   border-radius: var(--radius);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -845,7 +904,7 @@ a.new-booking-btn {
 }
 
 .form-group label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -1125,7 +1184,7 @@ a.new-booking-btn {
   gap: 5px;
   padding: 10px 13px;
   border-radius: var(--radius);
-  font-size: 0.75rem;
+  font-size: 0.84rem;
   font-weight: 700;
   text-align: center;
   white-space: nowrap;

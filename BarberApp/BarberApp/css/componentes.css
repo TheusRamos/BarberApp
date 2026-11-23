@@ -353,7 +353,7 @@ select optgroup {
   padding: 4px 0;
   text-align: center;
   text-decoration: none;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text-soft);
 }
@@ -462,4 +462,175 @@ select optgroup {
   width: 36px;
   height: 12px;
   background: radial-gradient(circle, transparent 3px, var(--border-gold) 3.5px, var(--border-gold) 4.5px, transparent 5px) left center / 12px 12px repeat-x;
+}
+
+/* ============================================================
+   AVISO "O SERVIDOR ESTÁ ACORDANDO"
+   O js/api.js cria e mostra quando uma chamada passa de 3 segundos
+   (o Render grátis dorme depois de 15 minutos sem uso).
+   ============================================================ */
+
+.wake-notice {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 99;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  padding: 13px 18px;
+  background: var(--toast-bg);
+  color: var(--toast-text);
+  border: 1px solid var(--toast-border);
+  border-radius: var(--radius);
+  box-shadow: var(--card-shadow);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(16px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+.wake-notice.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.wake-spinner {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-gold);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: wake-spin 0.9s linear infinite;
+}
+
+@keyframes wake-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wake-spinner { animation-duration: 3s; }
+}
+
+/* ============================================================
+   ATALHO "PULAR PARA O CONTEÚDO"
+   Primeiro item de cada página: fica escondido acima da tela e
+   aparece só com o foco do teclado (Tab), para não precisar
+   passar por todo o menu lateral antes de chegar ao conteúdo.
+   ============================================================ */
+
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 300;
+  padding: 10px 16px;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-weight: 700;
+  border-radius: var(--radius);
+  text-decoration: none;
+  transform: translateY(-200%);
+  transition: transform var(--transition);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+/* O alvo do atalho recebe o foco, mas sem contorno (não é um controle) */
+main[tabindex="-1"]:focus {
+  outline: none;
+}
+
+/* ============================================================
+   JANELA DE CONFIRMAÇÃO (js/dialogo.js)
+   No lugar do confirm() do navegador: mesmo visual do site,
+   foco preso dentro da janela, Esc ou clique fora cancelam.
+   ============================================================ */
+
+.confirm-dialog {
+  /* O "* { margin: 0 }" das páginas tira a centralização padrão do <dialog>: volta aqui */
+  margin: auto;
+  width: min(420px, calc(100% - 32px));
+  padding: 0;
+  background: var(--dropdown-bg);
+  color: var(--text);
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius);
+  box-shadow: var(--card-shadow);
+}
+
+.confirm-dialog::backdrop {
+  background: var(--overlay-bg);
+}
+
+.confirm-dialog-body {
+  padding: 24px;
+}
+
+.confirm-dialog h2 {
+  margin: 0 0 8px;
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  font-weight: 400;
+  color: var(--text);
+}
+
+.confirm-dialog p {
+  margin: 0 0 22px;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.confirm-dialog-actions button {
+  min-height: 44px;
+  padding: 11px 18px;
+  border-radius: var(--radius);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+
+.confirm-dialog .dialog-cancel {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-medium);
+}
+
+.confirm-dialog .dialog-cancel:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.confirm-dialog .dialog-ok {
+  background: var(--primary);
+  color: var(--on-primary);
+  border: 1px solid var(--primary);
+}
+
+.confirm-dialog .dialog-ok.danger {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.confirm-dialog-actions button:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
 }

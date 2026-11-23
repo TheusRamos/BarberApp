@@ -1,4 +1,5 @@
 import { api, getToken, setToken } from "./api.js";
+import { confirmDialog } from "./dialogo.js";
 
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -848,7 +849,9 @@ async function handleLogout() {
 // Diferente do logout comum, só limpa o token local se o servidor confirmar:
 // do contrário, os outros dispositivos continuariam conectados sem o usuário saber.
 async function handleLogoutAll() {
-  if (!confirm("Encerrar a sessão em todos os dispositivos, inclusive neste?")) return;
+  if (!(await confirmDialog("Você vai precisar entrar de novo em todos os aparelhos, inclusive neste.", {
+    title: "Sair de todos os dispositivos?", confirmText: "Sair de todos", danger: true
+  }))) return;
 
   const btn = $("logout-all-btn");
   if (btn) btn.disabled = true;

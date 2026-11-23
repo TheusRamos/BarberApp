@@ -49,7 +49,7 @@
       border-radius: var(--radius);
       background: rgba(var(--primary-rgb), 0.10);
       border: 1px solid rgba(var(--primary-rgb), 0.20);
-      font-size: 0.78rem;
+      font-size: 0.84rem;
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -101,7 +101,7 @@
     }
 
     .admin-stat-card span {
-      font-size: 0.8rem;
+      font-size: 0.84rem;
       color: var(--text-muted);
       font-weight: 500;
     }
@@ -134,7 +134,9 @@
     /* Barbeiros inside admin card — two-column layout */
     .barbeiros-admin-layout {
       display: grid;
-      grid-template-columns: 1fr;
+      /* minmax(0, ...): a coluna encolhe até a largura da tela no celular
+         (só "1fr" não encolhia abaixo do conteúdo, e o formulário ficava cortado à direita) */
+      grid-template-columns: minmax(0, 1fr);
       gap: 20px;
       align-items: start;
     }
@@ -200,6 +202,8 @@
   </style>
 </head>
 <body>
+  <!-- Atalho do teclado: aparece só com o Tab e pula o menu lateral -->
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 
   <!-- Overlay + Sidebar -->
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -209,47 +213,47 @@
         <img src="resources/logo-dourado.png" alt="Barber, página inicial" class="sidebar-logo" />
       </a>
       <button class="sidebar-close" id="sidebarClose" aria-label="Fechar menu">
-        <span class="material-symbols-outlined">close</span>
+        <span class="material-symbols-outlined" aria-hidden="true">close</span>
       </button>
     </div>
     <nav class="sidebar-nav">
       <a href="index.html" class="sidebar-link">
-        <span class="material-symbols-outlined">home</span>
+        <span class="material-symbols-outlined" aria-hidden="true">home</span>
         Início
       </a>
       <a href="agendamentos.html" class="sidebar-link">
-        <span class="material-symbols-outlined">calendar_month</span>
+        <span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>
         Agendamentos
       </a>
       <a href="comentarios.html" class="sidebar-link">
-        <span class="material-symbols-outlined">reviews</span>
+        <span class="material-symbols-outlined" aria-hidden="true">reviews</span>
         Avaliações
       </a>
       <a href="sobre.html" class="sidebar-link">
-        <span class="material-symbols-outlined">info</span>
+        <span class="material-symbols-outlined" aria-hidden="true">info</span>
         Sobre Nós
       </a>
       <a href="auth.html" class="sidebar-link" id="auth-link">
-        <span class="material-symbols-outlined">person</span>
+        <span class="material-symbols-outlined" aria-hidden="true">person</span>
         Entrar
       </a>
       <a href="admin.html" class="sidebar-link" id="admin-nav-link">
-        <span class="material-symbols-outlined">admin_panel_settings</span>
+        <span class="material-symbols-outlined" aria-hidden="true">admin_panel_settings</span>
         Administração
       </a>
     </nav>
     <button type="button" class="sidebar-install hidden" id="install-app-btn">
-      <span class="material-symbols-outlined">install_mobile</span>
+      <span class="material-symbols-outlined" aria-hidden="true">install_mobile</span>
       Baixe nosso aplicativo
     </button>
   </aside>
 
   <!-- Mobile toggle -->
   <button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu">
-    <span class="material-symbols-outlined">menu</span>
+    <span class="material-symbols-outlined" aria-hidden="true">menu</span>
   </button>
 
-  <main class="app">
+  <main class="app" id="conteudo" tabindex="-1">
     <div class="bg-orb orb-left"></div>
     <div class="bg-orb orb-bottom"></div>
 
@@ -257,7 +261,7 @@
     <section class="container page-header">
       <div class="header-content">
         <div class="admin-badge">
-          <span class="material-symbols-outlined">shield</span>
+          <span class="material-symbols-outlined" aria-hidden="true">shield</span>
           Acesso restrito
         </div>
         <h1 class="page-title">Painel de <span>Administração</span></h1>
@@ -269,29 +273,29 @@
     <section class="container">
       <div class="admin-stats-row">
         <div class="admin-stat-card">
-          <span class="material-symbols-outlined stat-icon">group</span>
+          <span class="material-symbols-outlined stat-icon" aria-hidden="true">group</span>
           <strong id="admin-stat-clients">—</strong>
           <span>Clientes</span>
         </div>
         <div class="admin-stat-card">
-          <span class="material-symbols-outlined stat-icon">content_cut</span>
+          <span class="material-symbols-outlined stat-icon" aria-hidden="true">content_cut</span>
           <strong id="admin-stat-barbeiros">—</strong>
           <span>Barbeiros</span>
         </div>
         <div class="admin-stat-card">
-          <span class="material-symbols-outlined stat-icon">spa</span>
+          <span class="material-symbols-outlined stat-icon" aria-hidden="true">spa</span>
           <strong id="admin-stat-services">—</strong>
           <span>Serviços</span>
         </div>
         <div class="admin-stat-card">
-          <span class="material-symbols-outlined stat-icon">pending_actions</span>
+          <span class="material-symbols-outlined stat-icon" aria-hidden="true">pending_actions</span>
           <strong id="admin-stat-pending">—</strong>
           <span>Pendentes</span>
         </div>
       </div>
     </section>
 
-    <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined">content_cut</span></div>
+    <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined" aria-hidden="true">content_cut</span></div>
 
     <!-- Services + Clients -->
     <section class="container admin-section-page">
@@ -300,7 +304,7 @@
         <!-- Services management -->
         <div class="admin-card">
           <div class="admin-section-title">
-            <span class="material-symbols-outlined">spa</span>
+            <span class="material-symbols-outlined" aria-hidden="true">spa</span>
             <h3>Serviços</h3>
           </div>
           <form id="service-form" class="booking-form" novalidate>
@@ -318,7 +322,7 @@
             </div>
             <div class="form-actions">
               <button id="service-save" class="submit-btn" type="button">
-                <span class="material-symbols-outlined">save</span>
+                <span class="material-symbols-outlined" aria-hidden="true">save</span>
                 Salvar serviço
               </button>
             </div>
@@ -329,7 +333,7 @@
         <!-- Clients list (ao lado de Serviços no desktop) -->
         <div class="admin-card">
           <div class="admin-section-title">
-            <span class="material-symbols-outlined">group</span>
+            <span class="material-symbols-outlined" aria-hidden="true">group</span>
             <h3>Clientes cadastrados</h3>
           </div>
           <p class="admin-hint">Todos os clientes registrados na plataforma.</p>
@@ -339,13 +343,13 @@
       </div>
     </section>
 
-    <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined">content_cut</span></div>
+    <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined" aria-hidden="true">content_cut</span></div>
 
     <!-- Barbeiros management (full width) -->
     <section class="container admin-section-gap">
       <div class="admin-card admin-card-wide">
         <div class="admin-section-title">
-          <span class="material-symbols-outlined">group</span>
+          <span class="material-symbols-outlined" aria-hidden="true">group</span>
           <h3>Barbeiros</h3>
         </div>
 
@@ -362,7 +366,7 @@
                 <span id="barbeiro-avatar-initial">B</span>
               </div>
               <label for="barbeiro-photo-upload" class="barbeiro-avatar-label">
-                <span class="material-symbols-outlined">photo_camera</span>
+                <span class="material-symbols-outlined" aria-hidden="true">photo_camera</span>
                 Alterar foto
               </label>
               <input type="file" id="barbeiro-photo-upload" accept="image/*" class="hidden" />
@@ -417,11 +421,11 @@
             <!-- Actions -->
             <div class="form-actions" style="padding-top:8px;">
               <button id="barbeiro-save-btn" class="submit-btn" type="button">
-                <span class="material-symbols-outlined">save</span>
+                <span class="material-symbols-outlined" aria-hidden="true">save</span>
                 Salvar barbeiro
               </button>
               <button id="barbeiro-cancel-btn" class="ghost-btn hidden" type="button">
-                <span class="material-symbols-outlined">close</span>
+                <span class="material-symbols-outlined" aria-hidden="true">close</span>
                 Cancelar edição
               </button>
             </div>

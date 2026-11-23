@@ -194,11 +194,8 @@
       margin-bottom: 4px;
     }
 
-    .star-picker input[type="radio"] {
-      display: none;
-    }
-
-    .star-picker label {
+    .star-picker .star {
+      padding: 2px 3px;
       font-size: 1.6rem;
       cursor: pointer;
       color: var(--text-soft);
@@ -206,36 +203,20 @@
       line-height: 1;
     }
 
-    .star-picker label:hover,
-    .star-picker label:hover ~ label {
-      color: var(--text-soft);
+    /* Foco do teclado na estrela escolhida */
+    .star-picker .star:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+      border-radius: 2px;
     }
 
-    .star-picker:hover label {
-      color: var(--primary);
-    }
-
-    .star-picker input[type="radio"]:checked ~ label {
-      color: var(--text-soft);
-    }
-
-    .star-picker label:has(~ input[type="radio"]:checked),
-    .star-picker input[type="radio"]:checked + label {
-      color: var(--primary);
-    }
-
-    /* fallback: JS-driven star highlight via data-selected */
-    .star-picker[data-selected="1"] label:nth-of-type(1),
-    .star-picker[data-selected="2"] label:nth-of-type(1),
-    .star-picker[data-selected="2"] label:nth-of-type(2),
-    .star-picker[data-selected="3"] label:nth-of-type(1),
-    .star-picker[data-selected="3"] label:nth-of-type(2),
-    .star-picker[data-selected="3"] label:nth-of-type(3),
-    .star-picker[data-selected="4"] label:nth-of-type(1),
-    .star-picker[data-selected="4"] label:nth-of-type(2),
-    .star-picker[data-selected="4"] label:nth-of-type(3),
-    .star-picker[data-selected="4"] label:nth-of-type(4),
-    .star-picker[data-selected="5"] label {
+    /* Estrelas acesas até a nota escolhida (ou até a que está sob o mouse):
+       o js/star-picker.js atualiza o data-selected */
+    .star-picker[data-selected="1"] .star:nth-of-type(1),
+    .star-picker[data-selected="2"] .star:nth-of-type(-n+2),
+    .star-picker[data-selected="3"] .star:nth-of-type(-n+3),
+    .star-picker[data-selected="4"] .star:nth-of-type(-n+4),
+    .star-picker[data-selected="5"] .star {
       color: var(--primary);
     }
 
@@ -334,7 +315,7 @@
       margin-left: auto;
       background: var(--primary);
       color: var(--on-primary);
-      font-size: 0.78rem;
+      font-size: 0.84rem;
       font-weight: 700;
       padding: 4px 12px;
       border-radius: var(--radius);
@@ -416,6 +397,8 @@
   </style>
 </head>
 <body>
+  <!-- Atalho do teclado: aparece só com o Tab e pula o menu lateral -->
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 
   <!-- Overlay + Sidebar -->
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -425,47 +408,47 @@
         <img src="resources/logo-dourado.png" alt="Barber, página inicial" class="sidebar-logo" />
       </a>
       <button class="sidebar-close" id="sidebarClose" aria-label="Fechar menu">
-        <span class="material-symbols-outlined">close</span>
+        <span class="material-symbols-outlined" aria-hidden="true">close</span>
       </button>
     </div>
     <nav class="sidebar-nav">
       <a href="index.html" class="sidebar-link">
-        <span class="material-symbols-outlined">home</span>
+        <span class="material-symbols-outlined" aria-hidden="true">home</span>
         Início
       </a>
       <a href="agendamentos.html" class="sidebar-link">
-        <span class="material-symbols-outlined">calendar_month</span>
+        <span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>
         Agendamentos
       </a>
       <a href="comentarios.html" class="sidebar-link">
-        <span class="material-symbols-outlined">reviews</span>
+        <span class="material-symbols-outlined" aria-hidden="true">reviews</span>
         Avaliações
       </a>
       <a href="sobre.html" class="sidebar-link">
-        <span class="material-symbols-outlined">info</span>
+        <span class="material-symbols-outlined" aria-hidden="true">info</span>
         Sobre Nós
       </a>
       <a href="auth.html" class="sidebar-link" id="auth-link">
-        <span class="material-symbols-outlined">person</span>
+        <span class="material-symbols-outlined" aria-hidden="true">person</span>
         Entrar
       </a>
       <a href="admin.html" class="sidebar-link hidden" id="admin-nav-link">
-        <span class="material-symbols-outlined">admin_panel_settings</span>
+        <span class="material-symbols-outlined" aria-hidden="true">admin_panel_settings</span>
         Administração
       </a>
     </nav>
     <button type="button" class="sidebar-install hidden" id="install-app-btn">
-      <span class="material-symbols-outlined">install_mobile</span>
+      <span class="material-symbols-outlined" aria-hidden="true">install_mobile</span>
       Baixe nosso aplicativo
     </button>
   </aside>
 
   <!-- Mobile toggle -->
   <button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu">
-    <span class="material-symbols-outlined">menu</span>
+    <span class="material-symbols-outlined" aria-hidden="true">menu</span>
   </button>
 
-  <main class="app">
+  <main class="app" id="conteudo" tabindex="-1">
     <div class="bg-orb orb-left"></div>
     <div class="bg-orb orb-bottom"></div>
 
@@ -484,7 +467,7 @@
     <!-- Eligibility notice -->
     <section class="container">
       <div class="eligibility-banner" id="eligibility-banner">
-        <span class="material-symbols-outlined">info</span>
+        <span class="material-symbols-outlined" aria-hidden="true">info</span>
         <p>Faça <a href="auth.html" style="color:var(--primary);font-weight:700;">login</a> para deixar sua avaliação.</p>
       </div>
     </section>
@@ -500,13 +483,14 @@
 
           <form id="comment-form" class="booking-form" novalidate>
             <div class="form-group">
-              <label>Nota</label>
-              <div class="star-picker" id="star-picker" data-selected="5">
-                <label data-value="1" title="1 estrela">★</label>
-                <label data-value="2" title="2 estrelas">★</label>
-                <label data-value="3" title="3 estrelas">★</label>
-                <label data-value="4" title="4 estrelas">★</label>
-                <label data-value="5" title="5 estrelas">★</label>
+              <label id="rating-label">Nota</label>
+              <!-- Grupo de opções (js/star-picker.js): Tab chega à nota escolhida e as setas mudam a nota -->
+              <div class="star-picker" id="star-picker" data-selected="5" role="radiogroup" aria-labelledby="rating-label">
+                <span class="star" role="radio" aria-checked="false" tabindex="-1" data-value="1" aria-label="1 estrela" title="1 estrela">★</span>
+                <span class="star" role="radio" aria-checked="false" tabindex="-1" data-value="2" aria-label="2 estrelas" title="2 estrelas">★</span>
+                <span class="star" role="radio" aria-checked="false" tabindex="-1" data-value="3" aria-label="3 estrelas" title="3 estrelas">★</span>
+                <span class="star" role="radio" aria-checked="false" tabindex="-1" data-value="4" aria-label="4 estrelas" title="4 estrelas">★</span>
+                <span class="star" role="radio" aria-checked="true" tabindex="0" data-value="5" aria-label="5 estrelas" title="5 estrelas">★</span>
               </div>
               <!-- Hidden select mantém compatibilidade com app.js -->
               <select id="comment-rating" class="hidden">
@@ -525,7 +509,7 @@
 
             <div class="form-actions">
               <button id="comment-save" class="submit-btn" type="button" disabled>
-                <span class="material-symbols-outlined">send</span>
+                <span class="material-symbols-outlined" aria-hidden="true">send</span>
                 Enviar avaliação
               </button>
             </div>
@@ -536,7 +520,7 @@
         <div>
           <div class="comments-list-area" id="comments-list">
             <div class="empty-comments">
-              <span class="material-symbols-outlined">reviews</span>
+              <span class="material-symbols-outlined" aria-hidden="true">reviews</span>
               <h3>Nenhuma avaliação ainda</h3>
               <p>Seja o primeiro a compartilhar sua experiência.</p>
             </div>
@@ -548,10 +532,10 @@
 
     <!-- Admin moderation panel (only visible to admins) -->
     <section class="container" id="admin-comment-review-section" style="display:none; margin-top: 28px; margin-bottom: 28px;">
-      <div class="divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined">content_cut</span></div>
+      <div class="divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined" aria-hidden="true">content_cut</span></div>
       <div class="admin-review-panel">
         <div class="admin-review-header">
-          <span class="material-symbols-outlined">admin_panel_settings</span>
+          <span class="material-symbols-outlined" aria-hidden="true">admin_panel_settings</span>
           <div>
             <h3>Moderação de Avaliações</h3>
             <p class="admin-review-desc">Aprove ou reprove os comentários antes de exibi-los para os clientes.</p>
@@ -560,7 +544,7 @@
         </div>
         <div id="admin-review-list">
           <div class="empty-review">
-            <span class="material-symbols-outlined">check_circle</span>
+            <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
             <p>Nenhuma avaliação pendente de revisão.</p>
           </div>
         </div>

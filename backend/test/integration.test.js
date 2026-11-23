@@ -79,6 +79,16 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
     assert.equal((await call('/agendamentos','POST',{...payload,hora:'08:00'},loser.token)).status,400);
     assert.equal((await call('/waitlist','POST',payload,loser.token)).status,201);
     assert.equal((await call('/waitlist','POST',payload,loser.token)).body.code,'ALREADY_ON_WAITLIST');
+    // O cliente vê os próprios pedidos na fila e pode desistir; outro cliente não vê nem apaga.
+    const queue=(await call('/waitlist','GET',undefined,loser.token)).body;
+    assert.equal(queue.length,1);
+    assert.deepEqual([queue[0].barbeiro,queue[0].data,queue[0].hora,queue[0].servicos],['Barbeiro',date,'10:00',['Corte']]);
+    assert.equal((await call('/waitlist','GET',undefined,winner.token)).body.length,0);
+    assert.equal((await call('/waitlist','GET')).status,401);
+    assert.equal((await call(`/waitlist/${queue[0].id}`,'DELETE',undefined,winner.token)).body.code,'NOT_FOUND');
+    assert.equal((await call(`/waitlist/${queue[0].id}`,'DELETE',undefined,loser.token)).status,200);
+    assert.equal((await call('/waitlist','GET',undefined,loser.token)).body.length,0);
+    assert.equal((await call('/waitlist','POST',payload,loser.token)).status,201);
     assert.equal((await call(`/agendamentos/${booking.id}/status`,'PATCH',{status:'Concluído'},winner.token)).status,403);
     assert.equal((await call(`/agendamentos/${booking.id}/cancel`,'POST',{},winner.token)).status,200);
     const promoted=(await call('/agendamentos','GET',undefined,loser.token)).body[0];
@@ -332,6 +342,20 @@ test('API com PostgreSQL: permissões, concorrência, fila, moderação e histó
     assert.equal((await pool.query("SELECT 1 FROM usuarios WHERE lower(email)='novo@test.com'")).rowCount,1,'conta confirmada nunca é apagada');
     // Recuperação de senha: a resposta é igual exista ou não a conta, e o e-mail sai depois da resposta.
     const waitMails=async count=>{for(let i=0;i<100 && mails.length<count;i++) await new Promise(r=>setTimeout(r,20));};
+    // Fila de espera com o envio ligado: quando o pedido vira agendamento, o cliente recebe um e-mail.
+    const date4=(await pool.query("SELECT (current_date+4)::text AS day")).rows[0].day;
+    const holder=(await call('/agendamentos','POST',{barbeiroId:barber.id,servico:'Corte',data:date4,hora:'15:00'},admin)).body;
+    assert.equal((await call('/waitlist','POST',{barbeiroId:barber.id,servico:'Corte',data:date4,hora:'15:00'},newbie.body.token)).status,201);
+    const beforePromotion=mails.length;
+    assert.equal((await call(`/agendamentos/${holder.id}/cancel`,'POST',{},admin)).status,200);
+    await waitMails(beforePromotion+1);
+    assert.equal(mails.length,beforePromotion+1);
+    const promotionMail=mails.at(-1);
+    assert.deepEqual([promotionMail.to[0].email,promotionMail.subject],['novo@test.com','Sua vaga na fila de espera abriu!']);
+    assert.match(promotionMail.textContent,/Corte com Barbeiro, em \d{2}\/\d{2}\/\d{4} às 15:00\./);
+    assert.match(promotionMail.htmlContent,/agendamentos\.html/);
+    assert.equal((await call('/waitlist','GET',undefined,newbie.body.token)).body.length,0);
+    assert.equal((await call('/agendamentos','GET',undefined,newbie.body.token)).body.filter(a=>a.data===date4 && a.hora==='15:00').length,1);
     const resetToken=message=>/#redefinir=([a-f0-9]{64})/.exec(message.htmlContent)?.[1];
     const forgot=(address,ip='192.0.2.50')=>post('/auth/password/forgot',{email:address},ip);
     const sentBefore=mails.length;

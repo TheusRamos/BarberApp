@@ -45,7 +45,9 @@
 //   POST   /agendamentos/:id/cancel  -                                   -> Agendamento
 //   DELETE /agendamentos/:id                                             -> {}
 //
-//   POST   /waitlist             WaitlistEntry                           -> WaitlistEntry
+//   GET    /waitlist                                                     -> WaitlistEntry[]   (pedidos do próprio cliente, de horários futuros)
+//   POST   /waitlist             WaitlistEntry                           -> { id }
+//   DELETE /waitlist/:id                                                 -> {}                (desistir; só o dono)
 //
 //   GET    /comments                                                     -> Comment[]
 //   POST   /comments             { rating, text }                        -> Comment
@@ -103,10 +105,36 @@ class ApiError extends Error {
   }
 }
 
+// No plano grátis do Render, o servidor "dorme" depois de 15 minutos sem uso e leva uns
+// 20 segundos para acordar. Se uma chamada demora mais que WAKE_DELAY, aparece um aviso
+// no rodapé, que some quando todas as chamadas lentas terminam.
+const WAKE_DELAY = 3000; // milissegundos
+let slowRequests = 0;
+
+function setWakeNotice(visible) {
+  let notice = document.getElementById("wake-notice");
+  if (!notice && visible) {
+    notice = document.createElement("div");
+    notice.id = "wake-notice";
+    notice.className = "wake-notice";
+    notice.setAttribute("role", "status");
+    notice.innerHTML = `<span class="wake-spinner" aria-hidden="true"></span>
+      <span>O servidor está acordando. Isso pode levar até 30 segundos.</span>`;
+    document.body.appendChild(notice);
+  }
+  notice?.classList.toggle("show", visible);
+}
+
 async function request(path, { method = "GET", body, auth = true } = {}) {
   const headers = { "Content-Type": "application/json" };
   const token = auth ? getToken() : null;
   if (token) headers.Authorization = `Bearer ${token}`;
+
+  let slow = false;
+  const wakeTimer = setTimeout(() => {
+    slow = true;
+    if (++slowRequests === 1) setWakeNotice(true);
+  }, WAKE_DELAY);
 
   let response;
   try {
@@ -117,6 +145,9 @@ async function request(path, { method = "GET", body, auth = true } = {}) {
     });
   } catch (networkError) {
     throw new ApiError("Não foi possível conectar ao servidor.", { code: "NETWORK_ERROR" });
+  } finally {
+    clearTimeout(wakeTimer);
+    if (slow && --slowRequests === 0) setWakeNotice(false);
   }
 
   let data = null;
@@ -187,7 +218,9 @@ export const api = {
   },
 
   waitlist: {
-    create: payload => request("/waitlist", { method: "POST", body: payload })
+    list: () => request("/waitlist"),
+    create: payload => request("/waitlist", { method: "POST", body: payload }),
+    remove: id => request(`/waitlist/${encodeURIComponent(id)}`, { method: "DELETE" })
   },
 
   comments: {

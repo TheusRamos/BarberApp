@@ -79,8 +79,9 @@ const escapeHTML=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&
 const siteUrl=path=>`${process.env.PUBLIC_URL.replace(/\/$/,'')}/${path}`;
 
 // Layout simples, com estilos na própria tag: é o que os programas de e-mail respeitam.
+// As linhas chegam em texto puro (podem ter nomes de serviços e barbeiros) e são escapadas aqui.
 function layout({greeting,lines,button,url,footer}) {
-  const paragraphs=lines.map(line=>`<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#3a3a35">${line}</p>`).join('');
+  const paragraphs=lines.map(line=>`<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#3a3a35">${escapeHTML(line)}</p>`).join('');
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
 <body style="margin:0;padding:24px;background:#f4f1ea;font-family:Arial,Helvetica,sans-serif">
 <div style="max-width:520px;margin:0 auto;background:#ffffff;border:1px solid #e3d9bf;border-radius:6px;padding:28px">
@@ -109,6 +110,19 @@ export async function sendVerification(db,user) {
     url:siteUrl(`auth.html#verificar=${token}`),
     lines:['Falta só confirmar seu e-mail para você agendar na Barber.','O link vale por 24 horas.'],
     footer:'Se você não criou uma conta na Barber, ignore este e-mail.'});
+}
+
+// Fila de espera: o horário pedido vagou e virou agendamento (fica Pendente até a barbearia confirmar).
+// Recebe a reserva no formato do bookingSelect (nome e e-mail do cliente, barbeiro, data, hora e serviços).
+export function sendWaitlistBooked(booking) {
+  const [year,month,day]=String(booking.data).split('-');
+  const services=(booking.servicos || []).join(' + ');
+  return sendLinkEmail(booking,{subject:'Sua vaga na fila de espera abriu!',button:'Ver meus agendamentos',
+    url:siteUrl('agendamentos.html'),
+    lines:['O horário que você pediu na fila de espera vagou, e o agendamento foi feito para você:',
+      `${services} com ${booking.barbeiro}, em ${day}/${month}/${year} às ${String(booking.hora).slice(0,5)}.`,
+      'A reserva fica pendente até a barbearia confirmar. Se não puder ir, cancele pela página de agendamentos para liberar o horário.'],
+    footer:'Você recebeu este e-mail porque entrou na fila de espera da Barber.'});
 }
 
 // Recuperação de senha: link válido por 1 hora, para auth.html#redefinir=TOKEN.

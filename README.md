@@ -91,12 +91,13 @@ Navegador: páginas HTML + CSS + JavaScript
     │   ├── agendamentos.css
     │   └── barbeiros.css        # Estilos do cadastro de profissionais (admin.html)
     ├── js/
-    │   ├── api.js               # Cliente REST e armazenamento do token
+    │   ├── api.js               # Cliente REST, token e aviso "o servidor está acordando"
     │   ├── config.js            # URL base da API
     │   ├── app.js               # Agenda, administração, fila e avaliações
     │   ├── auth.js              # Cadastro, login, logout e perfil
+    │   ├── dialogo.js           # Janela de confirmação no visual do site (no lugar do confirm())
     │   ├── sobre.js             # Serviços e equipe da página Sobre
-    │   ├── star-picker.js       # Seletor de estrelas das avaliações
+    │   ├── star-picker.js       # Seletor de estrelas das avaliações (funciona pelo teclado)
     │   ├── sidebar.js
     │   └── animations.js
     └── resources/barbearia.jpg
@@ -239,7 +240,7 @@ Não há scripts de build, lint, rollback de migração ou backup automatizado.
 | Editar reserva ativa | Não | Não | Sim |
 | Cancelar reserva | Não | Própria, ativa e antes do horário | Sim |
 | Alterar status ou excluir reserva | Não | Não | Sim |
-| Entrar na fila de espera | Não | Sim | Não |
+| Entrar na fila de espera, ver os próprios pedidos e desistir | Não | Sim | Não |
 | Enviar avaliação | Não | Sim | Sim, permitido pela API |
 | Excluir avaliação | Não | Própria, pela API | Qualquer avaliação |
 | Moderar avaliações | Não | Não | Sim |
@@ -290,7 +291,8 @@ Ao sair de um status ativo, a reserva libera o intervalo e o backend processa a 
 - Cancelamento, conclusão, exclusão ou edição de uma reserva disparam o processamento da fila do profissional/data envolvidos.
 - O processamento segue a ordem dos IDs. Um pedido só é promovido quando o **intervalo inteiro** (soma das durações dos serviços desejados) fica livre a partir do horário pedido. Por exemplo, um pedido de Corte + Barba (45 min) não é promovido se apenas 30 minutos forem liberados. Pedidos que não cabem são pulados; mais de um pedido pode ser promovido na mesma execução.
 - Antes de promover, o pedido é revalidado com as regras atuais do profissional: dias, expediente e serviços oferecidos. Pedidos que deixaram de atender às regras permanecem na fila. A reserva criada fica `Pendente`, com duração e preço vigentes no momento da promoção.
-- Não há consulta, desistência ou notificação da fila pela aplicação.
+- Em **Agendamentos**, a seção "Na fila de espera" mostra os pedidos do cliente, com o botão "Desistir" (só aparece quando há pedidos).
+- Quando um pedido vira agendamento e o envio de e-mails está ligado, o cliente recebe o e-mail "Sua vaga na fila de espera abriu!", com serviço, barbeiro, data e hora. O e-mail sai depois da resposta e da transação gravada; uma falha no envio só vai para o log, porque a reserva já está feita.
 
 ### Avaliações e exclusões
 
@@ -383,7 +385,9 @@ Todas as rotas abaixo são relativas a `/api`.
 | PATCH | `/agendamentos/:id/status` | Admin; altera status |
 | POST | `/agendamentos/:id/cancel` | Titular de reserva ativa ou admin; cancela |
 | DELETE | `/agendamentos/:id` | Admin; exclui e processa fila |
+| GET | `/waitlist` | Autenticado; os próprios pedidos na fila, de horários que ainda não passaram |
 | POST | `/waitlist` | Cliente; entra na fila |
+| DELETE | `/waitlist/:id` | Dono do pedido; desiste da fila (`NOT_FOUND` para pedido de outro cliente) |
 | GET | `/comments` | Público: aprovados; admin autenticado: todos |
 | POST | `/comments` | Autenticado; envia avaliação pendente |
 | PATCH | `/comments/:id` | Admin; altera aprovação |

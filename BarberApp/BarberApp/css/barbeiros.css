@@ -177,7 +177,7 @@
 }
 
 .svc-duration-unit {
-  font-size: 0.78rem;
+  font-size: 0.84rem;
   color: var(--text-muted);
   font-weight: 600;
 }
@@ -254,8 +254,10 @@
   text-overflow: ellipsis;
 }
 
+/* display: block para as reticências funcionarem (em linha, o texto passava da borda do cartão) */
 .barbeiro-card-services {
-  font-size: 0.82rem;
+  display: block;
+  font-size: 0.84rem;
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -264,7 +266,7 @@
 
 .barbeiro-card-horario {
   display: block;
-  font-size: 0.78rem;
+  font-size: 0.84rem;
   color: var(--primary);
   font-weight: 600;
   margin-top: 3px;
@@ -292,7 +294,7 @@
 }
 
 .horario-config-field span {
-  font-size: 0.78rem;
+  font-size: 0.84rem;
   color: var(--text-muted);
   font-weight: 600;
   text-transform: uppercase;
@@ -367,7 +369,7 @@
   padding: 8px 12px;
   border-radius: var(--radius);
   border: 1px solid var(--border-medium);
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   font-weight: 700;
   cursor: pointer;
   transition: background var(--transition), border-color var(--transition), color var(--transition);
@@ -459,7 +461,7 @@
 }
 
 .bh-horario-info span {
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   color: var(--text-muted);
 }
 

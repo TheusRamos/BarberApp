@@ -35,6 +35,8 @@
   <link rel="stylesheet" href="css/componentes.css" />
 </head>
 <body>
+  <!-- Atalho do teclado: aparece só com o Tab e pula o menu lateral -->
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 
   <!-- Overlay + Sidebar -->
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -44,47 +46,47 @@
         <img src="resources/logo-dourado.png" alt="Barber, página inicial" class="sidebar-logo" />
       </a>
       <button class="sidebar-close" id="sidebarClose" aria-label="Fechar menu">
-        <span class="material-symbols-outlined">close</span>
+        <span class="material-symbols-outlined" aria-hidden="true">close</span>
       </button>
     </div>
     <nav class="sidebar-nav">
       <a href="index.html" class="sidebar-link">
-        <span class="material-symbols-outlined">home</span>
+        <span class="material-symbols-outlined" aria-hidden="true">home</span>
         Início
       </a>
       <a href="agendamentos.html" class="sidebar-link">
-        <span class="material-symbols-outlined">calendar_month</span>
+        <span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>
         Agendamentos
       </a>
       <a href="comentarios.html" class="sidebar-link">
-        <span class="material-symbols-outlined">reviews</span>
+        <span class="material-symbols-outlined" aria-hidden="true">reviews</span>
         Avaliações
       </a>
       <a href="sobre.html" class="sidebar-link">
-        <span class="material-symbols-outlined">info</span>
+        <span class="material-symbols-outlined" aria-hidden="true">info</span>
         Sobre Nós
       </a>
       <a href="auth.html" class="sidebar-link" id="auth-link">
-        <span class="material-symbols-outlined">person</span>
+        <span class="material-symbols-outlined" aria-hidden="true">person</span>
         Entrar
       </a>
       <a href="admin.html" class="sidebar-link hidden" id="admin-nav-link">
-        <span class="material-symbols-outlined">admin_panel_settings</span>
+        <span class="material-symbols-outlined" aria-hidden="true">admin_panel_settings</span>
         Administração
       </a>
     </nav>
     <button type="button" class="sidebar-install hidden" id="install-app-btn">
-      <span class="material-symbols-outlined">install_mobile</span>
+      <span class="material-symbols-outlined" aria-hidden="true">install_mobile</span>
       Baixe nosso aplicativo
     </button>
   </aside>
 
   <!-- Mobile toggle -->
   <button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu">
-    <span class="material-symbols-outlined">menu</span>
+    <span class="material-symbols-outlined" aria-hidden="true">menu</span>
   </button>
 
-  <main class="app">
+  <main class="app" id="conteudo" tabindex="-1">
     <div class="bg-orb orb-left"></div>
     <div class="bg-orb orb-bottom"></div>
 
@@ -104,14 +106,14 @@
       </div>
 
       <a href="index.html" class="new-booking-btn">
-        <span class="material-symbols-outlined">add</span>
+        <span class="material-symbols-outlined" aria-hidden="true">add</span>
         Novo agendamento
       </a>
     </section>
 
     <!-- Aviso sem internet (app no celular): o app.js mostra, com a data da cópia salva no aparelho -->
     <div id="offline-notice" class="container offline-notice hidden" role="status">
-      <span class="material-symbols-outlined">wifi_off</span>
+      <span class="material-symbols-outlined" aria-hidden="true">wifi_off</span>
       <div>
         <strong>Você está sem internet</strong>
         <p id="offline-notice-text">Para agendar ou cancelar, conecte-se à internet.</p>
@@ -153,7 +155,16 @@
       <div class="stat-item anim-fade-up anim-d4 admin-only hidden"><strong id="stat-billed">R$ 0</strong><span>Faturado</span></div>
     </section>
 
-    <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined">content_cut</span></div>
+    <div class="container divisor-tesoura" aria-hidden="true"><span class="material-symbols-outlined" aria-hidden="true">content_cut</span></div>
+
+    <!-- Pedidos do cliente na fila de espera: o app.js mostra só quando há algum (o administrador não tem fila) -->
+    <section class="container waitlist-section hidden" id="waitlist-section" aria-labelledby="waitlist-title">
+      <div class="section-top">
+        <h2 id="waitlist-title">Na fila de espera</h2>
+        <p>Se um destes horários vagar, o agendamento é feito automaticamente e avisamos você por e-mail.</p>
+      </div>
+      <div class="waitlist-list" id="waitlist-list"></div>
+    </section>
 
     <section class="container appointments-section" id="lista-agendamentos">
       <div class="section-top anim-fade-up">
