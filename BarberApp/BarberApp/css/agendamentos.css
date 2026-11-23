@@ -313,7 +313,7 @@ textarea::placeholder { color: var(--text-soft); }
   background: transparent;
   border: 1px solid var(--border-gold);
   border-radius: var(--radius);
-  padding: 13px 15px;
+  padding: 0 15px;
   box-shadow: none;
 }
 
@@ -329,9 +329,12 @@ textarea::placeholder { color: var(--text-soft); }
   flex-shrink: 0;
 }
 
+/* O campo ocupa a altura toda da caixa: no celular, o toque em qualquer ponto dela acerta o campo
+   (antes, só a linha do texto, com uns 18 px de altura) */
 .filter-group input,
 .filter-group select {
   width: 100%;
+  min-height: 46px;
   background: transparent;
   color: var(--text);
   border: none;

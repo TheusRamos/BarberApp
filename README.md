@@ -250,7 +250,7 @@ A interface não expõe todas as operações permitidas pela API, como a exclus�
 
 ### Fluxos principais
 
-- **Cliente:** cadastrar/entrar → escolher profissional, serviço, data e horário → confirmar → acompanhar a reserva. Nome e e-mail pertencem ao usuário autenticado.
+- **Cliente:** cadastrar/entrar → escolher profissional, serviço, data e horário → confirmar → acompanhar a reserva. Nome e e-mail pertencem ao usuário autenticado e não aparecem no formulário; só na edição pelo administrador, para mostrar de quem é a reserva.
 - **Conflito de reserva:** se o servidor retornar `SLOT_TAKEN`, a interface oferece entrada na fila. Horários já ocupados são normalmente ocultados, portanto essa oferta ocorre principalmente quando outra reserva foi feita após carregar a tela.
 - **Administrador:** cadastrar serviços e profissionais → acompanhar reservas → editar reservas ativas ou alterar status → moderar avaliações na página **Avaliações**.
 - **Login com Google:** **Continuar com o Google** leva à tela do Google e volta para o Perfil. O primeiro acesso cria uma conta de cliente sem senha e sem telefone; o Perfil pede o telefone, exigido para agendar ou entrar na fila (`PHONE_REQUIRED`). Os acessos seguintes entram na mesma conta. Um e-mail que já tem cadastro com senha não é vinculado ao Google: o usuário continua entrando com e-mail e senha.

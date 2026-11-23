@@ -277,6 +277,7 @@ select optgroup {
 .filter-group .date-picker-trigger {
   flex: 1;
   min-width: 0;
+  min-height: 46px;
   background: none;
   border: 0;
   padding: 0;

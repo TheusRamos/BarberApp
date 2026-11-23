@@ -115,9 +115,23 @@ Os problemas abaixo foram relatados e ainda precisam ser investigados. As causas
 
 ## Outras ideias pendentes
 
-Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **026**.
+Acrescente novas ideias nesta seção, usando o modelo abaixo e o próximo identificador disponível: **027**.
 
 ## Atualizações concluídas
+
+### 026 — Ajustes de usabilidade no celular e no leitor de tela
+
+- **Estado:** Concluído
+- **Registrado em:** 23/11/2026
+- **Concluído em:** 23/11/2026
+- **Objetivo:** Corrigir cinco achados da bateria de testes de usabilidade de 23/11/2026 que atrapalham o uso no celular e por leitor de tela.
+- **Resumo da entrega:**
+  - **Agendamento incompleto:** ao enviar com campos faltando, a página rola até o primeiro aviso, põe o foco no campo e mostra "Preencha os campos destacados para agendar.". Antes, no celular, os avisos ficavam acima da tela e parecia que o botão não tinha feito nada.
+  - **Avisos lidos em voz alta:** a mensagem de sucesso ou erro (toast) das 6 páginas passa a ser anunciada pelo leitor de tela (`role="status"`), inclusive quando a mesma mensagem se repete.
+  - **Filtros de Agendamentos:** a busca e o filtro de serviço ganham rótulo para o leitor de tela, e os três campos ocupam a altura toda da caixa (área de toque de 46 px, antes uns 18 px), sem mudar o visual.
+  - **Formulários da conta:** no login, no cadastro, na recuperação de senha, no perfil e na troca de senha, um envio com erro leva o foco e a tela ao primeiro campo com problema.
+  - **Nome e e-mail no agendamento:** os campos somente leitura saem do agendamento novo, porque vêm da conta. Aparecem só quando o administrador edita a reserva de um cliente, agora com os rótulos "Cliente" e "E-mail do cliente".
+  - Conferido no navegador com um banco descartável: as 9 tarefas da bateria concluídas e a inspeção das 20 telas sem campos sem rótulo, sem filtros com toque pequeno e com o aviso lido em todas.
 
 ### 025 — Fila de espera pela tela e título dos agendamentos do administrador
 

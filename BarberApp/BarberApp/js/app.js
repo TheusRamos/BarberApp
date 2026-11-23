@@ -47,7 +47,14 @@ function showToast(message) {
   const toast = $("toast");
   if (!toast) return;
 
-  toast.textContent = message;
+  // O aviso é lido pelo leitor de tela (role="status"). Mensagem igual à anterior: esvazia
+  // e escreve de novo no quadro seguinte, senão ela não é anunciada outra vez.
+  if (toast.textContent === message) {
+    toast.textContent = "";
+    requestAnimationFrame(() => (toast.textContent = message));
+  } else {
+    toast.textContent = message;
+  }
   toast.classList.add("show");
 
   clearTimeout(showToast._timer);
@@ -560,6 +567,25 @@ function validateForm() {
   return isValid;
 }
 
+// Envio incompleto: leva a tela até o primeiro campo com aviso e põe o foco nele. No celular,
+// os avisos ficavam acima da tela e parecia que o botão não tinha feito nada.
+function focusFirstBookingError() {
+  const fields = [
+    ["barbeiro", () => $("barbeiro")],
+    ["servico", () => document.querySelector('input[name="servico"]')],
+    ["data", () => $("data-botao")],
+    ["hora", () => $("hora")]
+  ];
+  const first = fields.find(([name]) => $(`error-${name}`)?.textContent.trim());
+  if (!first) return;
+  const [name, getField] = first;
+  const field = getField();
+  const area = name === "servico" ? $("services-grid") : field;
+  (area || $(`error-${name}`))?.scrollIntoView({ block: "center", behavior: "smooth" });
+  if (field && !field.disabled) field.focus({ preventScroll: true });
+  showToast("Preencha os campos destacados para agendar.");
+}
+
 function resetFormState() {
   localStorage.removeItem(EDIT_KEY);
   pendingEditAppointment = null;
@@ -578,6 +604,7 @@ function resetFormState() {
   const submitBtn = $("submit-btn");
   const cancelEditBtn = $("cancel-edit-btn");
 
+  $("client-fields")?.classList.add("hidden");
   if (formTitle) formTitle.textContent = "Novo agendamento";
   if (formSubtitle) formSubtitle.textContent = "Preencha os dados para reservar um horário.";
   if (submitBtn) {
@@ -710,6 +737,7 @@ async function fillFormForEdit(docId) {
     const submitBtn = $("submit-btn");
     const cancelEditBtn = $("cancel-edit-btn");
 
+    $("client-fields")?.classList.remove("hidden");
     if (formTitle) formTitle.textContent = "Editar agendamento";
     if (formSubtitle) formSubtitle.textContent = "Atualize as informações do cliente e salve novamente.";
     if (submitBtn) submitBtn.innerHTML = `<span class="material-symbols-outlined">save</span>Atualizar agendamento`;
@@ -812,7 +840,10 @@ function loadFormPage() {
       return;
     }
 
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      focusFirstBookingError();
+      return;
+    }
 
     const submitBtn = $("submit-btn");
     if (submitBtn) submitBtn.disabled = true;

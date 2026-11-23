@@ -20,7 +20,14 @@ const captcha = { login: { widget: null, token: "" }, register: { widget: null, 
 function showToast(message) {
   const toast = $("toast");
   if (!toast) return;
-  toast.textContent = message;
+  // O aviso é lido pelo leitor de tela (role="status"). Mensagem igual à anterior: esvazia
+  // e escreve de novo no quadro seguinte, senão ela não é anunciada outra vez.
+  if (toast.textContent === message) {
+    toast.textContent = "";
+    requestAnimationFrame(() => (toast.textContent = message));
+  } else {
+    toast.textContent = message;
+  }
   toast.classList.add("show");
   clearTimeout(showToast._timer);
   showToast._timer = setTimeout(() => toast.classList.remove("show"), 2800);
@@ -43,6 +50,17 @@ function clearError(fieldName) {
 function clearAllErrors() {
   document.querySelectorAll(".field-error").forEach(el => (el.textContent = ""));
   $("login-register-hint")?.classList.add("hidden");
+}
+
+// Envio com erro: leva a tela até o primeiro campo com aviso e põe o foco nele.
+// No celular o aviso não fica escondido, e quem usa teclado já começa a corrigir dali.
+function focusFirstError(form) {
+  const error = [...(form?.querySelectorAll(".field-error") || [])].find(el => el.textContent.trim());
+  if (!error) return;
+  const field = $(error.id.replace(/^error-/, ""));
+  const visibleField = field && field.offsetParent !== null ? field : null;
+  (visibleField || error).scrollIntoView({ block: "center", behavior: "smooth" });
+  visibleField?.focus({ preventScroll: true });
 }
 
 // ============================================================
@@ -268,7 +286,10 @@ async function handleForgot(event) {
   event.preventDefault();
   clearAllErrors();
   const email = ($("forgot-email")?.value || "").trim();
-  if (!isValidEmail(email)) return setError("forgot-email", "Informe um email válido.");
+  if (!isValidEmail(email)) {
+    setError("forgot-email", "Informe um email válido.");
+    return focusFirstError(event.target);
+  }
 
   const submitBtn = submitButton(event);
   if (submitBtn) submitBtn.disabled = true;
@@ -303,7 +324,7 @@ async function handleReset(event) {
   let valid = true;
   if (password.length < 8)          { setError("reset-password", "A senha precisa ter pelo menos 8 caracteres."); valid = false; }
   if (password !== confirmPassword) { setError("reset-password-confirm", "As senhas não coincidem."); valid = false; }
-  if (!valid) return;
+  if (!valid) return focusFirstError(event.target);
 
   const submitBtn = submitButton(event);
   if (submitBtn) submitBtn.disabled = true;
@@ -620,12 +641,12 @@ async function handleProfileSave(event) {
 
   if (name.length < 3) {
     setError("profile-name", "Informe um nome válido (mínimo 3 caracteres).");
-    return;
+    return focusFirstError(event.target);
   }
 
   if (phone.replace(/\D/g, "").length < 10) {
     setError("profile-phone", "Informe um telefone válido com DDD.");
-    return;
+    return focusFirstError(event.target);
   }
 
   // E-mail corrigido (só antes da confirmação, quando o campo fica liberado)
@@ -634,7 +655,7 @@ async function handleProfileSave(event) {
   const emailChanged = Boolean(newEmail) && newEmail.toLowerCase() !== (currentUser?.email || "").toLowerCase();
   if (emailChanged && !isValidEmail(newEmail)) {
     setError("profile-email-field", "Informe um email válido.");
-    return;
+    return focusFirstError(event.target);
   }
   if (emailChanged && holdForSuggestion("profile-email-field")) return;
 
@@ -696,7 +717,7 @@ async function handlePasswordChange(event) {
   if (newPassword.length < 8)          { setError("password-new", "A senha precisa ter pelo menos 8 caracteres."); valid = false; }
   else if (newPassword === currentPassword) { setError("password-new", "A nova senha deve ser diferente da atual."); valid = false; }
   if (newPassword !== confirm)         { setError("password-new-confirm", "As senhas não coincidem."); valid = false; }
-  if (!valid) return;
+  if (!valid) return focusFirstError(event.target);
 
   const submitBtn = submitButton(event);
   if (submitBtn) submitBtn.disabled = true;
@@ -732,7 +753,7 @@ async function handleLogin(event) {
     setError("login-captcha", "Confirme que você não é um robô.");
     valid = false;
   }
-  if (!valid) return;
+  if (!valid) return focusFirstError(event.target);
 
   const submitBtn = submitButton(event);
   if (submitBtn) submitBtn.disabled = true;
@@ -783,7 +804,7 @@ async function handleRegister(event) {
   if (password.length < 8)                            { setError("register-password", "A senha precisa ter pelo menos 8 caracteres."); valid = false; }
   if (password !== confirm)                           { setError("register-password-confirm", "As senhas não coincidem."); valid = false; }
   if (captchaSiteKey && !captcha.register.token)      { setError("register-captcha", "Confirme que você não é um robô."); valid = false; }
-  if (!valid) return;
+  if (!valid) return focusFirstError(event.target);
   if (holdForSuggestion("register-email")) return;
 
   const submitBtn = submitButton(event);
@@ -803,8 +824,10 @@ async function handleRegister(event) {
     console.error("Erro no cadastro:", error);
     resetCaptcha("register");
     // Domínio que não recebe e-mail ou e-mail já cadastrado: o aviso aparece no próprio campo
-    if (["EMAIL_DOMAIN_INVALID", "EMAIL_IN_USE"].includes(error.code)) setError("register-email", translateApiError(error));
-    else showToast(translateApiError(error));
+    if (["EMAIL_DOMAIN_INVALID", "EMAIL_IN_USE"].includes(error.code)) {
+      setError("register-email", translateApiError(error));
+      focusFirstError(event.target);
+    } else showToast(translateApiError(error));
     if (submitBtn) submitBtn.disabled = false;
   }
 }
