@@ -1,9 +1,8 @@
-import { api, getToken, saveOfflineCopy, getOfflineCopy } from "./api.js";
+import { api, getToken, saveOfflineCopy, getOfflineCopy, EDIT_KEY } from "./api.js";
 import { appTimeZone } from "./config.js";
 import { createDatePicker, weekdayOf, weekdayName } from "./calendario.js";
 import { confirmDialog } from "./dialogo.js";
 
-const EDIT_KEY = "barber_agendamento_editando";
 const STATUS_SEQUENCE = ["Pendente", "Confirmado", "Concluído", "Cancelado"];
 
 const DIAS_SEMANA = [
@@ -747,6 +746,8 @@ async function fillFormForEdit(docId) {
     if (cancelEditBtn) cancelEditBtn.classList.remove("hidden");
   } catch (error) {
     console.error("Erro ao carregar agendamento para edição:", error);
+    // O formulário continua como "Novo agendamento": sem a edição guardada, o envio também é um agendamento novo
+    localStorage.removeItem(EDIT_KEY);
     showToast("Não foi possível carregar o agendamento.");
   }
 }
@@ -1788,7 +1789,9 @@ async function initAuth() {
 
   const editId = localStorage.getItem(EDIT_KEY);
   if (editId && $("booking-form")) {
-    await fillFormForEdit(editId);
+    // Só o administrador edita agendamentos: uma edição que ficou para trás não vale para outra conta
+    if (isAdmin) await fillFormForEdit(editId);
+    else localStorage.removeItem(EDIT_KEY);
   }
 }
 

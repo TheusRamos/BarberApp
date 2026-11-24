@@ -61,6 +61,8 @@ import { apiBaseUrl } from './config.js';
 const API_BASE_URL = ((typeof window !== "undefined" && window.API_BASE_URL) || apiBaseUrl).replace(/\/$/, '');
 const TOKEN_KEY = "barber_auth_token";
 const OFFLINE_KEY = "barber_agendamentos_offline";
+// Agendamento que o administrador abriu com "Editar" (o formulário do Início fica em modo de edição)
+export const EDIT_KEY = "barber_agendamento_editando";
 
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
@@ -68,7 +70,9 @@ export function getToken() {
 
 export function setToken(token) {
   // Entrar, sair ou trocar de conta apaga os agendamentos guardados para ver sem internet
+  // e a edição que o administrador deixou aberta (senão o próximo cliente herda o modo de edição)
   localStorage.removeItem(OFFLINE_KEY);
+  localStorage.removeItem(EDIT_KEY);
   if (token) localStorage.setItem(TOKEN_KEY, token);
   else localStorage.removeItem(TOKEN_KEY);
 }
