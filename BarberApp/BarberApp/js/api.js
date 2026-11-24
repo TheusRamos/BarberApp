@@ -49,7 +49,7 @@
 //   POST   /waitlist             WaitlistEntry                           -> { id }
 //   DELETE /waitlist/:id                                                 -> {}                (desistir; só o dono)
 //
-//   GET    /comments                                                     -> Comment[]
+//   GET    /comments                                                     -> Comment[]         (com authorPhoto, a foto de perfil do autor)
 //   POST   /comments             { rating, text }                        -> Comment
 //   PATCH  /comments/:id         { approved }                            -> Comment           (admin; aprova ou oculta)
 //   DELETE /comments/:id                                                 -> {}                (admin ou dono)

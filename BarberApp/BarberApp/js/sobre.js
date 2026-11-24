@@ -1,4 +1,15 @@
-import { api } from "./api.js";
+import { api, getToken } from "./api.js";
+import { showProfileInMenu } from "./menu-perfil.js";
+
+// Menu lateral com a foto e o nome de quem está logado
+async function loadMenuProfile() {
+  if (!getToken()) return showProfileInMenu(null);
+  try {
+    showProfileInMenu((await api.auth.me()).user);
+  } catch {
+    // sem internet ou sessão vencida: o menu fica como veio no HTML ("Perfil")
+  }
+}
 
 function esc(v = "") {
   return String(v)
@@ -88,5 +99,6 @@ async function loadEquipe() {
   }
 }
 
+loadMenuProfile();
 loadServicos();
 loadEquipe();

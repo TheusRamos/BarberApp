@@ -2,6 +2,7 @@ import { api, getToken, saveOfflineCopy, getOfflineCopy, EDIT_KEY } from "./api.
 import { appTimeZone } from "./config.js";
 import { createDatePicker, weekdayOf, weekdayName } from "./calendario.js";
 import { confirmDialog } from "./dialogo.js";
+import { showProfileInMenu } from "./menu-perfil.js";
 
 const STATUS_SEQUENCE = ["Pendente", "Confirmado", "Concluído", "Cancelado"];
 
@@ -110,6 +111,18 @@ function formatMoney(value) {
 
 function getInitial(name) {
   return name ? name.trim().charAt(0).toUpperCase() : "?";
+}
+
+// Conteúdo do círculo de avatar: a foto de perfil ou, sem foto, a inicial do nome.
+// As fotos vêm do servidor já conferidas (só imagens JPEG, PNG ou WebP).
+function avatarContent(photo, initial) {
+  return photo ? `<img src="${escapeHTML(photo)}" alt="" />` : escapeHTML(initial);
+}
+
+// Foto do dono de um agendamento: a do próprio cliente vem da conta; o admin usa a lista de clientes
+function appointmentPhoto(appointment) {
+  if (currentUser && appointment.userId === currentUser.id) return currentUser.photoURL || "";
+  return usersCache.find(user => user.id === appointment.userId)?.photoURL || "";
 }
 
 function getStatusClass(status) {
@@ -245,19 +258,6 @@ function generateBarberSlots(barbeiro, selectedDate, selectedServices, editId) {
   }
 
   return slots;
-}
-
-function updateAuthLink() {
-  const link = $("auth-link");
-  if (!link) return;
-
-  if (currentUser) {
-    link.href = "auth.html";
-    link.innerHTML = `<span class="material-symbols-outlined" aria-hidden="true">person</span>${escapeHTML(currentUser.name || currentUser.email || "Perfil")}`;
-  } else {
-    link.href = "auth.html";
-    link.innerHTML = `<span class="material-symbols-outlined" aria-hidden="true">person</span>Entrar`;
-  }
 }
 
 function updateAdminVisibility() {
@@ -949,7 +949,7 @@ function createAppointmentCard(appointment) {
 
   article.innerHTML = `
     <div class="card-top">
-      <div class="client-avatar">${escapeHTML(getInitial(appointment.nome))}</div>
+      <div class="client-avatar">${avatarContent(appointmentPhoto(appointment), getInitial(appointment.nome))}</div>
       <div class="client-info">
         <h3>${escapeHTML(appointment.nome)}</h3>
         <p>${escapeHTML(appointment.servico)}</p>
@@ -1468,7 +1468,7 @@ function renderCommentsList(items = []) {
   container.innerHTML = visible.map((comment, idx) => `
     <div class="comment-card anim-fade-up${idx > 0 && idx <= 5 ? ` anim-d${idx}` : ''}">
       <div class="comment-header">
-        <div class="comment-avatar">${escapeHTML(initial(comment.authorName))}</div>
+        <div class="comment-avatar">${avatarContent(comment.authorPhoto, initial(comment.authorName))}</div>
         <div class="comment-meta">
           <strong>${escapeHTML(comment.authorName || "Cliente")}</strong>
           <div class="comment-stars" role="img" aria-label="Nota ${Number(comment.rating) || 5} de 5">${starsHTML(comment.rating)}</div>
@@ -1548,7 +1548,7 @@ function renderAdminCommentReview() {
   list.innerHTML = pending.map(comment => `
     <div class="review-item">
       <div class="review-item-header">
-        <div class="comment-avatar">${escapeHTML(initial(comment.authorName))}</div>
+        <div class="comment-avatar">${avatarContent(comment.authorPhoto, initial(comment.authorName))}</div>
         <div class="comment-meta">
           <strong>${escapeHTML(comment.authorName || "Cliente")}</strong>
           <div class="comment-stars" role="img" aria-label="Nota ${Number(comment.rating) || 5} de 5">${starsHTML(comment.rating)}</div>
@@ -1664,11 +1664,12 @@ async function saveComment() {
 
 async function loadUsers() {
   const container = $("clients-list");
-  if (!container) return;
+  // Na página de agendamentos a lista não aparece, mas traz para o admin a foto de cada cliente nos cartões
+  if (!container && !$("appointments-list")) return;
 
   if (!isAdmin) {
     usersCache = [];
-    container.innerHTML = "";
+    if (container) container.innerHTML = "";
     return;
   }
 
@@ -1676,7 +1677,8 @@ async function loadUsers() {
     usersCache = (await api.users.list()) || [];
   } catch (error) {
     console.error("Erro ao carregar clientes:", error);
-    showToast(apiErrorMessage(error, "Erro ao carregar clientes."));
+    // Nos agendamentos a lista só serve para as fotos: sem ela, os cartões mostram a inicial
+    if (container) showToast(apiErrorMessage(error, "Erro ao carregar clientes."));
     usersCache = [];
   }
 
@@ -1713,9 +1715,12 @@ function renderUsersList() {
 
   container.innerHTML = clients.map(user => `
     <div class="service-row">
-      <div>
-        <strong>${escapeHTML(user.name || "Sem nome")}</strong>
-        <span>${escapeHTML(user.email || "")} ${user.phone ? "• " + escapeHTML(user.phone) : ""}</span>
+      <div class="client-row-info">
+        <div class="client-row-avatar">${avatarContent(user.photoURL, getInitial(user.name))}</div>
+        <div>
+          <strong>${escapeHTML(user.name || "Sem nome")}</strong>
+          <span>${escapeHTML(user.email || "")} ${user.phone ? "• " + escapeHTML(user.phone) : ""}</span>
+        </div>
       </div>
       <div class="row-actions">
         <button class="action-btn delete-client" type="button" data-id="${escapeHTML(user.id)}">Remover</button>
@@ -1757,7 +1762,7 @@ async function initAuth() {
   }
   startedOffline = isOffline;
 
-  updateAuthLink();
+  showProfileInMenu(currentUser);
   updateAdminVisibility();
   // Cliente: o filtro de data já começa em hoje (mostra os agendamentos de hoje em diante)
   filterDatePicker?.setValue(isAdmin ? "" : getTodayISO(), { silent: true });
@@ -1781,8 +1786,9 @@ async function initAuth() {
   }
 
   if (currentUser) {
-    await loadAppointments();
+    // Clientes antes dos agendamentos: os cartões do admin já saem com a foto de cada cliente
     await loadUsers();
+    await loadAppointments();
   }
 
   renderCommentsEligibility();

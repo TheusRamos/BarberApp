@@ -36,6 +36,7 @@ const ARQUIVOS = [
   'js/auth.js',
   'js/sobre.js',
   'js/sidebar.js',
+  'js/menu-perfil.js',
   'js/pwa.js',
   'js/animations.js',
   'js/star-picker.js',

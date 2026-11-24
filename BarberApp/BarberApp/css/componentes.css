@@ -551,6 +551,53 @@ main[tabindex="-1"]:focus {
 }
 
 /* ============================================================
+   FOTO DE PERFIL FORA DO PERFIL
+   Menu lateral (js/menu-perfil.js) e lista de clientes do admin.
+   Os cartões de agendamento e as avaliações usam .client-avatar
+   e .comment-avatar, que já aceitam uma <img> dentro.
+   ============================================================ */
+
+.sidebar-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.client-row-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.client-row-info > div:last-child {
+  min-width: 0;
+}
+
+.client-row-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+  color: var(--on-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.client-row-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ============================================================
    JANELA DE CONFIRMAÇÃO (js/dialogo.js)
    No lugar do confirm() do navegador: mesmo visual do site,
    foco preso dentro da janela, Esc ou clique fora cancelam.

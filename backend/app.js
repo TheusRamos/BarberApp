@@ -419,12 +419,13 @@ app.post('/api/waitlist',auth,phoneRequired,emailConfirmed,async(req,res)=>{
     const key=await insertWaitlist(db,req.user.id,plan);
     if(!key) fail(409,'Você já está na fila.','ALREADY_ON_WAITLIST');return {id:String(key)};});res.status(201).json(result);
 });
-const commentDTO=c=>({id:String(c.id),userId:String(c.cliente_id),authorName:c.nome,rating:c.estrelas,text:c.texto,approved:c.aprovado,createdAt:c.criado_em});
+// A foto de perfil do autor aparece junto da avaliação (também em público)
+const commentDTO=c=>({id:String(c.id),userId:String(c.cliente_id),authorName:c.nome,authorPhoto:c.foto||'',rating:c.estrelas,text:c.texto,approved:c.aprovado,createdAt:c.criado_em});
 // Em público, o autor aparece com o primeiro nome e a inicial do último sobrenome.
 const publicName=name=>{const parts=String(name).trim().split(/\s+/);return parts.length>1?`${parts[0]} ${parts.at(-1)[0].toUpperCase()}.`:parts[0];};
 app.get('/api/comments',async(req,res)=>{
   const isAdmin=req.user?.tipo==='administrador';
-  const rows=(await pool.query(`SELECT c.*,u.nome FROM comentarios c JOIN usuarios u ON u.id=c.cliente_id
+  const rows=(await pool.query(`SELECT c.*,u.nome,u.foto FROM comentarios c JOIN usuarios u ON u.id=c.cliente_id
     ${isAdmin?'':'WHERE c.aprovado'} ORDER BY c.criado_em DESC`)).rows;
   res.json(rows.map(c=>{const dto=commentDTO(c);if(!isAdmin) {delete dto.userId;dto.authorName=publicName(c.nome);}return dto;}));
 });
@@ -438,12 +439,12 @@ app.post('/api/comments',auth,emailConfirmed,async(req,res)=>{
       fail(409,'Você já tem uma avaliação aguardando aprovação.','COMMENT_PENDING');
     return (await db.query('INSERT INTO comentarios(cliente_id,estrelas,texto) VALUES($1,$2,$3) RETURNING *',[req.user.id,p.rating,body])).rows[0];
   });
-  res.status(201).json(commentDTO({...c,nome:req.user.nome}));
+  res.status(201).json(commentDTO({...c,nome:req.user.nome,foto:req.user.foto}));
 });
 app.patch('/api/comments/:id',auth,admin,async(req,res)=>{
   if(typeof req.body.approved!=='boolean') fail(400,'Aprovação inválida.');
   const c=(await pool.query(`UPDATE comentarios c SET aprovado=$1 FROM usuarios u
-    WHERE c.id=$2 AND u.id=c.cliente_id RETURNING c.*,u.nome`,[req.body.approved,id(req.params.id)])).rows[0];
+    WHERE c.id=$2 AND u.id=c.cliente_id RETURNING c.*,u.nome,u.foto`,[req.body.approved,id(req.params.id)])).rows[0];
   if(!c) fail(404,'Comentário não encontrado.','NOT_FOUND');res.json(commentDTO(c));
 });
 app.delete('/api/comments/:id',auth,async(req,res)=>{

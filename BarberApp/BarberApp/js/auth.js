@@ -1,5 +1,6 @@
 import { api, getToken, setToken } from "./api.js";
 import { confirmDialog } from "./dialogo.js";
+import { showProfileInMenu } from "./menu-perfil.js";
 
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -675,6 +676,8 @@ async function handleProfileSave(event) {
 
     const updated = await api.users.update(currentUser.id, payload);
     currentUser = updated;
+    // Foto ou nome novos já aparecem no menu
+    showProfileInMenu(updated);
 
     const nameDisplay = $("profile-name-display");
     if (nameDisplay) nameDisplay.textContent = name;
@@ -980,6 +983,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   await handleVerifyReturn();
   const googleLogin = await handleGoogleReturn();
   currentUser = await loadCurrentUser();
+  // Sem internet a sessão não é confirmada: o menu fica como veio no HTML ("Perfil")
+  if (currentUser || !getToken()) showProfileInMenu(currentUser);
 
   if (shouldLogout) {
     if (currentUser) await handleLogout();

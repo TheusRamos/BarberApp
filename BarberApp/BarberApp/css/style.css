@@ -1076,6 +1076,14 @@ button:disabled,
   text-overflow: ellipsis;
 }
 
+/* Aviso de onde a foto de perfil aparece (inclusive em público, nas avaliações) */
+.profile-photo-hint {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
 .profile-divider {
   height: 1px;
   background: var(--border-faint);
